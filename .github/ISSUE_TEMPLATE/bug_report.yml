@@ -1,0 +1,81 @@
+name: Report a bug with LLM Intent Custom Integration
+description: Report a bug with LLM Intent Custom Integration
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      description: Please verify that you've followed these steps
+      options:
+        - label: I have updated to the latest available LLM Intent Custom Integration version, [see the latest version here](https://github.com/skye-harris/llm_intents/releases/latest).
+          required: true
+  - type: markdown
+    attributes:
+      value: |
+        ## The problem
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the issue you are experiencing
+      description: Provide a clear and concise description of what the bug is.
+  - type: markdown
+    attributes:
+      value: |
+        ## Environment
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: In which version of Home Assistant Core do you have the problem?
+      placeholder: core-
+      description: >
+        Can be found in: [Settings -> About](https://my.home-assistant.io/redirect/info/).
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: What version of LLM Intent Custom Integration has the issue?
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: What version of LLM Intent do you have the problem?
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Logs file
+      placeholder: "drag-and-drop the logs file here (do not copy-and-paste the content)"
+      description: >-
+        Debug log files help you track and understand your issue, please attach them here.
+        
+        Please, you can follow the steps below:
+          * [Enable integration debugging](https://www.home-assistant.io/docs/configuration/troubleshooting/#enabling-debug-logging).
+          * Reload the integration configuration entry.
+          * [Disable integration debugging and download the generated log file](https://www.home-assistant.io/docs/configuration/troubleshooting/#disable-debug-logging-and-download-logs).
+          * Attach the generated log file here.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Diagnostics file
+      placeholder: "drag-and-drop the diagnostics data here (do not copy-and-paste the content)"
+      description: >-
+        The integration provide the ability to download diagnostic data.
+
+        **It would really help if you could download the diagnostics data for the device you are having issues with,
+        and <ins>drag-and-drop that file into the textbox below.</ins>**
+
+        It generally allows pinpointing defects and thus resolving issues faster.
+        
+        Please, you can follow the steps below:
+          * [Download a diagnostic file](https://www.home-assistant.io/docs/configuration/troubleshooting/#download-diagnostics).
+          * Attach the diagnostic file here.          
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: >
+        If you have any additional information for us, use the field below.
+        Please note, you can attach screenshots or screen recordings here, by
+        dragging and dropping files in the field below.
