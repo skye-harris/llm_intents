@@ -22,6 +22,7 @@ def test_platform_schema_all_options():
     PLATFORM_SCHEMA({})  # Completely empty configuration is allowed
 
     # All three intents enabled with minimal settings
+
     config = {
         CONF_BRAVE_INTENT: {"api_key": "key", "num_results": 3},
         CONF_GOOGLE_PLACES_INTENT: {"api_key": "gkey", "num_results": 4},
@@ -30,6 +31,7 @@ def test_platform_schema_all_options():
     PLATFORM_SCHEMA(config)
 
     # Explicit True for Wikipedia intent
+
     PLATFORM_SCHEMA({CONF_WIKIPEDIA_INTENT: True})
 
 
@@ -38,7 +40,6 @@ def test_platform_schema_invalid():
     bad = {CONF_BRAVE_INTENT: {"num_results": 1}}  # missing api_key
     with pytest.raises(vol.Invalid):
         PLATFORM_SCHEMA(bad)
-
     bad2 = {CONF_GOOGLE_PLACES_INTENT: {"api_key": "k", "num_results": "two"}}
     with pytest.raises(vol.Invalid):
         PLATFORM_SCHEMA(bad2)
@@ -50,7 +51,9 @@ async def test_async_setup_no_config(hass):
     hass.data.clear()
     calls = []
     monkey = pytest.MonkeyPatch()
-    monkey.setattr(intent_helpers, "async_register", lambda _h, inst: calls.append(inst))
+    monkey.setattr(
+        intent_helpers, "async_register", lambda _h, inst: calls.append(inst)
+    )
     result = await async_setup(hass, {})
     assert result is True
     assert calls == []

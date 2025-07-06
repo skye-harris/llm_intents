@@ -157,7 +157,6 @@ async def test_search_wikipedia_no_hits(monkeypatch):
     async with _patch_client_session(monkeypatch, session):
         ws = WikipediaSearch({})
         result = await ws.search_wikipedia("nothing")
-
     assert result == "No search results matched the query"
     assert session.requests == [(search_url, None)]
 
@@ -186,7 +185,6 @@ async def test_search_wikipedia_hits_with_summaries(monkeypatch):
     async with _patch_client_session(monkeypatch, session):
         ws = WikipediaSearch({CONF_WIKIPEDIA_NUM_RESULTS: 2})
         result = await ws.search_wikipedia("topic")
-
     requested = [req[0] for req in session.requests]
     assert search_url in requested
     assert summary_urls["Foo"] in requested
@@ -205,7 +203,9 @@ async def test_search_wikipedia_summaries_empty(monkeypatch):
         "?action=query&format=json&list=search"
         f"&srsearch={urllib.parse.quote_plus(title)}"
     )
-    summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
+    summary_url = (
+        f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
+    )
 
     fake_search = FakeResponse({"query": {"search": [{"title": title}]}})
     fake_summary = FakeResponse({})
@@ -214,7 +214,6 @@ async def test_search_wikipedia_summaries_empty(monkeypatch):
     async with _patch_client_session(monkeypatch, session):
         ws = WikipediaSearch({CONF_WIKIPEDIA_NUM_RESULTS: 1})
         result = await ws.search_wikipedia(title)
-
     assert result == [{"title": title, "summary": "No summary available"}]
 
 
@@ -233,7 +232,6 @@ async def test_search_wikipedia_zero_results_flag(monkeypatch):
     async with _patch_client_session(monkeypatch, session):
         ws = WikipediaSearch({CONF_WIKIPEDIA_NUM_RESULTS: 0})
         result = await ws.search_wikipedia(title)
-
     assert result == "No summaries available"
     assert [req[0] for req in session.requests] == [search_url]
 

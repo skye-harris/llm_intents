@@ -1,5 +1,6 @@
 # tests/conftest.py
 # pylint: disable=protected-access,redefined-outer-name
+
 """Global fixtures for LLM Intents integration tests."""
 
 import pytest
@@ -30,6 +31,7 @@ def mock_config_entry():
         },
     )
 
+
 @pytest.fixture
 async def init_integration(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
@@ -42,5 +44,4 @@ async def init_integration(
     """
     with patch_async_setup_entry(enabled=True):
         await async_init_integration(hass, mock_config_entry)
-
     return mock_config_entry

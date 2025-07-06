@@ -23,14 +23,18 @@ class BraveSearch(intent.IntentHandler):
     """Handle web searches via the Brave Search API."""
 
     # Type of intent to handle
+
     intent_type = "search_internet"
     description = "Perform an immediate internet search for a given query"
 
     def __init__(self, config: dict) -> None:
         """Initialize the BraveSearch handler with the user's configuration."""
         # Store slot requirements in a separate dict so we don't shadow the internal _slot_schema
+
         self._slot_schema_dict: dict = {
-            vol.Required("query", description="The query to search for"): intent.non_empty_string,
+            vol.Required(
+                "query", description="The query to search for"
+            ): intent.non_empty_string,
         }
         self.api_key = config.get(CONF_BRAVE_API_KEY)
         self.num_results = config.get(CONF_BRAVE_NUM_RESULTS, 2)
@@ -73,7 +77,6 @@ class BraveSearch(intent.IntentHandler):
             params["country"] = self.country_code
         if self.post_code is not None:
             headers["X-Loc-Postal-Code"] = str(self.post_code)
-
         async with (
             aiohttp.ClientSession() as session,
             session.get(url, params=params, headers=headers) as resp,

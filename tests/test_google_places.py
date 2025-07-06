@@ -116,6 +116,7 @@ async def _patch_client_session(
     monkeypatch, session: RecordingSession
 ) -> AsyncIterator[None]:
     """Patch aiohttp.ClientSession to yield our RecordingSession."""
+
     @asynccontextmanager
     async def fake_session() -> AsyncIterator[RecordingSession]:
         yield session
@@ -149,15 +150,18 @@ async def test_search_google_places_happy_path(monkeypatch):
     session = RecordingSession(fake_resp)
 
     async with _patch_client_session(monkeypatch, session):
-        gp = GooglePlaces({CONF_GOOGLE_PLACES_API_KEY: "key", CONF_GOOGLE_PLACES_NUM_RESULTS: 2})
+        gp = GooglePlaces(
+            {CONF_GOOGLE_PLACES_API_KEY: "key", CONF_GOOGLE_PLACES_NUM_RESULTS: 2}
+        )
         result = await gp.search_google_places("test")
-
     # verify returned structure
+
     assert result == [
         {"name": "Place A", "address": "Addr A"},
         {"name": "Place B", "address": "Addr B"},
     ]
     # verify payload and headers passed
+
     call = session.calls[0]
     assert call["json"] == {"textQuery": "test", "pageSize": 2}
     hdrs = call["headers"]
@@ -178,9 +182,10 @@ async def test_search_google_places_missing_fields(monkeypatch):
     session = RecordingSession(fake_resp)
 
     async with _patch_client_session(monkeypatch, session):
-        gp = GooglePlaces({CONF_GOOGLE_PLACES_API_KEY: "k", CONF_GOOGLE_PLACES_NUM_RESULTS: 1})
+        gp = GooglePlaces(
+            {CONF_GOOGLE_PLACES_API_KEY: "k", CONF_GOOGLE_PLACES_NUM_RESULTS: 1}
+        )
         result = await gp.search_google_places("x")
-
     assert result == [{"name": "No Name", "address": "No Address"}]
 
 
@@ -193,7 +198,6 @@ async def test_search_google_places_empty(monkeypatch):
     async with _patch_client_session(monkeypatch, session):
         gp = GooglePlaces({})
         result = await gp.search_google_places("none")
-
     assert result == []
 
 

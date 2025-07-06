@@ -18,6 +18,8 @@ from custom_components.llm_intents.brave_search import BraveSearch
 
 
 # Minimal intent stub
+
+
 class DummyIntent:
     """A minimal intent stub for testing BraveSearch intent handling."""
 
@@ -48,6 +50,8 @@ class DummyIntent:
 
 
 # Factory for handler
+
+
 def make_brave(config: dict[str, Any] | None = None) -> BraveSearch:
     """
     Create a BraveSearch instance for testing.
@@ -64,6 +68,7 @@ def make_brave(config: dict[str, Any] | None = None) -> BraveSearch:
 
 
 # FakeResponse implements async context and JSON, error raised on entry
+
 ErrorType = Exception
 
 
@@ -107,6 +112,8 @@ class FakeResponse:
 
 
 # DummySession provides get() returning FakeResponse
+
+
 class DummySession:
     """A dummy session object that mimics aiohttp.ClientSession for tests."""
 
@@ -142,6 +149,8 @@ class DummySession:
 
 
 # Helper to patch aiohttp.ClientSession as async contextmanager
+
+
 def patch_session(monkeypatch: Any, response_cm: FakeResponse) -> None:
     """
     Patch aiohttp.ClientSession to yield a DummySession for testing.
@@ -301,6 +310,7 @@ async def test_async_handle(monkeypatch: Any) -> None:
     """
     fake = [{"title": "T", "description": "D", "extra_snippets": ["S"], "url": "U"}]
     from unittest.mock import AsyncMock
+
     monkeypatch.setattr(
         BraveSearch,
         "search_brave_ai",
