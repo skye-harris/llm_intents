@@ -1,0 +1,12 @@
+{
+  "domain": "llm_intents",
+  "name": "LLM Intents",
+  "codeowners": ["@skye-harris"],
+  "dependencies": ["config"],
+  "documentation": "https://github.com/skye-harris/llm_intents",
+  "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
+  "iot_class": "calculated",
+  "requirements": [],
+  "version": "1.0.2",
+  "integration_type": "helper"
+}

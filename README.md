@@ -14,21 +14,38 @@ Each intent is optional and configurable via YAML. Some require API keys, but ar
 
 ## Installation
 
-1. Copy this repo into `/config/custom_components/llm_intents/` of your Home Assistant installation.
-2. Add configuration to `/config/configuration.yaml`. All tool configurations should be consolidated under a single `llm_intents` key.
-4. Restart Home Assistant.
+### Install via HACS (recommended)
+
+Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
+
+* Adding LLM Intents to HACS can be using this button:
+[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=douskye-harris&repository=llm-intents&category=integration)
+
+> [!NOTE]
+> If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
+
+* Click install on the `LLM Intents` integration.
+* Restart Home Assistant.
 
 
-## 🔍 Brave Search
+<details><summary>Manual Install</summary>
+
+* Copy the `llm-intents`  folder from [latest release](https://github.com/dougiteixeira/proxmoxve/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
+* Restart the Home Assistant.
+</details>
+
+## Configuration
+
+### 🔍 Brave Search
 
 Uses the Brave AI Web Search API to return summarized, snippet-rich results.
 
-### Requirements
+##### Requirements
 
 * Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai)
 * The free tier plan is supported
 
-### Example Configuration
+#### Example Configuration
 
 ```yaml
 llm_intents:
@@ -42,7 +59,7 @@ llm_intents:
     post_code: "6000"
 ```
 
-### Options
+#### Options
 
 | Key            | Required | Default | Description                                       |
 | -------------- | -------- | ------- | ------------------------------------------------- |
@@ -56,16 +73,16 @@ llm_intents:
 
 ---
 
-## 📍 Google Places
+### 📍 Google Places
 
 Searches for locations, businesses, or points of interest using the Google Places API.
 
-### Requirements
+#### Requirements
 
 * Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
 * Ensure the Places API is enabled in your Google Cloud project.
 
-### Example Configuration
+#### Example Configuration
 
 ```yaml
 llm_intents:
@@ -74,7 +91,7 @@ llm_intents:
     num_results: 3
 ```
 
-### Options
+#### Options
 
 | Key           | Required | Default | Description                          |
 | ------------- | -------- | ------- | ------------------------------------ |
@@ -83,16 +100,16 @@ llm_intents:
 
 ---
 
-## 📚 Wikipedia
+### 📚 Wikipedia
 
 Looks up Wikipedia articles and returns summaries of the top results.
 
-### Requirements
+#### Requirements
 
 * No API key required.
 * Uses the public Wikipedia search and summary APIs.
 
-### Example Configuration
+#### Example Configuration
 
 ```yaml
 llm_intents:
