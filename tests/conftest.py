@@ -1,3 +1,4 @@
+# tests/conftest.py
 # pylint: disable=protected-access,redefined-outer-name
 """Global fixtures for LLM Intents integration tests."""
 
@@ -6,9 +7,10 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.llm_intents import DOMAIN
-from tests import async_init_integration, patch_async_setup_entry
 
-pytest_plugins = ["pytest_homeassistant_custom_component"]
+from . import async_init_integration, patch_async_setup_entry
+
+pytest_plugins = "pytest_homeassistant_custom_component"
 
 
 @pytest.fixture
@@ -27,10 +29,10 @@ def mock_config_entry():
     )
 
 
-# Automatically enable loading custom integrations in all tests
+# 3) Autouse the plugin’s enable_custom_integrations
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
-    """Turn on custom integration loading."""
+    """Automatically enable loading custom integrations in all tests."""
     return
 
 
@@ -40,7 +42,7 @@ async def init_integration(
 ) -> MockConfigEntry:
     """Set up the LLM Intents integration for testing."""
     # Patch llm_intents.async_setup_entry so HA will accept our entry
-    with patch_async_setup_entry(return_value=True):
+    with patch_async_setup_entry(True):
         await async_init_integration(hass, mock_config_entry)
 
     return mock_config_entry
