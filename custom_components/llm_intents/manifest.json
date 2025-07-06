@@ -1,8 +1,8 @@
 {
     "domain": "llm_intents",
     "name": "LLM Intents",
-    "config_flow": true,
     "codeowners": ["@skye-harris"],
+    "config_flow": true,
     "dependencies": ["config"],
     "documentation": "https://github.com/skye-harris/llm_intents",
     "integration_type": "helper",
