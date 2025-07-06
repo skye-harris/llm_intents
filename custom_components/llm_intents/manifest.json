@@ -1,12 +1,13 @@
 {
-  "domain": "llm_intents",
-  "name": "LLM Intents",
-  "codeowners": ["@skye-harris"],
-  "dependencies": ["config"],
-  "documentation": "https://github.com/skye-harris/llm_intents",
-  "integration_type": "helper",
-  "iot_class": "calculated",
-  "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
-  "requirements": [],
-  "version": "1.0.2"
+    "domain": "llm_intents",
+    "name": "LLM Intents",
+    "config_flow": true,
+    "codeowners": ["@skye-harris"],
+    "dependencies": ["config"],
+    "documentation": "https://github.com/skye-harris/llm_intents",
+    "integration_type": "helper",
+    "iot_class": "calculated",
+    "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
+    "requirements": [],
+    "version": "1.0.2"
 }

@@ -1,231 +1,429 @@
-"""Tests for the GooglePlaces integration in the llm_intents custom component."""
+"""Tests for Google Places intent handler."""
 
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from typing import Any
+import json
+from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
 import pytest
-from homeassistant.helpers import intent as intent_helpers
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import intent
 
-from custom_components.llm_intents.google_places import (
+from custom_components.llm_intents.google_places import GooglePlaces
+from custom_components.llm_intents.const import (
     CONF_GOOGLE_PLACES_API_KEY,
+    CONF_GOOGLE_PLACES_INTENT,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
-    GooglePlaces,
 )
 
 
-class DummyIntent:
-    """Minimal stand-in for Home Assistant Intent objects."""
-
-    def __init__(self, query_value: str) -> None:
-        """
-        Initialize with a single 'query' slot.
-
-        Args:
-            query_value (str): The value for the 'query' slot.
-
-        """
-        self.slots = {"query": {"value": query_value}}
-        self.data: dict[str, Any] = {}
-
-    def create_response(self) -> "DummyIntent":
-        """Return self as the response object."""
-        return self
-
-    def async_set_speech(self, speech: str) -> None:
-        """
-        Store the speech text in self.data.
-
-        Args:
-            speech (str): The speech text to set.
-
-        """
-        self.data["speech"] = speech
+@pytest.fixture
+def mock_config_entry():
+    """Create a mock config entry."""
+    config_entry = Mock(spec=ConfigEntry)
+    config_entry.data = {
+        CONF_GOOGLE_PLACES_API_KEY: "test_api_key",
+        CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
+    }
+    return config_entry
 
 
-class FakeResponse:
-    """Simulate aiohttp response context for testing."""
-
-    def __init__(self, payload: Any, status: int = 200) -> None:
-        """
-        Initialize with payload and status.
-
-        Args:
-            payload: JSON serializable data to return.
-            status (int): HTTP status code to simulate.
-
-        """
-        self._payload = payload
-        self.status = status
-
-    async def json(self) -> Any:
-        """Return the payload."""
-        return self._payload
-
-    def raise_for_status(self) -> None:
-        """Raise on bad status."""
-        if not (200 <= self.status < 300):
-            raise aiohttp.ClientResponseError(None, (), status=self.status)
-
-    async def __aenter__(self) -> "FakeResponse":
-        """Enter context, raising on error status."""
-        self.raise_for_status()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb) -> bool:
-        """Exit context without suppressing exceptions."""
-        return False
+@pytest.fixture
+def google_places_handler(hass, mock_config_entry):
+    """Create a GooglePlaces handler instance."""
+    return GooglePlaces(hass, mock_config_entry)
 
 
-class RecordingSession:
-    """Capture POST requests and return preset FakeResponse."""
-
-    def __init__(self, response: FakeResponse) -> None:
-        """
-        Initialize with a single FakeResponse to return on post().
-
-        Args:
-            response: The FakeResponse to return.
-
-        """
-        self.response = response
-        self.calls: list[dict[str, Any]] = []
-
-    def post(
-        self, url: str, json: dict[str, Any], headers: dict[str, Any]
-    ) -> FakeResponse:
-        """
-        Record and return the fake response for a POST request.
-
-        Args:
-            url (str): The request URL.
-            json (dict): The JSON payload.
-            headers (dict): The request headers.
-
-        Returns:
-            FakeResponse: The fake response context manager.
-
-        """
-        self.calls.append({"url": url, "json": json, "headers": headers})
-        return self.response
+@pytest.fixture
+def mock_intent():
+    """Create a mock intent object."""
+    intent_obj = Mock(spec=intent.Intent)
+    intent_obj.slots = {"query": {"value": "coffee shops near me"}}
+    intent_obj.create_response.return_value = Mock(spec=intent.IntentResponse)
+    return intent_obj
 
 
-@asynccontextmanager
-async def _patch_client_session(
-    monkeypatch, session: RecordingSession
-) -> AsyncIterator[None]:
-    """Patch aiohttp.ClientSession to yield our RecordingSession."""
-
-    @asynccontextmanager
-    async def fake_session() -> AsyncIterator[RecordingSession]:
-        yield session
-
-    monkeypatch.setattr(aiohttp, "ClientSession", lambda: fake_session())
-    yield
-
-
-def test_constructor_defaults_and_config() -> None:
-    """Constructor should set API key and num_results from config or use defaults."""
-    cfg = {"api_key": "abc", "num_results": 5}
-    gp = GooglePlaces(cfg)
-    assert gp.api_key == "abc"
-    assert gp.num_results == 5
-
-    gp2 = GooglePlaces({})
-    assert gp2.api_key is None
-    assert gp2.num_results == 2  # default
-
-
-@pytest.mark.asyncio
-async def test_search_google_places_happy_path(monkeypatch):
-    """Return formatted list on successful API response."""
-    payload = {
+@pytest.fixture
+def sample_places_response():
+    """Sample API response from Google Places."""
+    return {
         "places": [
-            {"displayName": {"text": "Place A"}, "formattedAddress": "Addr A"},
-            {"displayName": {"text": "Place B"}, "formattedAddress": "Addr B"},
+            {
+                "displayName": {"text": "Starbucks Coffee"},
+                "formattedAddress": "123 Main St, Anytown, USA",
+                "location": {"latitude": 40.7128, "longitude": -74.0060},
+            },
+            {
+                "displayName": {"text": "Local Coffee Shop"},
+                "formattedAddress": "456 Oak Ave, Anytown, USA",
+                "location": {"latitude": 40.7589, "longitude": -73.9851},
+            },
         ]
     }
-    fake_resp = FakeResponse(payload)
-    session = RecordingSession(fake_resp)
-
-    async with _patch_client_session(monkeypatch, session):
-        gp = GooglePlaces(
-            {CONF_GOOGLE_PLACES_API_KEY: "key", CONF_GOOGLE_PLACES_NUM_RESULTS: 2}
-        )
-        result = await gp.search_google_places("test")
-    # verify returned structure
-
-    assert result == [
-        {"name": "Place A", "address": "Addr A"},
-        {"name": "Place B", "address": "Addr B"},
-    ]
-    # verify payload and headers passed
-
-    call = session.calls[0]
-    assert call["json"] == {"textQuery": "test", "pageSize": 2}
-    hdrs = call["headers"]
-    assert hdrs["X-Goog-Api-Key"] == "key"
-    assert "Accept" in hdrs
-    assert "Accept-Encoding" in hdrs
 
 
-@pytest.mark.asyncio
-async def test_search_google_places_missing_fields(monkeypatch):
-    """Missing displayName or formattedAddress should use defaults."""
-    payload = {
-        "places": [
-            {},  # no fields
+class TestGooglePlacesInit:
+    """Test GooglePlaces initialization."""
+
+    def test_init_with_config_entry(self, hass, mock_config_entry):
+        """Test initialization with config entry."""
+        handler = GooglePlaces(hass, mock_config_entry)
+
+        assert handler._hass is hass
+        assert handler._config_entry is mock_config_entry
+        assert handler._api_key == "test_api_key"
+        assert handler._num_results == 2
+        assert handler.intent_type == CONF_GOOGLE_PLACES_INTENT
+        assert "Search Google Places" in handler.description
+
+    def test_init_with_default_num_results(self, hass):
+        """Test initialization with default num_results."""
+        config_entry = Mock(spec=ConfigEntry)
+        config_entry.data = {CONF_GOOGLE_PLACES_API_KEY: "test_api_key"}
+
+        handler = GooglePlaces(hass, config_entry)
+        assert handler._num_results == 2
+
+    def test_config_entry_property(self, google_places_handler, mock_config_entry):
+        """Test config_entry property."""
+        assert google_places_handler.config_entry is mock_config_entry
+
+
+class TestGooglePlacesSearch:
+    """Test Google Places search functionality."""
+
+    @pytest.mark.asyncio
+    async def test_search_google_places_success(
+        self, google_places_handler, sample_places_response
+    ):
+        """Test successful Google Places search."""
+        mock_response = AsyncMock()
+        mock_response.json.return_value = sample_places_response
+        mock_response.raise_for_status.return_value = None
+
+        class MockContext:
+            async def __aenter__(self):
+                return mock_response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            results = await google_places_handler.search_google_places("coffee shops")
+
+            assert len(results) == 2
+            assert results[0]["name"] == "Starbucks Coffee"
+            assert results[0]["address"] == "123 Main St, Anytown, USA"
+            assert results[1]["name"] == "Local Coffee Shop"
+            assert results[1]["address"] == "456 Oak Ave, Anytown, USA"
+
+    @pytest.mark.asyncio
+    async def test_search_google_places_empty_response(self, google_places_handler):
+        """Test Google Places search with empty response."""
+        mock_response = AsyncMock()
+        mock_response.json.return_value = {"places": []}
+        mock_response.raise_for_status.return_value = None
+
+        class MockContext:
+            async def __aenter__(self):
+                return mock_response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            results = await google_places_handler.search_google_places("nonexistent")
+
+            assert results == []
+
+    @pytest.mark.asyncio
+    async def test_search_google_places_missing_fields(self, google_places_handler):
+        """Test Google Places search with missing fields."""
+        response_with_missing_fields = {
+            "places": [
+                {
+                    "displayName": {"text": "Test Place"},
+                    # Missing formattedAddress
+                },
+                {
+                    # Missing displayName
+                    "formattedAddress": "123 Test St"
+                },
+            ]
+        }
+
+        mock_response = AsyncMock()
+        mock_response.json.return_value = response_with_missing_fields
+        mock_response.raise_for_status.return_value = None
+
+        class MockContext:
+            async def __aenter__(self):
+                return mock_response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            results = await google_places_handler.search_google_places("test")
+
+            assert len(results) == 2
+            assert results[0]["name"] == "Test Place"
+            assert results[0]["address"] == "Address not available"
+            assert results[1]["name"] == "Unknown"
+            assert results[1]["address"] == "123 Test St"
+
+    @pytest.mark.asyncio
+    async def test_search_google_places_client_error(self, google_places_handler):
+        """Test Google Places search with client error."""
+
+        class MockErrorContext:
+            async def __aenter__(self):
+                raise aiohttp.ClientError("Connection failed")
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockErrorContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            with pytest.raises(ServiceValidationError) as exc_info:
+                await google_places_handler.search_google_places("coffee")
+
+            assert "Unable to connect to Google Places API" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_search_google_places_unexpected_error(self, google_places_handler):
+        """Test Google Places search with unexpected error."""
+
+        class MockErrorContext:
+            async def __aenter__(self):
+                raise Exception("Unexpected error")
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockErrorContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            with pytest.raises(ServiceValidationError) as exc_info:
+                await google_places_handler.search_google_places("coffee")
+
+            assert "Unexpected error during search" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_search_google_places_api_headers(self, google_places_handler):
+        """Test that correct headers are sent to Google Places API."""
+        mock_response = AsyncMock()
+        mock_response.json.return_value = {"places": []}
+        mock_response.raise_for_status.return_value = None
+
+        class MockContext:
+            async def __aenter__(self):
+                return mock_response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            await google_places_handler.search_google_places("coffee")
+
+            # Check that post was called with correct headers
+            call_args = mock_session.post.call_args
+            headers = call_args[1]["headers"]
+
+            assert headers["X-Goog-Api-Key"] == "test_api_key"
+            assert (
+                headers["X-Goog-FieldMask"]
+                == "places.displayName,places.formattedAddress,places.location"
+            )
+            assert headers["Accept"] == "application/json"
+
+
+class TestGooglePlacesIntentHandling:
+    """Test intent handling."""
+
+    @pytest.mark.asyncio
+    async def test_async_handle_success(
+        self, google_places_handler, mock_intent, sample_places_response
+    ):
+        """Test successful intent handling."""
+        mock_response = AsyncMock()
+        mock_response.json.return_value = sample_places_response
+        mock_response.raise_for_status.return_value = None
+
+        class MockContext:
+            async def __aenter__(self):
+                return mock_response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            response = await google_places_handler.async_handle(mock_intent)
+
+            assert response.response_type == intent.IntentResponseType.QUERY_ANSWER
+            # Check that speech was set
+            response.async_set_speech.assert_called_once()
+            # Check that card was set
+            response.async_set_card.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_handle_no_results(self, google_places_handler, mock_intent):
+        """Test intent handling with no results."""
+        mock_response = AsyncMock()
+        mock_response.json.return_value = {"places": []}
+        mock_response.raise_for_status.return_value = None
+
+        class MockContext:
+            async def __aenter__(self):
+                return mock_response
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            response = await google_places_handler.async_handle(mock_intent)
+
+            assert response.response_type == intent.IntentResponseType.QUERY_ANSWER
+            response.async_set_speech.assert_called_with(
+                "No places found for 'coffee shops near me'"
+            )
+
+    @pytest.mark.asyncio
+    async def test_async_handle_service_validation_error(
+        self, google_places_handler, mock_intent
+    ):
+        """Test intent handling with service validation error."""
+
+        class MockErrorContext:
+            async def __aenter__(self):
+                raise aiohttp.ClientError("API Error")
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        mock_session = Mock()
+        mock_session.post.return_value = MockErrorContext()
+
+        with patch(
+            "custom_components.llm_intents.google_places.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            with pytest.raises(ServiceValidationError):
+                await google_places_handler.async_handle(mock_intent)
+
+    @pytest.mark.asyncio
+    async def test_async_handle_unexpected_error(
+        self, google_places_handler, mock_intent
+    ):
+        """Test intent handling with unexpected error."""
+        with patch.object(
+            google_places_handler,
+            "async_validate_slots",
+            side_effect=Exception("Unexpected"),
+        ):
+            response = await google_places_handler.async_handle(mock_intent)
+
+            assert response.response_type == intent.IntentResponseType.ERROR
+            response.async_set_speech.assert_called_with(
+                "Sorry, I encountered an error searching for places."
+            )
+
+
+class TestGooglePlacesFormatting:
+    """Test formatting methods."""
+
+    def test_format_places_for_speech_single_result(self, google_places_handler):
+        """Test formatting single place for speech."""
+        places = [{"name": "Test Place", "address": "123 Test St"}]
+        result = google_places_handler._format_places_for_speech(places)
+
+        assert result == "I found Test Place at 123 Test St"
+
+    def test_format_places_for_speech_multiple_results(self, google_places_handler):
+        """Test formatting multiple places for speech."""
+        places = [
+            {"name": "Place 1", "address": "123 Test St"},
+            {"name": "Place 2", "address": "456 Test Ave"},
         ]
-    }
-    fake_resp = FakeResponse(payload)
-    session = RecordingSession(fake_resp)
+        result = google_places_handler._format_places_for_speech(places)
 
-    async with _patch_client_session(monkeypatch, session):
-        gp = GooglePlaces(
-            {CONF_GOOGLE_PLACES_API_KEY: "k", CONF_GOOGLE_PLACES_NUM_RESULTS: 1}
+        expected = (
+            "I found 2 places: 1. Place 1 at 123 Test St; 2. Place 2 at 456 Test Ave"
         )
-        result = await gp.search_google_places("x")
-    assert result == [{"name": "No Name", "address": "No Address"}]
+        assert result == expected
+
+    def test_format_places_for_card_single_result(self, google_places_handler):
+        """Test formatting single place for card."""
+        places = [{"name": "Test Place", "address": "123 Test St"}]
+        result = google_places_handler._format_places_for_card(places)
+
+        assert result == "**Test Place**\n123 Test St"
+
+    def test_format_places_for_card_multiple_results(self, google_places_handler):
+        """Test formatting multiple places for card."""
+        places = [
+            {"name": "Place 1", "address": "123 Test St"},
+            {"name": "Place 2", "address": "456 Test Ave"},
+        ]
+        result = google_places_handler._format_places_for_card(places)
+
+        expected = "**Place 1**\n123 Test St\n\n**Place 2**\n456 Test Ave"
+        assert result == expected
 
 
-@pytest.mark.asyncio
-async def test_search_google_places_empty(monkeypatch):
-    """Empty 'places' list yields empty result."""
-    fake_resp = FakeResponse({"places": []})
-    session = RecordingSession(fake_resp)
+class TestGooglePlacesSlotValidation:
+    """Test slot validation."""
 
-    async with _patch_client_session(monkeypatch, session):
-        gp = GooglePlaces({})
-        result = await gp.search_google_places("none")
-    assert result == []
+    def test_slot_schema_structure(self, google_places_handler):
+        """Test that slot schema is properly defined."""
+        schema = google_places_handler.slot_schema
 
-
-@pytest.mark.asyncio
-async def test_search_google_places_error(monkeypatch):
-    """Non-2xx status should raise ClientResponseError."""
-    fake_resp = FakeResponse({}, status=500)
-    session = RecordingSession(fake_resp)
-
-    async with _patch_client_session(monkeypatch, session):
-        gp = GooglePlaces({})
-        with pytest.raises(aiohttp.ClientResponseError):
-            await gp.search_google_places("err")
-
-
-@pytest.mark.asyncio
-async def test_async_handle_formats_response(monkeypatch):
-    """async_handle should wrap and speech-format the search results."""
-    fake_output = [{"name": "N", "address": "A"}]
-
-    async def fake_search(self, q: str) -> list[dict[str, str]]:
-        return fake_output
-
-    monkeypatch.setattr(GooglePlaces, "search_google_places", fake_search)
-
-    intent_obj = DummyIntent("loc")
-    gp = GooglePlaces({})
-    resp = await gp.async_handle(intent_obj)
-
-    assert resp.response_type is intent_helpers.IntentResponseType.QUERY_ANSWER
-    assert intent_obj.data["speech"] == f"{fake_output}"
+        assert "query" in schema
+        # The schema should require a non-empty string
+        assert schema["query"] is not None
