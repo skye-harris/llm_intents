@@ -178,8 +178,6 @@ class TestWikipediaSearchIntentHandling:
     ):
         """Test intent handling with service validation error."""
 
-        # Mock a session that will raise an error during the actual request
-
         class MockErrorContext:
             async def __aenter__(self) -> object:
                 msg = "API Error"
@@ -355,7 +353,6 @@ class TestWikipediaSearchFunctionality:
     @pytest.mark.asyncio
     async def test_search_wikipedia_client_error(self, wikipedia_handler):
         """Test Wikipedia search with client error."""
-
         # Mock a session that will raise an error during the actual request
 
         class MockErrorContext:
@@ -380,7 +377,6 @@ class TestWikipediaSearchFunctionality:
     @pytest.mark.asyncio
     async def test_search_wikipedia_unexpected_error(self, wikipedia_handler):
         """Test Wikipedia search with unexpected error."""
-
         # Define a custom exception for testing unexpected errors
 
         class TestUnexpectedError(Exception):
