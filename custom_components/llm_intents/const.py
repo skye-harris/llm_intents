@@ -18,13 +18,13 @@ CONF_BRAVE_LONGITUDE = "brave_longitude"
 CONF_BRAVE_TIMEZONE = "brave_timezone"
 CONF_BRAVE_POST_CODE = "brave_post_code"
 
-# Google Places–specific constants
+# Google Places-specific constants
 
 CONF_GOOGLE_PLACES_INTENT = "google_places"
 CONF_GOOGLE_PLACES_API_KEY = "google_places_api_key"
 CONF_GOOGLE_PLACES_NUM_RESULTS = "google_places_num_results"
 
-# Wikipedia–specific constants
+# Wikipedia-specific constants
 
 CONF_WIKIPEDIA_INTENT = "wikipedia"
 CONF_WIKIPEDIA_NUM_RESULTS = "wikipedia_num_results"

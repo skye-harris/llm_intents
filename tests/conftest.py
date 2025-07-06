@@ -1,17 +1,19 @@
 """Test configuration for LLM Intents integration."""
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
+
 from custom_components.llm_intents.const import (
-    DOMAIN,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_NUM_RESULTS,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_WIKIPEDIA_NUM_RESULTS,
+    DOMAIN,
 )
 
 
