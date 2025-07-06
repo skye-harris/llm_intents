@@ -5,7 +5,7 @@ import pytest
 from custom_components.llm_intents.brave_search import BraveSearch
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_brave_search_fetch_summary(monkeypatch, init_integration):
     """Test that BraveSearch.fetch_summary returns expected summaries."""
     fake_results = ["Result A", "Result B"]
