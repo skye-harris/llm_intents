@@ -225,7 +225,6 @@ class TestIntegrationLogging:
             patch("custom_components.llm_intents.intent.async_register"),
             patch("custom_components.llm_intents._LOGGER.debug") as mock_logger,
         ):
-
             await async_setup_entry(hass, mock_config_entry)
 
             # Check that debug log was called
@@ -268,7 +267,6 @@ class TestErrorHandling:
             ) as mock_register,
             patch("custom_components.llm_intents._LOGGER.exception") as mock_logger,
         ):
-
             # Should not raise an exception, but should skip the failed handler
 
             result = await async_setup_entry(hass, mock_config_entry)
