@@ -6,7 +6,7 @@ from custom_components.llm_intents.wikipedia_search import WikipediaSearch
 
 
 @pytest.mark.asyncio
-async def test_wikipedia_search_fetch_summary(monkeypatch, init_integration):
+async def test_wikipedia_search_fetch_summary(hass, monkeypatch, init_integration):
     """Test that WikipediaSearch.fetch_summary returns formatted intro."""
     fake_summary = "This is a summary."
 

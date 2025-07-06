@@ -6,7 +6,7 @@ from custom_components.llm_intents.google_places import GooglePlaces
 
 
 @pytest.mark.asyncio
-async def test_google_places_fetch_summary(monkeypatch, init_integration):
+async def test_google_places_fetch_summary(hass, monkeypatch, init_integration):
     """Test that GooglePlaces.fetch_summary returns expected place data."""
     fake_data = {"name": "Place X", "address": "123 Main St"}
 
