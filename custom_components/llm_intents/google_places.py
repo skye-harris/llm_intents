@@ -20,6 +20,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 # Constants for API
+
 GOOGLE_PLACES_API_URL = "https://places.googleapis.com/v1/places:searchText"
 DEFAULT_TIMEOUT = 10
 
@@ -91,6 +92,7 @@ class GooglePlaces(intent.IntentHandler):
         payload = {"textQuery": query, "pageSize": self._num_results}
 
         # Use HA's shared aiohttp session
+
         session = async_get_clientsession(self._hass)
 
         try:
@@ -107,7 +109,6 @@ class GooglePlaces(intent.IntentHandler):
                 if not places:
                     _LOGGER.info("No places found for query: %s", query)
                     return []
-
                 return [
                     {
                         "name": place.get("displayName", {}).get("text", "Unknown"),
@@ -117,7 +118,6 @@ class GooglePlaces(intent.IntentHandler):
                     }
                     for place in places
                 ]
-
         except aiohttp.ClientError as err:
             _LOGGER.exception("Error connecting to Google Places API")
             msg = f"Unable to connect to Google Places API: {err}"
@@ -150,19 +150,21 @@ class GooglePlaces(intent.IntentHandler):
 
             if results:
                 # Format results for speech
+
                 places_text = self._format_places_for_speech(results)
                 response.async_set_speech(places_text)
 
                 # Add structured data for further processing
+
                 response.async_set_card(
                     title="Google Places Results",
                     content=self._format_places_for_card(results),
                 )
             else:
                 response.async_set_speech(f"No places found for '{query}'")
-
         except ServiceValidationError:
             # Re-raise service validation errors
+
             raise
         except Exception:
             _LOGGER.exception("Error handling Google Places intent")
@@ -180,11 +182,9 @@ class GooglePlaces(intent.IntentHandler):
         if len(places) == 1:
             place = places[0]
             return f"I found {place['name']} at {place['address']}"
-
         place_list = []
         for i, place in enumerate(places, 1):
             place_list.append(f"{i}. {place['name']} at {place['address']}")
-
         return f"I found {len(places)} places: " + "; ".join(place_list)
 
     def _format_places_for_card(self, places: list[dict[str, str]]) -> str:
@@ -192,5 +192,14 @@ class GooglePlaces(intent.IntentHandler):
         formatted_places = []
         for place in places:
             formatted_places.append(f"**{place['name']}**\n{place['address']}")
-
         return "\n\n".join(formatted_places)
+
+    # Add public method accessors for tests
+
+    def format_places_for_speech(self, places: list[dict[str, str]]) -> str:
+        """Public method for formatting places for speech."""
+        return self._format_places_for_speech(places)
+
+    def format_places_for_card(self, places: list[dict[str, str]]) -> str:
+        """Public method for formatting places for card."""
+        return self._format_places_for_card(places)

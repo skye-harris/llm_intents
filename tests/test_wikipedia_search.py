@@ -179,6 +179,7 @@ class TestWikipediaSearchIntentHandling:
         """Test intent handling with service validation error."""
 
         # Mock a session that will raise an error during the actual request
+
         class MockErrorContext:
             async def __aenter__(self) -> object:
                 msg = "API Error"
@@ -190,10 +191,13 @@ class TestWikipediaSearchIntentHandling:
         mock_session = Mock()
         mock_session.get.return_value = MockErrorContext()
 
-        with patch(
-            "custom_components.llm_intents.wikipedia_search.async_get_clientsession",
-            return_value=mock_session,
-        ), pytest.raises(ServiceValidationError):
+        with (
+            patch(
+                "custom_components.llm_intents.wikipedia_search.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            pytest.raises(ServiceValidationError),
+        ):
             await wikipedia_handler.async_handle(mock_intent)
 
     @pytest.mark.asyncio
@@ -353,6 +357,7 @@ class TestWikipediaSearchFunctionality:
         """Test Wikipedia search with client error."""
 
         # Mock a session that will raise an error during the actual request
+
         class MockErrorContext:
             async def __aenter__(self) -> object:
                 msg = "Connection failed"
@@ -370,7 +375,6 @@ class TestWikipediaSearchFunctionality:
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await wikipedia_handler.search_wikipedia("test")
-
             assert "Unable to connect to Wikipedia API" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -378,10 +382,12 @@ class TestWikipediaSearchFunctionality:
         """Test Wikipedia search with unexpected error."""
 
         # Define a custom exception for testing unexpected errors
+
         class TestUnexpectedError(Exception):
             pass
 
         # Mock a session that will raise the custom exception during the actual request
+
         class MockErrorContext:
             async def __aenter__(self) -> object:
                 msg = "Unexpected error"
@@ -399,13 +405,13 @@ class TestWikipediaSearchFunctionality:
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await wikipedia_handler.search_wikipedia("test")
-
             assert "Unexpected error during Wikipedia search" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_search_wikipedia_respects_num_results(self, wikipedia_handler):
         """Test that search respects the num_results configuration."""
         # Create a response with more results than num_results
+
         large_response = {
             "query": {
                 "search": [
@@ -450,6 +456,7 @@ class TestWikipediaSearchFunctionality:
             results = await wikipedia_handler.search_wikipedia("test")
 
             # Should only return 2 results (num_results = 2)
+
             assert len(results) == 2
 
     @pytest.mark.asyncio
@@ -508,6 +515,7 @@ class TestWikipediaSearchFunctionality:
 
             # The implementation first limits to num_results (2), then filters valid titles
             # Since the 2nd item has no title, only 1 result is processed
+
             assert len(results) == 1
             assert results[0]["title"] == "Valid Title"
             assert results[0]["summary"] == "First summary"
@@ -567,6 +575,7 @@ class TestWikipediaSearchSlotValidation:
 
         assert "query" in schema
         # The schema should require a non-empty string
+
         assert schema["query"] is not None
 
 
@@ -599,6 +608,7 @@ class TestWikipediaSearchURLEncoding:
             await wikipedia_handler.search_wikipedia(query_with_spaces)
 
             # Check that the search URL was called with encoded query
+
             call_args = mock_session.get.call_args_list[0]
             url = call_args[0][0]
 
@@ -650,10 +660,12 @@ class TestWikipediaSearchURLEncoding:
             await wikipedia_handler.search_wikipedia("python")
 
             # Check that the summary URL was called with encoded title
+
             summary_call_args = mock_session.get.call_args_list[1]
             summary_url = summary_call_args[0][0]
 
             # The title should be properly encoded in the URL
+
             assert (
                 "Python%20%28programming%20language%29" in summary_url
                 or "Python+(programming+language)" in summary_url
@@ -715,10 +727,13 @@ class TestWikipediaSearchEdgeCases:
             MockBadContext(),
         ]
 
-        with patch(
-            "custom_components.llm_intents.wikipedia_search.async_get_clientsession",
-            return_value=mock_session,
-        ), pytest.raises(ServiceValidationError):
+        with (
+            patch(
+                "custom_components.llm_intents.wikipedia_search.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            pytest.raises(ServiceValidationError),
+        ):
             await wikipedia_handler.search_wikipedia("test")
 
     @pytest.mark.asyncio
@@ -751,6 +766,7 @@ class TestWikipediaSearchEdgeCases:
             results = await wikipedia_handler.search_wikipedia("test")
 
             # Should return empty list since no valid titles were found
+
             assert results == []
 
     @pytest.mark.asyncio
@@ -777,6 +793,7 @@ class TestWikipediaSearchEdgeCases:
             return_value=mock_session,
         ):
             # Should not raise an exception
+
             results = await wikipedia_handler.search_wikipedia(special_query)
             assert results == []
             assert results == []

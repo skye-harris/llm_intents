@@ -44,7 +44,6 @@ class TestBraveSearch:
         """Set up a mock session with response data."""
         if mock_response_data is None:
             mock_response_data = {"web": {"results": []}}
-
         mock_response = AsyncMock()
         mock_response.raise_for_status = AsyncMock()
         mock_response.json = AsyncMock(return_value=mock_response_data)
@@ -65,6 +64,7 @@ class TestBraveSearch:
         patch_timeout = patch("aiohttp.ClientTimeout", return_value=None)
 
         # Use `with` for both patches
+
         return patch_session, patch_timeout
 
     def test_init(self, brave_handler, mock_config_entry_brave):
@@ -98,10 +98,14 @@ class TestBraveSearch:
         mock_session, _ = self._setup_mock_session(brave_search_results)
 
         # Use both patches correctly as context managers
-        with patch(
-            "custom_components.llm_intents.brave_search.async_get_clientsession",
-            return_value=mock_session,
-        ), patch("aiohttp.ClientTimeout", return_value=None):
+
+        with (
+            patch(
+                "custom_components.llm_intents.brave_search.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch("aiohttp.ClientTimeout", return_value=None),
+        ):
             results = await brave_handler.search_brave_ai("test query")
 
             assert len(results) == 2
@@ -119,10 +123,14 @@ class TestBraveSearch:
         mock_session, _ = self._setup_mock_session()
 
         # Use both patches correctly as context managers
-        with patch(
-            "custom_components.llm_intents.brave_search.async_get_clientsession",
-            return_value=mock_session,
-        ), patch("aiohttp.ClientTimeout", return_value=None):
+
+        with (
+            patch(
+                "custom_components.llm_intents.brave_search.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch("aiohttp.ClientTimeout", return_value=None),
+        ):
             results = await brave_handler.search_brave_ai("test query")
             assert results == []
 
@@ -132,14 +140,15 @@ class TestBraveSearch:
         mock_hass.data = {}
         mock_hass.bus = AsyncMock()
         # Patch the Home Assistant shared session creator to raise a ClientError
+
         with patch(
             "homeassistant.helpers.aiohttp_client.async_get_clientsession",
             side_effect=aiohttp.ClientError("Connection error"),
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
-
             # Accept either error message, since the fallback may be "Unexpected error during Brave Search"
+
             assert "Unable to connect to Brave Search API" in str(
                 exc_info.value
             ) or "Unexpected error during Brave Search" in str(exc_info.value)
@@ -150,13 +159,13 @@ class TestBraveSearch:
         mock_hass.data = {}
         mock_hass.bus = AsyncMock()
         # Patch the *Home Assistant* shared session creator, not aiohttp.ClientSession directly
+
         with patch(
             "homeassistant.helpers.aiohttp_client.async_get_clientsession",
             side_effect=Exception("Unexpected error"),
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
-
             assert "Unexpected error during Brave Search" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -275,6 +284,7 @@ class TestBraveSearch:
         """Test slot schema validation."""
         assert "query" in brave_handler.slot_schema
         # Instead of checking `.required`, check that the schema is a voluptuous Required object
+
         import voluptuous as vol
 
         assert isinstance(next(iter(brave_handler.slot_schema.keys())), vol.Required)

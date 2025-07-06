@@ -210,7 +210,6 @@ class TestGooglePlacesSearch:
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await google_places_handler.search_google_places("coffee")
-
             assert "Unable to connect to Google Places API" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -237,7 +236,6 @@ class TestGooglePlacesSearch:
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await google_places_handler.search_google_places("coffee")
-
             assert "Unexpected error during search" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -264,6 +262,7 @@ class TestGooglePlacesSearch:
             await google_places_handler.search_google_places("coffee")
 
             # Check that post was called with correct headers
+
             call_args = mock_session.post.call_args
             headers = call_args[1]["headers"]
 
@@ -305,8 +304,10 @@ class TestGooglePlacesIntentHandling:
 
             assert response.response_type == intent.IntentResponseType.QUERY_ANSWER
             # Check that speech was set
+
             response.async_set_speech.assert_called_once()
             # Check that card was set
+
             response.async_set_card.assert_called_once()
 
     @pytest.mark.asyncio
@@ -354,10 +355,13 @@ class TestGooglePlacesIntentHandling:
         mock_session = Mock()
         mock_session.post.return_value = MockErrorContext()
 
-        with patch(
-            "custom_components.llm_intents.google_places.async_get_clientsession",
-            return_value=mock_session,
-        ), pytest.raises(ServiceValidationError):
+        with (
+            patch(
+                "custom_components.llm_intents.google_places.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            pytest.raises(ServiceValidationError),
+        ):
             await google_places_handler.async_handle(mock_intent)
 
     @pytest.mark.asyncio
@@ -429,4 +433,5 @@ class TestGooglePlacesSlotValidation:
 
         assert "query" in schema
         # The schema should require a non-empty string
+
         assert schema["query"] is not None

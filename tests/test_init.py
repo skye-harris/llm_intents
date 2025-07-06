@@ -55,6 +55,7 @@ class TestIntegrationSetup:
     async def test_async_setup_entry_with_all_handlers(self, hass, mock_config_entry):
         """Test setup entry with all intent handlers configured."""
         # Configure all intent types with flat structure
+
         mock_config_entry.data = {
             CONF_BRAVE_API_KEY: "test_key",
             CONF_GOOGLE_PLACES_API_KEY: "test_key",
@@ -68,9 +69,11 @@ class TestIntegrationSetup:
 
             assert result is True
             # Should register 3 handlers
+
             assert mock_register.call_count == 3
 
             # Check that handlers are registered with correct types
+
             registered_handlers = [
                 call.args[1] for call in mock_register.call_args_list
             ]
@@ -83,6 +86,7 @@ class TestIntegrationSetup:
     async def test_async_setup_entry_with_single_handler(self, hass, mock_config_entry):
         """Test setup entry with only one intent handler configured."""
         # Configure only Brave search with flat structure
+
         mock_config_entry.data = {CONF_BRAVE_API_KEY: "test_key"}
 
         with patch(
@@ -92,15 +96,18 @@ class TestIntegrationSetup:
 
             assert result is True
             # Should register only 1 handler
+
             assert mock_register.call_count == 1
 
             # Check that the correct handler was registered
+
             registered_handler = mock_register.call_args_list[0].args[1]
             assert isinstance(registered_handler, BraveSearch)
 
     async def test_async_setup_entry_with_no_handlers(self, hass, mock_config_entry):
         """Test setup entry with no intent handlers configured."""
         # Empty configuration
+
         mock_config_entry.data = {}
 
         with patch(
@@ -110,6 +117,7 @@ class TestIntegrationSetup:
 
             assert result is True
             # Should not register any handlers
+
             assert mock_register.call_count == 0
 
     async def test_async_setup_entry_uses_options_over_data(
@@ -126,6 +134,7 @@ class TestIntegrationSetup:
 
             assert result is True
             # Should register only Wikipedia handler (from options)
+
             assert mock_register.call_count == 1
 
             registered_handler = mock_register.call_args_list[0].args[1]
@@ -143,9 +152,11 @@ class TestIntegrationSetup:
             await async_setup_entry(hass, mock_config_entry)
 
             # Get the registered handler
+
             registered_handler = mock_register.call_args_list[0].args[1]
 
             # Check that handler was initialized with correct parameters
+
             assert registered_handler.hass is hass
             assert registered_handler.config_entry is mock_config_entry
 
@@ -164,6 +175,7 @@ class TestIntentsConfiguration:
         assert len(INTENTS) == 3
 
         # Check that all items are tuples with intent key and handler class
+
         for intent_item in INTENTS:
             assert isinstance(intent_item, tuple)
             assert len(intent_item) == 2
@@ -205,16 +217,19 @@ class TestIntegrationLogging:
     async def test_setup_entry_logs_registration(self, hass, mock_config_entry):
         """Test that handler registration is logged."""
         # Configure with flat structure that __init__.py now supports
+
         mock_config_entry.data = {CONF_BRAVE_API_KEY: "test_key"}
         mock_config_entry.options = None
 
-        with patch("custom_components.llm_intents.intent.async_register"), patch(
-            "custom_components.llm_intents._LOGGER.debug"
-        ) as mock_logger:
+        with (
+            patch("custom_components.llm_intents.intent.async_register"),
+            patch("custom_components.llm_intents._LOGGER.debug") as mock_logger,
+        ):
 
             await async_setup_entry(hass, mock_config_entry)
 
             # Check that debug log was called
+
             mock_logger.assert_called_once()
             log_call = mock_logger.call_args[0]
             assert "Registered intent handler" in log_call[0]
@@ -243,22 +258,27 @@ class TestErrorHandling:
         self, hass, mock_config_entry
     ):
         """Test that setup continues if handler initialization fails."""
-        with patch(
-            "custom_components.llm_intents.BraveSearch",
-            side_effect=Exception("Init failed"),
-        ), patch(
-            "custom_components.llm_intents.intent.async_register"
-        ) as mock_register, patch(
-            "custom_components.llm_intents._LOGGER.exception"
-        ) as mock_logger:
+        with (
+            patch(
+                "custom_components.llm_intents.BraveSearch",
+                side_effect=Exception("Init failed"),
+            ),
+            patch(
+                "custom_components.llm_intents.intent.async_register"
+            ) as mock_register,
+            patch("custom_components.llm_intents._LOGGER.exception") as mock_logger,
+        ):
 
             # Should not raise an exception, but should skip the failed handler
+
             result = await async_setup_entry(hass, mock_config_entry)
 
             assert result is True
             # Should not register any handlers due to init failure
+
             assert mock_register.call_count == 0
             # Should log the exception
+
             mock_logger.assert_called_once()
 
     async def test_setup_entry_handles_missing_config_gracefully(self, hass):
@@ -272,6 +292,7 @@ class TestErrorHandling:
             "custom_components.llm_intents.intent.async_register"
         ) as mock_register:
             # Should handle None data gracefully by catching AttributeError
+
             result = await async_setup_entry(hass, mock_config_entry)
             assert result is True
             assert mock_register.call_count == 0
@@ -283,11 +304,13 @@ class TestIntegrationImports:
     def test_domain_import(self):
         """Test that DOMAIN constant is properly imported."""
         # DOMAIN is already imported at the module level
+
         assert isinstance(DOMAIN, str)
 
     def test_handler_classes_imported(self):
         """Test that handler classes are properly imported."""
         # This test ensures the imports work correctly
+
         assert BraveSearch is not None
         assert GooglePlaces is not None
         assert WikipediaSearch is not None
@@ -295,6 +318,7 @@ class TestIntegrationImports:
     def test_const_imports(self):
         """Test that constants are properly imported."""
         # This test ensures all required constants are available
+
         assert CONF_BRAVE_INTENT is not None
         assert CONF_GOOGLE_PLACES_INTENT is not None
         assert CONF_WIKIPEDIA_INTENT is not None
@@ -322,17 +346,21 @@ class TestEdgeCases:
         }
         mock_config_entry.options = None
 
-        with patch(
-            "custom_components.llm_intents.intent.async_register"
-        ) as mock_register, patch(
-            "custom_components.llm_intents._LOGGER.warning"
-        ) as mock_logger:
+        with (
+            patch(
+                "custom_components.llm_intents.intent.async_register"
+            ) as mock_register,
+            patch("custom_components.llm_intents._LOGGER.warning") as mock_logger,
+        ):
             # Should handle malformed entries gracefully
+
             result = await async_setup_entry(hass, mock_config_entry)
             assert result is True
             # Should not register any handlers due to malformed config
+
             assert mock_register.call_count == 0
             # Should log a warning about the failed initialization
+
             mock_logger.assert_called_once()
 
     async def test_unload_entry_always_succeeds(self, hass):
@@ -340,5 +368,6 @@ class TestEdgeCases:
         mock_config_entry = Mock(spec=ConfigEntry)
 
         # Should always succeed regardless of config
+
         result = await async_unload_entry(hass, mock_config_entry)
         assert result is True
