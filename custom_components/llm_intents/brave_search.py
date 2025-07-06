@@ -72,9 +72,10 @@ class BraveSearch(intent.IntentHandler):
             params["country"] = self.country_code
         if self.post_code is not None:
             headers["X-Loc-Postal-Code"] = str(self.post_code)
-        async with aiohttp.ClientSession() as session, session.get(
-            url, params=params, headers=headers
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(url, params=params, headers=headers) as resp,
+        ):
             resp.raise_for_status()
             raw_results = await resp.json()
             results = []

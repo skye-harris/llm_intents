@@ -57,9 +57,10 @@ class GooglePlaces(intent.IntentHandler):
             "pageSize": self.num_results,
         }
 
-        async with aiohttp.ClientSession() as session, session.post(
-            url, json=payload, headers=headers
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(url, json=payload, headers=headers) as resp,
+        ):
             resp.raise_for_status()
             raw = await resp.json()
             return [
