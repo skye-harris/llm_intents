@@ -4,9 +4,9 @@
   "codeowners": ["@skye-harris"],
   "dependencies": ["config"],
   "documentation": "https://github.com/skye-harris/llm_intents",
-  "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
+  "integration_type": "helper",
   "iot_class": "calculated",
+  "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
   "requirements": [],
-  "version": "1.0.2",
-  "integration_type": "helper"
+  "version": "1.0.2"
 }
