@@ -14,8 +14,8 @@ Each intent is optional and configurable via YAML. Some require API keys, but ar
 
 ## Installation
 
-1. Copy this repo into `custom_components/llm_intents/`.
-2. Add configuration to `configuration.yaml`.
+1. Copy this repo into `/config/custom_components/llm_intents/` of your Home Assistant installation.
+2. Add configuration to `/config/configuration.yaml`.
 3. Restart Home Assistant.
 
 
