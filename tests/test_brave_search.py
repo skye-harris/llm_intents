@@ -252,6 +252,7 @@ async def test_search_with_all_location_headers(monkeypatch: Any) -> None:
 
             Returns:
                 FakeResponse: The fake response context manager.
+
             """
             recorded["url"] = url
             recorded["params"] = params
