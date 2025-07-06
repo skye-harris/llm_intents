@@ -16,7 +16,6 @@ from homeassistant.helpers import intent as intent_helpers
 
 from custom_components.llm_intents.brave_search import BraveSearch
 
-
 # Minimal intent stub
 
 
