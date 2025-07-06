@@ -1,0 +1,45 @@
+name: "Release"
+
+on:
+  release:
+    types:
+      - "published"
+
+permissions: {}
+
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@v4.2.2"
+
+      - name: Adjust version number
+        shell: bash
+        run: |
+          version="${{ github.event.release.tag_name }}"
+          version="${version,,}"
+          version="${version#v}"
+          yq e -P -o=json \
+            -i ".version = \"${version}\"" \
+            "${{ github.workspace }}/custom_components/llm_intents/manifest.json"
+
+      - name: "ZIP the integration directory"
+        shell: "bash"
+        run: |
+          cd "${{ github.workspace }}/custom_components/llm_intents"
+          zip llm_intents.zip -r ./
+
+      - name: Sign release package
+        uses: sigstore/gh-action-sigstore-python@v3.0.1
+        with:
+          inputs: ${{ github.workspace }}/custom_components/llm_intents/llm_intents.zip
+
+      - name: "Upload the ZIP file to the release"
+        uses: "softprops/action-gh-release@v2.2.2"
+        with:
+          files: ${{ github.workspace }}/custom_components/llm_intents/llm_intents.zip
