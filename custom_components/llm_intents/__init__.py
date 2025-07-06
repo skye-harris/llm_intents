@@ -89,11 +89,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 err,
             )
             continue
-        except Exception as err:
+        except Exception:
             _LOGGER.exception(
-                "Unexpected error initializing handler %s: %s",
+                "Unexpected error initializing handler %s",
                 intent_key,
-                err,
             )
             continue
 

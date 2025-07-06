@@ -59,6 +59,11 @@ class BraveSearch(intent.IntentHandler):
         """Public accessor for the underlying ConfigEntry."""
         return self._config_entry
 
+    @property
+    def hass(self) -> HomeAssistant:
+        """Public accessor for Home Assistant instance."""
+        return self._hass
+
     # Add public property accessors for tests
     @property
     def api_key(self) -> str:

@@ -53,6 +53,21 @@ class GooglePlaces(intent.IntentHandler):
         """Public accessor for the underlying ConfigEntry."""
         return self._config_entry
 
+    @property
+    def hass(self) -> HomeAssistant:
+        """Public accessor for Home Assistant instance."""
+        return self._hass
+
+    @property
+    def api_key(self) -> str:
+        """Public accessor for API key."""
+        return self._api_key
+
+    @property
+    def num_results(self) -> int:
+        """Public accessor for number of results."""
+        return self._num_results
+
     async def search_google_places(self, query: str) -> list[dict[str, str]]:
         """
         Perform a search query using Google Places API.
