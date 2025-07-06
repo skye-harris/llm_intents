@@ -12,6 +12,8 @@ from . import async_init_integration, patch_async_setup_entry
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
+pytestmark = pytest.mark.allow_socket
+
 
 @pytest.fixture
 def mock_config_entry():

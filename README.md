@@ -10,6 +10,11 @@ Supported search sources:
 
 Each intent is optional and configurable via YAML. Some require API keys, but are usable on free tiers.
 
+TODOs:
+- [ ] Add UI capabilities for configuration
+- [ ] Implement proper error handling
+- [ ] Code optimization/cleanup
+
 ---
 
 ## Installation

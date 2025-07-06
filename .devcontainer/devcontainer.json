@@ -1,0 +1,39 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "LLM Intents Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  // Mount your local workspace into the container at /workspace
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+  // Settings and extensions
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.pythonPath": "/usr/local/bin/python",
+        "python.formatting.provider": "black",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "njpwerner.autodocstring",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+
+  // Forward pytest output to your local terminal
+  "runArgs": ["--init"],
+
+  // Automatically run "pytest" when you open the container
+  "postStartCommand": "pytest --maxfail=1 --disable-warnings -q tests/",
+
+  // Tell VS Code to use the container as the default Dev Container
+  "remoteUser": "devuser"
+}
