@@ -34,9 +34,7 @@ PLATFORM_SCHEMA: vol.Schema = vol.Schema(
         vol.Optional(CONF_BRAVE_INTENT): vol.Schema(
             {
                 vol.Required(CONF_BRAVE_API_KEY): cv.string,
-                vol.Optional(
-                    CONF_BRAVE_NUM_RESULTS, default=2
-                ): cv.positive_int,
+                vol.Optional(CONF_BRAVE_NUM_RESULTS, default=2): cv.positive_int,
                 vol.Optional(CONF_BRAVE_COUNTRY_CODE): cv.string,
                 vol.Optional(CONF_BRAVE_LATITUDE): cv.latitude,
                 vol.Optional(CONF_BRAVE_LONGITUDE): cv.longitude,

@@ -64,9 +64,7 @@ class GooglePlaces(intent.IntentHandler):
             raw = await resp.json()
             return [
                 {
-                    "name": place.get("displayName", {}).get(
-                        "text", "No Name"
-                    ),
+                    "name": place.get("displayName", {}).get("text", "No Name"),
                     "address": place.get("formattedAddress", "No Address"),
                 }
                 for place in raw.get("places", [])

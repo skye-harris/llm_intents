@@ -72,16 +72,12 @@ class WikipediaSearch(intent.IntentHandler):
                     page_data = await resp.json()
                     return {
                         "title": title,
-                        "summary": page_data.get(
-                            "extract", "No summary available"
-                        ),
+                        "summary": page_data.get("extract", "No summary available"),
                     }
 
             # Fetch summaries concurrently
 
-            titles = [
-                hit.get("title") for hit in limited_hits if hit.get("title")
-            ]
+            titles = [hit.get("title") for hit in limited_hits if hit.get("title")]
             tasks = (fetch_summary(title) for title in titles)
             results = await asyncio.gather(*tasks)
             return results or "No summaries available"

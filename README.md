@@ -127,3 +127,6 @@ llm_intents:
 | Key           | Required | Default | Description                           |
 | ------------- | -------- | ------- | ------------------------------------- |
 | `num_results` | ❌        | `1`     | Number of article summaries to return |
+
+## Acknowledgements
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
