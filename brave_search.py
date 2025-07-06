@@ -43,20 +43,30 @@ class BraveSearch(intent.IntentHandler):
             "result_filter": "web",
             "summary": "true",
             "extra_snippets": "true",
-            "country": self.country_code,
-            "q": query
+            "q": query,
         }
 
         headers = {
             "Accept": "application/json",
             "Accept-Encoding": "gzip",
             "X-Subscription-Token": self.api_key,
-            "X-Loc-Lat": str(self.latitude),
-            "X-Loc-Long": str(self.longitude),
-            "X-Loc-Timezone": self.timezone,
-            "X-Loc-Country": self.country_code,
-            "X-Loc-Postal-Code": str(self.post_code)
         }
+
+        if self.latitude is not None:
+            headers["X-Loc-Lat"] = str(self.latitude)
+
+        if self.longitude is not None:
+            headers["X-Loc-Long"] = str(self.longitude)
+
+        if self.timezone is not None:
+            headers["X-Loc-Timezone"] = self.timezone
+
+        if self.country_code is not None:
+            headers["X-Loc-Country"] = self.country_code
+            params["country"] = self.country_code
+
+        if self.post_code is not None:
+            headers["X-Loc-Postal-Code"] = str(self.post_code)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, headers=headers) as resp:

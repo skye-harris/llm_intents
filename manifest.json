@@ -6,6 +6,6 @@
   "documentation": "https://github.com/skye-harris/llm_intents",
   "iot_class": "calculated",
   "requirements": [],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "integration_type": "helper"
 }
