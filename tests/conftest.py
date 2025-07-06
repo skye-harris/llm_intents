@@ -34,9 +34,13 @@ def mock_config_entry():
 async def init_integration(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
 ) -> MockConfigEntry:
-    """Set up the LLM Intents integration for testing."""
-    # Patch llm_intents.async_setup_entry so HA will accept our entry
-    with patch_async_setup_entry(True):
+    """
+    Set up the LLM Intents integration for testing.
+
+    Patch async_setup_entry so Home Assistant will accept our entry,
+    then initialize the integration.
+    """
+    with patch_async_setup_entry(enabled=True):
         await async_init_integration(hass, mock_config_entry)
 
     return mock_config_entry

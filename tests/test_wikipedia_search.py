@@ -52,7 +52,7 @@ class FakeResponse:
         Initialize with payload and status.
 
         Args:
-            payload: JSON‐serializable data to return.
+            payload: JSON serializable data to return.
             status (int): HTTP status code to simulate.
 
         """
