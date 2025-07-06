@@ -1,21 +1,19 @@
 """Tests for Google Places intent handler."""
 
-import json
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import intent
 
-from custom_components.llm_intents.google_places import GooglePlaces
 from custom_components.llm_intents.const import (
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_INTENT,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
 )
+from custom_components.llm_intents.google_places import GooglePlaces
 
 
 @pytest.fixture
@@ -70,10 +68,10 @@ class TestGooglePlacesInit:
         """Test initialization with config entry."""
         handler = GooglePlaces(hass, mock_config_entry)
 
-        assert handler._hass is hass
-        assert handler._config_entry is mock_config_entry
-        assert handler._api_key == "test_api_key"
-        assert handler._num_results == 2
+        assert handler.hass is hass
+        assert handler.config_entry is mock_config_entry
+        assert handler.api_key == "test_api_key"
+        assert handler.num_results == 2
         assert handler.intent_type == CONF_GOOGLE_PLACES_INTENT
         assert "Search Google Places" in handler.description
 
@@ -83,7 +81,7 @@ class TestGooglePlacesInit:
         config_entry.data = {CONF_GOOGLE_PLACES_API_KEY: "test_api_key"}
 
         handler = GooglePlaces(hass, config_entry)
-        assert handler._num_results == 2
+        assert handler.num_results == 2
 
     def test_config_entry_property(self, google_places_handler, mock_config_entry):
         """Test config_entry property."""
@@ -103,10 +101,10 @@ class TestGooglePlacesSearch:
         mock_response.raise_for_status.return_value = None
 
         class MockContext:
-            async def __aenter__(self):
+            async def __aenter__(self) -> AsyncMock:
                 return mock_response
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -132,10 +130,10 @@ class TestGooglePlacesSearch:
         mock_response.raise_for_status.return_value = None
 
         class MockContext:
-            async def __aenter__(self):
+            async def __aenter__(self) -> AsyncMock:
                 return mock_response
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -170,10 +168,10 @@ class TestGooglePlacesSearch:
         mock_response.raise_for_status.return_value = None
 
         class MockContext:
-            async def __aenter__(self):
+            async def __aenter__(self) -> AsyncMock:
                 return mock_response
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -196,10 +194,11 @@ class TestGooglePlacesSearch:
         """Test Google Places search with client error."""
 
         class MockErrorContext:
-            async def __aenter__(self):
-                raise aiohttp.ClientError("Connection failed")
+            async def __aenter__(self) -> AsyncMock:
+                msg = "Connection failed"
+                raise aiohttp.ClientError(msg)
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -218,11 +217,15 @@ class TestGooglePlacesSearch:
     async def test_search_google_places_unexpected_error(self, google_places_handler):
         """Test Google Places search with unexpected error."""
 
-        class MockErrorContext:
-            async def __aenter__(self):
-                raise Exception("Unexpected error")
+        class UnexpectedTestError(Exception):
+            """Custom exception for testing unexpected errors."""
 
-            async def __aexit__(self, exc_type, exc, tb):
+        class MockErrorContext:
+            async def __aenter__(self) -> AsyncMock:
+                msg = "Unexpected error"
+                raise UnexpectedTestError(msg)
+
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -245,10 +248,10 @@ class TestGooglePlacesSearch:
         mock_response.raise_for_status.return_value = None
 
         class MockContext:
-            async def __aenter__(self):
+            async def __aenter__(self) -> AsyncMock:
                 return mock_response
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -285,10 +288,10 @@ class TestGooglePlacesIntentHandling:
         mock_response.raise_for_status.return_value = None
 
         class MockContext:
-            async def __aenter__(self):
+            async def __aenter__(self) -> AsyncMock:
                 return mock_response
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -314,10 +317,10 @@ class TestGooglePlacesIntentHandling:
         mock_response.raise_for_status.return_value = None
 
         class MockContext:
-            async def __aenter__(self):
+            async def __aenter__(self) -> AsyncMock:
                 return mock_response
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -341,10 +344,11 @@ class TestGooglePlacesIntentHandling:
         """Test intent handling with service validation error."""
 
         class MockErrorContext:
-            async def __aenter__(self):
-                raise aiohttp.ClientError("API Error")
+            async def __aenter__(self) -> AsyncMock:
+                msg = "API Error"
+                raise aiohttp.ClientError(msg)
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type, exc, tb) -> None:
                 return None
 
         mock_session = Mock()
@@ -353,9 +357,8 @@ class TestGooglePlacesIntentHandling:
         with patch(
             "custom_components.llm_intents.google_places.async_get_clientsession",
             return_value=mock_session,
-        ):
-            with pytest.raises(ServiceValidationError):
-                await google_places_handler.async_handle(mock_intent)
+        ), pytest.raises(ServiceValidationError):
+            await google_places_handler.async_handle(mock_intent)
 
     @pytest.mark.asyncio
     async def test_async_handle_unexpected_error(
@@ -381,7 +384,7 @@ class TestGooglePlacesFormatting:
     def test_format_places_for_speech_single_result(self, google_places_handler):
         """Test formatting single place for speech."""
         places = [{"name": "Test Place", "address": "123 Test St"}]
-        result = google_places_handler._format_places_for_speech(places)
+        result = google_places_handler.format_places_for_speech(places)
 
         assert result == "I found Test Place at 123 Test St"
 
@@ -391,7 +394,7 @@ class TestGooglePlacesFormatting:
             {"name": "Place 1", "address": "123 Test St"},
             {"name": "Place 2", "address": "456 Test Ave"},
         ]
-        result = google_places_handler._format_places_for_speech(places)
+        result = google_places_handler.format_places_for_speech(places)
 
         expected = (
             "I found 2 places: 1. Place 1 at 123 Test St; 2. Place 2 at 456 Test Ave"
@@ -401,7 +404,7 @@ class TestGooglePlacesFormatting:
     def test_format_places_for_card_single_result(self, google_places_handler):
         """Test formatting single place for card."""
         places = [{"name": "Test Place", "address": "123 Test St"}]
-        result = google_places_handler._format_places_for_card(places)
+        result = google_places_handler.format_places_for_card(places)
 
         assert result == "**Test Place**\n123 Test St"
 
@@ -411,7 +414,7 @@ class TestGooglePlacesFormatting:
             {"name": "Place 1", "address": "123 Test St"},
             {"name": "Place 2", "address": "456 Test Ave"},
         ]
-        result = google_places_handler._format_places_for_card(places)
+        result = google_places_handler.format_places_for_card(places)
 
         expected = "**Place 1**\n123 Test St\n\n**Place 2**\n456 Test Ave"
         assert result == expected
