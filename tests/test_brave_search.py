@@ -8,7 +8,7 @@ search functionality, error handling, and intent response formatting.
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import aiohttp
 import pytest
@@ -42,6 +42,7 @@ class DummyIntent:
 
         Args:
             speech: The speech text to set in the response.
+
         """
         self.data["speech"] = speech
 
@@ -80,7 +81,7 @@ class FakeResponse:
         """
         self._json = json_data
         self._error = error
-        self.raise_for_status = AsyncMock()
+        self.raise_for_status = Mock()
         if error:
             self.raise_for_status.side_effect = error
 
@@ -296,11 +297,15 @@ async def test_async_handle(monkeypatch: Any) -> None:
     Test that async_handle processes and formats BraveSearch results correctly.
 
     Patches BraveSearch.search_brave_ai to return a fixed list of result
-    dictionaries and asserts the formatted speech output
-    matches expected content.
+    dictionaries and asserts the formatted speech output matches expected content.
     """
     fake = [{"title": "T", "description": "D", "extra_snippets": ["S"], "url": "U"}]
-    monkeypatch.setattr(BraveSearch, "search_brave_ai", AsyncMock(return_value=fake))
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr(
+        BraveSearch,
+        "search_brave_ai",
+        AsyncMock(return_value=fake),
+    )
 
     bs = make_brave()
     intent_obj = DummyIntent("foo")
