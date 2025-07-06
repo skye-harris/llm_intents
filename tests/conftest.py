@@ -8,7 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.llm_intents import DOMAIN
 from tests import async_init_integration, patch_async_setup_entry
 
-pytest_plugins = "pytest_homeassistant_custom_component"
+pytest_plugins = ["pytest_homeassistant_custom_component"]
 
 
 @pytest.fixture
