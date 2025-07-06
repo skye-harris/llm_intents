@@ -30,14 +30,6 @@ def mock_config_entry():
         },
     )
 
-
-# 3) Autouse the plugin’s enable_custom_integrations
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
-    """Automatically enable loading custom integrations in all tests."""
-    return
-
-
 @pytest.fixture
 async def init_integration(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry

@@ -3,3 +3,8 @@
 
 # Ignore all Python cache folders
 **/__pycache__/
+
+# coverage
+.coverage
+htmlcov/
+coverage.xml
