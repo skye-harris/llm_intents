@@ -1,5 +1,6 @@
 from homeassistant.helpers import intent
 import aiohttp
+import asyncio
 import urllib.parse
 import logging
 import voluptuous as vol
@@ -40,25 +41,25 @@ class WikipediaSearch(intent.IntentHandler):
                 return "No search results matched the query"
 
             # Limit to requested number of results
-            num_results = getattr(self, "num_results", 1)
+            num_results = self.num_results
             limited_hits = search_hits[:num_results]
 
             results = []
-            for hit in limited_hits:
-                title = hit.get("title")
-                if not title:
-                    continue
-
+            async def fetch_summary(title):
                 summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
                 async with session.get(summary_url) as resp:
                     resp.raise_for_status()
                     page_data = await resp.json()
+                    return {
+                        "title": title,
+                        "summary": page_data.get("extract", "No summary available")
+                    }
 
-                results.append({
-                    "title": title,
-                    "summary": page_data.get("extract", "No summary available")
-                })
+            # Filter down to our page titles to retrieve
+            titles = [hit.get("title") for hit in limited_hits if hit.get("title")]
 
+            # Run all summary fetches concurrently
+            results = await asyncio.gather(*(fetch_summary(title) for title in titles))
             return results or "No summaries available"
 
     async def async_handle(self, intent_obj):
