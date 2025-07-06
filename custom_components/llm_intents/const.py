@@ -1,3 +1,10 @@
+"""
+Constants for the llm_intents custom component.
+
+This module defines configuration keys and domain names for various intent
+integrations.
+"""
+
 DOMAIN = "llm_intents"
 
 CONF_BRAVE_INTENT = "brave_search"
