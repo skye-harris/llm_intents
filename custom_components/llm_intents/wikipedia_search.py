@@ -20,10 +20,12 @@ class WikipediaSearch(intent.IntentHandler):
     """Handle topic searches via the Wikipedia API."""
 
     # Type of intent to handle
+
     intent_type: str = "search_wikipedia"
     description: str = "Search Wikipedia for information on a topic"
 
     # Validation schema for slots
+
     slot_schema: ClassVar[dict] = {
         vol.Required(
             "query", description="The topic to search for"
@@ -33,6 +35,7 @@ class WikipediaSearch(intent.IntentHandler):
     def __init__(self, config: dict) -> None:
         """Initialize the WikipediaSearch handler with the user's config."""
         # config may be True or a dict
+
         if isinstance(config, dict):
             self.num_results: int = config.get(CONF_WIKIPEDIA_NUM_RESULTS, 1)
         else:
@@ -48,15 +51,15 @@ class WikipediaSearch(intent.IntentHandler):
 
         async with aiohttp.ClientSession() as session:
             # First request: search for pages
+
             async with session.get(search_url) as resp:
                 resp.raise_for_status()
                 search_result = await resp.json()
-
             search_hits = search_result.get("query", {}).get("search", [])
             if not search_hits:
                 return "No search results matched the query"
-
             # Limit to requested number of results
+
             limited_hits = search_hits[: self.num_results]
 
             async def fetch_summary(title: str) -> dict:
@@ -75,10 +78,9 @@ class WikipediaSearch(intent.IntentHandler):
                     }
 
             # Fetch summaries concurrently
+
             titles = [
-                hit.get("title")
-                for hit in limited_hits
-                if hit.get("title")
+                hit.get("title") for hit in limited_hits if hit.get("title")
             ]
             tasks = (fetch_summary(title) for title in titles)
             results = await asyncio.gather(*tasks)

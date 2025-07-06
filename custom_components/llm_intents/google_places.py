@@ -19,6 +19,7 @@ class GooglePlaces(intent.IntentHandler):
     """Handle location searches via the Google Places API."""
 
     # Type of intent to handle
+
     intent_type: str = "search_google_places"
     description: str = (
         "Search Google Places for realtime information locations, addresses, "
@@ -26,6 +27,7 @@ class GooglePlaces(intent.IntentHandler):
     )
 
     # Validation schema for slots
+
     slot_schema: ClassVar[dict] = {
         vol.Required(
             "query", description="The location to search for"
@@ -56,15 +58,15 @@ class GooglePlaces(intent.IntentHandler):
         }
 
         async with aiohttp.ClientSession() as session, session.post(
-            url,
-            json=payload,
-            headers=headers
+            url, json=payload, headers=headers
         ) as resp:
             resp.raise_for_status()
             raw = await resp.json()
             return [
                 {
-                    "name": place.get("displayName", {}).get("text", "No Name"),
+                    "name": place.get("displayName", {}).get(
+                        "text", "No Name"
+                    ),
                     "address": place.get("formattedAddress", "No Address"),
                 }
                 for place in raw.get("places", [])

@@ -23,6 +23,7 @@ class BraveSearch(intent.IntentHandler):
     """Handle web searches via the Brave Search API."""
 
     # Type of intent to handle
+
     intent_type = "search_internet"
     description = "Perform an immediate internet search for a given query"
 
@@ -62,24 +63,17 @@ class BraveSearch(intent.IntentHandler):
 
         if self.latitude is not None:
             headers["X-Loc-Lat"] = str(self.latitude)
-
         if self.longitude is not None:
             headers["X-Loc-Long"] = str(self.longitude)
-
         if self.timezone is not None:
             headers["X-Loc-Timezone"] = self.timezone
-
         if self.country_code is not None:
             headers["X-Loc-Country"] = self.country_code
             params["country"] = self.country_code
-
         if self.post_code is not None:
             headers["X-Loc-Postal-Code"] = str(self.post_code)
-
         async with aiohttp.ClientSession() as session, session.get(
-            url,
-            params=params,
-            headers=headers
+            url, params=params, headers=headers
         ) as resp:
             resp.raise_for_status()
             raw_results = await resp.json()

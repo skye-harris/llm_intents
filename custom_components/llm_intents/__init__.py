@@ -74,31 +74,28 @@ INTENTS = [
 
 
 async def async_setup(hass, config) -> bool:
-    """Set up the LLM Intents integration and register enabled intent handlers."""
+    """Set up the LLM Intents integration and register intent handlers."""
     my_config = config.get(DOMAIN)
     if not my_config:
         return True
-
     # Only one configuration entry expected
+
     my_config = my_config[0]
 
     for intent_key, intent_cls in INTENTS:
         if intent_key not in my_config:
             continue
-
         intent_config = my_config[intent_key]
         if not intent_config:
             continue
-
         # If enabled without further config
+
         if intent_config is True:
             intent_config = {}
-
         intent.async_register(hass, intent_cls(intent_config))
         _LOGGER.debug(
             "Registered intent handler %s with config %s",
             intent_key,
             intent_config,
         )
-
     return True
