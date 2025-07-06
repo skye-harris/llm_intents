@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from unittest.mock import Mock, patch
+
 import pytest
 import voluptuous as vol
 from homeassistant import config_entries
@@ -10,17 +11,17 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.llm_intents.config_flow import (
-    LlmIntentsConfigFlow,
-    LlmIntentsOptionsFlow,
-    get_step_user_data_schema,
-    get_brave_schema,
-    get_google_places_schema,
-    get_wikipedia_schema,
-    STEP_USER,
     STEP_BRAVE,
     STEP_GOOGLE_PLACES,
-    STEP_WIKIPEDIA,
     STEP_INIT,
+    STEP_USER,
+    STEP_WIKIPEDIA,
+    LlmIntentsConfigFlow,
+    LlmIntentsOptionsFlow,
+    get_brave_schema,
+    get_google_places_schema,
+    get_step_user_data_schema,
+    get_wikipedia_schema,
 )
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
@@ -195,8 +196,8 @@ class TestLlmIntentsConfigFlow:
     async def test_async_step_user_with_existing_config(self, config_flow):
         """Test user step with existing config entry."""
         # Mock an existing config entry
-        config_flow._config_entry = Mock()
-        config_flow._config_entry.data = {
+        config_flow.config_entry = Mock()
+        config_flow.config_entry.data = {
             CONF_BRAVE_API_KEY: "existing_key",
             CONF_BRAVE_NUM_RESULTS: 3,
         }
@@ -213,7 +214,7 @@ class TestLlmIntentsConfigFlow:
         options_flow = LlmIntentsConfigFlow.async_get_options_flow(config_entry)
 
         assert isinstance(options_flow, LlmIntentsOptionsFlow)
-        assert options_flow._config_entry == config_entry
+        assert options_flow.config_entry == config_entry
 
 
 class TestLlmIntentsOptionsFlow:
@@ -299,7 +300,7 @@ class TestLlmIntentsOptionsFlow:
     def test_options_flow_init(self, config_entry):
         """Test options flow initialization."""
         options_flow = LlmIntentsOptionsFlow(config_entry)
-        assert options_flow._config_entry == config_entry
+        assert options_flow.config_entry == config_entry
 
     async def test_async_step_init_with_empty_options(self):
         """Test options step when config entry has no options."""
@@ -374,8 +375,8 @@ class TestEdgeCases:
 
         # This would be caught by voluptuous validation in real usage
         # but we test the flow logic here
+        schema = get_step_user_data_schema()
         with pytest.raises(vol.Invalid):
-            schema = get_step_user_data_schema()
             schema(user_input)
 
     async def test_brave_schema_with_invalid_num_results(self):
@@ -470,20 +471,6 @@ class TestMockingAndPatching:
 
 class TestConstantsAndDefaults:
     """Test that constants and defaults are used correctly."""
-
-    def test_default_values_in_schemas(self):
-        """Test that default values are correctly set in schemas."""
-        # Test Brave defaults
-        brave_schema = get_brave_schema({})
-        # Default should be empty string for API key and 2 for num results
-
-        # Test Google Places defaults
-        google_schema = get_google_places_schema({})
-        # Default should be empty string for API key and 2 for num results
-
-        # Test Wikipedia defaults
-        wikipedia_schema = get_wikipedia_schema({})
-        # Default should be 1 for num results
 
     def test_step_constants_usage(self):
         """Test that step constants are used consistently."""
