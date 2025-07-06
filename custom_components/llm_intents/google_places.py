@@ -1,34 +1,44 @@
-from homeassistant.helpers import intent
-import aiohttp
+"""Module for handling Google Places search intents."""
+
 import logging
+
+import aiohttp
 import voluptuous as vol
+from homeassistant.helpers import intent
+
+from typing import ClassVar, Dict
 
 from .const import (
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
 )
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
 class GooglePlaces(intent.IntentHandler):
+    """Handle location searches via the Google Places API."""
+
     # Type of intent to handle
-    intent_type = "search_google_places"
-    description = "Search Google Places for realtime information locations, addresses, and destinations"
+    intent_type: str = "search_google_places"
+    description: str = (
+        "Search Google Places for realtime information locations, addresses, and destinations"
+    )
 
     # Validation schema for slots
-    slot_schema = {
+    slot_schema: ClassVar[Dict] = {
         vol.Required(
             "query", description="The location to search for"
         ): intent.non_empty_string,
     }
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict) -> None:
+        """Initialize the GooglePlaces handler with the user's configuration."""
         self.api_key = config.get(CONF_GOOGLE_PLACES_API_KEY)
         self.num_results = config.get(CONF_GOOGLE_PLACES_NUM_RESULTS, 2)
 
     async def search_google_places(self, query: str):
+        """Perform a search query using Google Places API and return structured results."""
         url = "https://places.googleapis.com/v1/places:searchText"
 
         headers = {
@@ -49,17 +59,16 @@ class GooglePlaces(intent.IntentHandler):
                 raw = await resp.json()
                 return [
                     {
-                        "name": p.get("displayName", {}).get("text", "No Name"),
-                        "address": p.get("formattedAddress", "No Address"),
+                        "name": place.get("displayName", {}).get("text", "No Name"),
+                        "address": place.get("formattedAddress", "No Address"),
                     }
-                    for p in raw.get("places", [])
+                    for place in raw.get("places", [])
                 ]
 
-    async def async_handle(self, intent_obj):
-        """Handle the intent."""
-
+    async def async_handle(self, intent_obj) -> intent.IntentResponseType:
+        """Handle the intent by validating slots and returning search results."""
         slots = self.async_validate_slots(intent_obj.slots)
-        query = slots.get("query", "")["value"]
+        query = slots.get("query", {}).get("value", "")
 
         search_results = await self.search_google_places(query)
 

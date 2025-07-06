@@ -1,12 +1,14 @@
-from .brave_search import BraveSearch
-from .google_places import GooglePlaces
-from .wikipedia_search import WikipediaSearch
+"""Initialize the LLM Intents integration and register intent handlers."""
+
+import logging
 
 from homeassistant.helpers import intent
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-import logging
 
+from .brave_search import BraveSearch
+from .google_places import GooglePlaces
+from .wikipedia_search import WikipediaSearch
 from .const import (
     DOMAIN,
     CONF_BRAVE_INTENT,
@@ -28,7 +30,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-PLATFORM_SCHEMA = vol.Schema(
+PLATFORM_SCHEMA: vol.Schema = vol.Schema(
     {
         vol.Optional(CONF_BRAVE_INTENT): vol.Schema(
             {
@@ -70,11 +72,13 @@ INTENTS = [
 ]
 
 
-async def async_setup(hass, config):
+async def async_setup(hass, config) -> bool:
+    """Set up the LLM Intents integration and register enabled intent handlers."""
     my_config = config.get(DOMAIN)
     if not my_config:
         return True
 
+    # Only one configuration entry expected
     my_config = my_config[0]
 
     for intent_key, intent_cls in INTENTS:
@@ -82,13 +86,16 @@ async def async_setup(hass, config):
             continue
 
         intent_config = my_config[intent_key]
-
         if not intent_config:
             continue
 
+        # If enabled without further config
         if intent_config is True:
             intent_config = {}
 
         intent.async_register(hass, intent_cls(intent_config))
+        _LOGGER.debug(
+            "Registered intent handler %s with config %s", intent_key, intent_config
+        )
 
     return True

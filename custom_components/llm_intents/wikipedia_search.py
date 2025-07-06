@@ -1,38 +1,51 @@
-from homeassistant.helpers import intent
-import aiohttp
+"""Module for handling Wikipedia search intents."""
+
 import asyncio
-import urllib.parse
 import logging
+import urllib.parse
+
+import aiohttp
 import voluptuous as vol
+from homeassistant.helpers import intent
+
+from typing import ClassVar, Dict, List, Union
 
 from .const import (
     CONF_WIKIPEDIA_NUM_RESULTS,
 )
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
 class WikipediaSearch(intent.IntentHandler):
+    """Handle topic searches via the Wikipedia API."""
+
     # Type of intent to handle
-    intent_type = "search_wikipedia"
-    description = "Search Wikipedia for information on a topic"
+    intent_type: str = "search_wikipedia"
+    description: str = "Search Wikipedia for information on a topic"
 
     # Validation schema for slots
-    slot_schema = {
+    slot_schema: ClassVar[Dict] = {
         vol.Required(
             "query", description="The topic to search for"
         ): intent.non_empty_string,
     }
 
-    def __init__(self, config):
-        self.num_results = (
-            config.get(CONF_WIKIPEDIA_NUM_RESULTS, 1) if config is dict else 1
-        )
-        pass
+    def __init__(self, config: dict) -> None:
+        """Initialize the WikipediaSearch handler with the user's configuration."""
+        # config may be True or a dict
+        if isinstance(config, dict):
+            self.num_results: int = config.get(CONF_WIKIPEDIA_NUM_RESULTS, 1)
+        else:
+            self.num_results: int = 1
 
-    async def search_wikipedia(self, query: str):
-        search_url = f"https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srsearch={urllib.parse.quote_plus(query)}"
+    async def search_wikipedia(self, query: str) -> Union[str, List[Dict]]:
+        """Perform a search query using Wikipedia API and return summaries or a no-results message."""
+        search_url = (
+            "https://en.wikipedia.org/w/api.php"
+            "?action=query&format=json&list=search"
+            f"&srsearch={urllib.parse.quote_plus(query)}"
+        )
 
         async with aiohttp.ClientSession() as session:
             # First request: search for pages
@@ -45,13 +58,13 @@ class WikipediaSearch(intent.IntentHandler):
                 return "No search results matched the query"
 
             # Limit to requested number of results
-            num_results = self.num_results
-            limited_hits = search_hits[:num_results]
+            limited_hits = search_hits[: self.num_results]
 
-            results = []
-
-            async def fetch_summary(title):
-                summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
+            async def fetch_summary(title: str) -> Dict:
+                summary_url = (
+                    "https://en.wikipedia.org/api/rest_v1/page/summary/"
+                    f"{urllib.parse.quote(title)}"
+                )
                 async with session.get(summary_url) as resp:
                     resp.raise_for_status()
                     page_data = await resp.json()
@@ -60,18 +73,15 @@ class WikipediaSearch(intent.IntentHandler):
                         "summary": page_data.get("extract", "No summary available"),
                     }
 
-            # Filter down to our page titles to retrieve
+            # Fetch summaries concurrently
             titles = [hit.get("title") for hit in limited_hits if hit.get("title")]
-
-            # Run all summary fetches concurrently
             results = await asyncio.gather(*(fetch_summary(title) for title in titles))
             return results or "No summaries available"
 
-    async def async_handle(self, intent_obj):
-        """Handle the intent."""
-
+    async def async_handle(self, intent_obj) -> intent.IntentResponseType:
+        """Handle the intent by validating slots and returning search results."""
         slots = self.async_validate_slots(intent_obj.slots)
-        query = slots.get("query", "")["value"]
+        query = slots.get("query", {}).get("value", "")
 
         search_results = await self.search_wikipedia(query)
 
