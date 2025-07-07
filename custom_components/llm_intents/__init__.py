@@ -6,6 +6,7 @@ __all__ = ["DOMAIN"]
 
 import logging
 
+from homeassistant import config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
@@ -29,6 +30,8 @@ INTENTS = [
     (CONF_GOOGLE_PLACES_INTENT, GooglePlaces),
     (CONF_WIKIPEDIA_INTENT, WikipediaSearch),
 ]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS = []  # No platforms needed for this integration
 
