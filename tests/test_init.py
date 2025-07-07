@@ -32,7 +32,9 @@ class TestIntegrationSetup:
     @pytest.fixture
     def hass(self):
         """Create a mock Home Assistant instance."""
-        return Mock(spec=HomeAssistant)
+        hass = Mock(spec=HomeAssistant)
+        hass.data = {}
+        return hass
 
     @pytest.fixture
     def mock_config_entry(self):
@@ -203,7 +205,9 @@ class TestIntegrationLogging:
     @pytest.fixture
     def hass(self):
         """Create a mock Home Assistant instance."""
-        return Mock(spec=HomeAssistant)
+        hass = Mock(spec=HomeAssistant)
+        hass.data = {}
+        return hass
 
     @pytest.fixture
     def mock_config_entry(self):
@@ -242,7 +246,9 @@ class TestErrorHandling:
     @pytest.fixture
     def hass(self):
         """Create a mock Home Assistant instance."""
-        return Mock(spec=HomeAssistant)
+        hass = Mock(spec=HomeAssistant)
+        hass.data = {}
+        return hass
 
     @pytest.fixture
     def mock_config_entry(self):
@@ -328,7 +334,9 @@ class TestEdgeCases:
     @pytest.fixture
     def hass(self):
         """Create a mock Home Assistant instance."""
-        return Mock(spec=HomeAssistant)
+        hass = Mock(spec=HomeAssistant)
+        hass.data = {}
+        return hass
 
     async def test_setup_with_empty_config(self, hass):
         """Test setup with completely empty configuration."""

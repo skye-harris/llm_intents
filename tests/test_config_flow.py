@@ -285,7 +285,17 @@ class TestLlmIntentsOptionsFlow:
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == "LLM Intents"
-        assert result["data"] == user_input
+        # The options flow should merge existing config with user input
+        expected_data = {
+            CONF_BRAVE_API_KEY: "test_key",
+            CONF_BRAVE_NUM_RESULTS: 2,
+            CONF_GOOGLE_PLACES_API_KEY: "places_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 3,
+            "use_brave": False,
+            "use_google_places": False,
+            "use_wikipedia": False,
+        }
+        assert result["data"] == expected_data
 
     async def test_async_step_init_defaults_merge(self, options_flow):
         """Test that defaults are properly merged from data and options."""

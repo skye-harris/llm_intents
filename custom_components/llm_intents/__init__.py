@@ -6,9 +6,9 @@ __all__ = ["DOMAIN"]
 
 import logging
 
-from homeassistant import config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import intent
 
 from .brave_search import BraveSearch
