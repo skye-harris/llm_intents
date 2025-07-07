@@ -1,119 +1,37 @@
-"""LLM Intents integration."""
-
 from .const import DOMAIN
 
 __all__ = ["DOMAIN"]
 
 import logging
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import intent
 
-from .brave_search import BraveSearch
-from .const import (
-    CONF_BRAVE_API_KEY,
-    CONF_BRAVE_INTENT,
-    CONF_GOOGLE_PLACES_API_KEY,
-    CONF_GOOGLE_PLACES_INTENT,
-    CONF_WIKIPEDIA_INTENT,
-    CONF_WIKIPEDIA_NUM_RESULTS,
-)
-from .google_places import GooglePlaces
-from .wikipedia_search import WikipediaSearch
+from .llm_functions import setup_llm_functions, cleanup_llm_functions
 
 _LOGGER = logging.getLogger(__name__)
 
-INTENTS = [
-    (CONF_BRAVE_INTENT, BraveSearch),
-    (CONF_GOOGLE_PLACES_INTENT, GooglePlaces),
-    (CONF_WIKIPEDIA_INTENT, WikipediaSearch),
-]
-
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-
-PLATFORMS = []  # No platforms needed for this integration
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the LLM Intents integration (configuration via config entries)."""
+    """Set up the LLM Intents integration."""
     hass.data.setdefault(DOMAIN, {})
+    _LOGGER.info("Setting up LLM Intents integration")
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up LLM Intents handlers from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
-    conf = entry.options or entry.data
-
-    # Handle case where both options and data are None
-
-    if conf is None:
-        _LOGGER.warning("Config entry %s has no data or options", entry.entry_id)
-        return True
-    # Check if any of the required API keys are present directly in config
-    # This handles the flat config structure
-
-    handlers_to_register = []
-
-    # Check for Brave Search
-
-    if conf.get(CONF_BRAVE_API_KEY):
-        handlers_to_register.append((CONF_BRAVE_INTENT, BraveSearch))
-    # Check for Google Places
-
-    if conf.get(CONF_GOOGLE_PLACES_API_KEY):
-        handlers_to_register.append((CONF_GOOGLE_PLACES_INTENT, GooglePlaces))
-    # Check for Wikipedia (always available, no API key needed)
-
-    if conf.get(CONF_WIKIPEDIA_NUM_RESULTS) is not None:
-        handlers_to_register.append((CONF_WIKIPEDIA_INTENT, WikipediaSearch))
-    # Also check for nested intent configuration structure
-
-    for intent_key, handler_cls in INTENTS:
-        intent_conf = conf.get(intent_key)
-        if intent_conf:
-            handlers_to_register.append((intent_key, handler_cls))
-    # Register unique handlers (avoid duplicates)
-
-    registered_intents = set()
-    for intent_key, handler_cls in handlers_to_register:
-        if intent_key in registered_intents:
-            continue
-        try:
-            handler = handler_cls(hass, entry)
-            intent.async_register(hass, handler)
-            registered_intents.add(intent_key)
-            _LOGGER.debug(
-                "Registered intent handler %s with config entry %s",
-                intent_key,
-                entry.entry_id,
-            )
-        except (KeyError, ValueError, TypeError) as err:
-            _LOGGER.warning(
-                "Failed to initialize handler %s: %s. Skipping.",
-                intent_key,
-                err,
-            )
-            continue
-        except Exception:
-            _LOGGER.exception(
-                "Unexpected error initializing handler %s",
-                intent_key,
-            )
-            continue
-    hass.data[DOMAIN][entry.entry_id] = {
-        "registered_intents": registered_intents,
-        "config": conf,
-    }
-
+    """Set up LLM Intents from a config entry."""
+    _LOGGER.info("Setting up LLM Intents for entry: %s", entry.entry_id)
+    await setup_llm_functions(hass, entry.data)
+    _LOGGER.info("LLM Intents functions successfully set up")
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload LLM Intents config entry."""
-    if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
-        hass.data[DOMAIN].pop(entry.entry_id)
+    """Unload a config entry."""
+    _LOGGER.info("Unloading LLM Intents for entry: %s", entry.entry_id)
+    await cleanup_llm_functions(hass)
+    _LOGGER.info("LLM Intents functions successfully unloaded")
     return True

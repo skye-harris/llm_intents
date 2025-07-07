@@ -2,81 +2,111 @@
   "config": {
     "step": {
       "user": {
-        "title": "LLM Intents Configuration",
-        "description": "Select which services to configure for LLM Intents",
+        "title": "Configure LLM Intents",
+        "description": "Select the services you want to enable for LLM intents.",
         "data": {
-          "use_brave": "Use Brave Browser search",
-          "use_google_places": "Use Google Places search",
-          "use_wikipedia": "Use Wikipedia search"
+          "use_brave": "Enable Brave Search",
+          "use_google_places": "Enable Google Places",
+          "use_wikipedia": "Enable Wikipedia Search"
         }
       },
       "brave": {
-        "title": "Brave Search Configuration",
-        "description": "Configure Brave Search API settings",
+        "title": "Configure Brave Search",
+        "description": "Configure Brave Search API settings.",
         "data": {
-          "brave_api_key": "Brave API Key",
-          "brave_num_results": "Number of search results",
-          "brave_country_code": "Country code (e.g., US, GB)",
-          "brave_latitude": "Latitude for location-based search",
-          "brave_longitude": "Longitude for location-based search",
-          "brave_timezone": "Timezone (e.g., America/New_York)",
-          "brave_post_code": "Postal/ZIP code"
+          "brave_api_key": "API Key",
+          "brave_num_results": "Number of Results",
+          "brave_country_code": "Country Code (optional)",
+          "brave_latitude": "Latitude (optional)",
+          "brave_longitude": "Longitude (optional)",
+          "brave_timezone": "Timezone (optional)",
+          "brave_post_code": "Post Code (optional)"
         }
       },
       "google_places": {
-        "title": "Google Places Configuration",
-        "description": "Configure Google Places API settings",
+        "title": "Configure Google Places",
+        "description": "Configure Google Places API settings.",
         "data": {
-          "google_places_api_key": "Google Places API Key",
-          "google_places_num_results": "Number of place results"
+          "google_places_api_key": "API Key",
+          "google_places_num_results": "Number of Results"
         }
       },
       "wikipedia": {
-        "title": "Wikipedia Configuration",
-        "description": "Configure Wikipedia search settings",
+        "title": "Configure Wikipedia",
+        "description": "Configure Wikipedia search settings.",
         "data": {
-          "wikipedia_num_results": "Number of Wikipedia results"
+          "wikipedia_num_results": "Number of Results"
+        }
+      },
+      "configure": {
+        "title": "Configure Services",
+        "description": "Select which services to enable or disable.\n\n{current_services}",
+        "data": {
+          "use_brave": "Enable Brave Search",
+          "use_google_places": "Enable Google Places",
+          "use_wikipedia": "Enable Wikipedia Search"
+        }
+      },
+      "delete": {
+        "title": "Delete Integration",
+        "description": "Are you sure you want to delete '{entry_title}'? This will remove all configuration and cannot be undone.",
+        "data": {
+          "confirm_delete": "Yes, delete this integration"
+        },
+        "abort": {
+          "instance_deleted": "Helper instance deleted"
         }
       }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance of LLM Intents is allowed"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Update LLM Intents Configuration",
-        "description": "Select which services to reconfigure",
+        "title": "LLM Intents Options",
+        "description": "Choose what you want to do:\n\n{current_services}",
+        "menu_options": {
+          "configure": "Configure Services",
+          "delete": "Delete Integration"
+        }
+      },
+      "configure": {
+        "title": "Configure Services",
+        "description": "Select which services to enable or disable.\n\n{current_services}",
         "data": {
-          "use_brave": "Use Brave Browser search",
-          "use_google_places": "Use Google Places search",
-          "use_wikipedia": "Use Wikipedia search"
+          "use_brave": "Enable Brave Search",
+          "use_google_places": "Enable Google Places",
+          "use_wikipedia": "Enable Wikipedia Search"
         }
       },
       "brave": {
-        "title": "Update Brave Search Configuration",
-        "description": "Update Brave Search API settings",
+        "title": "Configure Brave Search",
+        "description": "Configure Brave Search API settings.",
         "data": {
-          "brave_api_key": "Brave API Key",
-          "brave_num_results": "Number of search results",
-          "brave_country_code": "Country code (e.g., US, GB)",
-          "brave_latitude": "Latitude for location-based search",
-          "brave_longitude": "Longitude for location-based search",
-          "brave_timezone": "Timezone (e.g., America/New_York)",
-          "brave_post_code": "Postal/ZIP code"
+          "brave_api_key": "API Key",
+          "brave_num_results": "Number of Results",
+          "brave_country_code": "Country Code (optional)",
+          "brave_latitude": "Latitude (optional)",
+          "brave_longitude": "Longitude (optional)",
+          "brave_timezone": "Timezone (optional)",
+          "brave_post_code": "Post Code (optional)"
         }
       },
       "google_places": {
-        "title": "Update Google Places Configuration",
-        "description": "Update Google Places API settings",
+        "title": "Configure Google Places",
+        "description": "Configure Google Places API settings.",
         "data": {
-          "google_places_api_key": "Google Places API Key",
-          "google_places_num_results": "Number of place results"
+          "google_places_api_key": "API Key",
+          "google_places_num_results": "Number of Results"
         }
       },
       "wikipedia": {
-        "title": "Update Wikipedia Configuration",
-        "description": "Update Wikipedia search settings",
+        "title": "Configure Wikipedia",
+        "description": "Configure Wikipedia search settings.",
         "data": {
-          "wikipedia_num_results": "Number of Wikipedia results"
+          "wikipedia_num_results": "Number of Results"
         }
       }
     }

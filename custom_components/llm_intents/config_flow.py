@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
 
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
@@ -32,6 +33,8 @@ STEP_BRAVE = "brave"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_INIT = "init"
+STEP_DELETE = "delete"
+STEP_CONFIGURE = "configure"
 
 
 def get_step_user_data_schema() -> vol.Schema:
@@ -116,6 +119,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle the initial configuration step for the user."""
+        errors = {}
+
+        # Check if entry already exists
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+
         if user_input is None:
             # Display the main menu with checkboxes for Brave, Google Places, and Wikipedia
 
@@ -123,11 +132,15 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id=STEP_USER,
                 data_schema=schema,
+                errors=errors,
             )
         # Store user selections
-
         self.user_selections = user_input.copy()
         self.config_data.update(user_input)
+
+        # Set a unique ID for this integration instance
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()
 
         # Handle each service configuration based on user selection
 
@@ -153,8 +166,9 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=schema,
             )
         # If no service is selected, create the entry with the selected data
-
-        return self.async_create_entry(title="LLM Intents", data=self.config_data)
+        return self.async_create_entry(
+            title="LLM Intents", data=self.config_data, options={}
+        )
 
     async def async_step_brave(
         self, user_input: dict[str, Any] | None = None
@@ -248,19 +262,48 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Present a form to update API keys and result counts."""
+        """Present a menu to configure services or delete the integration."""
+        if user_input is None:
+            return self.async_show_menu(
+                step_id=STEP_INIT,
+                menu_options=["configure", "delete"],
+                description_placeholders={
+                    "current_services": self._get_current_services_description()
+                },
+            )
+        return None
+
+    async def async_step_configure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle the configure menu option."""
         data = self.config_entry.data
         opts = self.config_entry.options or {}
-
-        # Use defaults from the entry's data or options
-
         defaults = {**data, **opts}
 
         if user_input is None:
-            schema = get_step_user_data_schema()
-            return self.async_show_form(step_id=STEP_INIT, data_schema=schema)
-        # Store user selections and existing data
+            schema_dict = {
+                vol.Optional(
+                    "use_brave", default=defaults.get("use_brave", False)
+                ): bool,
+                vol.Optional(
+                    "use_google_places",
+                    default=defaults.get("use_google_places", False),
+                ): bool,
+                vol.Optional(
+                    "use_wikipedia", default=defaults.get("use_wikipedia", False)
+                ): bool,
+            }
+            schema = vol.Schema(schema_dict)
+            return self.async_show_form(
+                step_id=STEP_CONFIGURE,
+                data_schema=schema,
+                description_placeholders={
+                    "current_services": self._get_current_services_description()
+                },
+            )
 
+        # Store user selections and existing data
         self.user_selections = user_input.copy()
         self.config_data.update(defaults)
         self.config_data.update(user_input)
@@ -274,9 +317,61 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         if user_input.get("use_wikipedia"):
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        # Finalize and create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self.config_data)
+        # No services selected, just update with current selections
+        return self.async_create_entry(title="", data=self.config_data)
+
+    async def async_step_delete(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle deletion confirmation."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id=STEP_DELETE,
+                data_schema=vol.Schema(
+                    {
+                        vol.Required("confirm_delete", default=False): bool,
+                    }
+                ),
+                description_placeholders={
+                    "entry_title": self.config_entry.title or "LLM Intents"
+                },
+            )
+
+        if user_input.get("confirm_delete"):
+            # Remove any created entities first
+            entity_registry = er.async_get(self.hass)
+            entities = er.async_entries_for_config_entry(
+                entity_registry, self.config_entry.entry_id
+            )
+
+            for entity in entities:
+                entity_registry.async_remove(entity.entity_id)
+
+            # Remove the config entry
+            await self.hass.config_entries.async_remove(self.config_entry.entry_id)
+
+            # Return a proper abort result manually
+            return {"type": "abort", "reason": "instance_deleted"}
+
+        # User cancelled, go back to menu
+        return await self.async_step_init()
+
+    def _get_current_services_description(self) -> str:
+        """Get a description of currently configured services."""
+        services = []
+        data = {**self.config_entry.data, **(self.config_entry.options or {})}
+
+        if data.get("use_brave"):
+            services.append("Brave Search")
+        if data.get("use_google_places"):
+            services.append("Google Places")
+        if data.get("use_wikipedia"):
+            services.append("Wikipedia")
+
+        if services:
+            return f"Currently configured: {', '.join(services)}"
+        return "No services currently configured"
 
     async def async_step_brave(
         self, user_input: dict[str, Any] | None = None
