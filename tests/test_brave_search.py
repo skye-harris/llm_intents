@@ -12,6 +12,7 @@ from custom_components.llm_intents.brave_search import BraveSearch
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
 )
+from tests.conftest import mock_hass
 
 
 class TestBraveSearch:
@@ -63,8 +64,6 @@ class TestBraveSearch:
         )
         patch_timeout = patch("aiohttp.ClientTimeout", return_value=None)
 
-        # Use `with` for both patches
-
         return patch_session, patch_timeout
 
     def test_init(self, brave_handler, mock_config_entry_brave):
@@ -97,8 +96,6 @@ class TestBraveSearch:
 
         mock_session, _ = self._setup_mock_session(brave_search_results)
 
-        # Use both patches correctly as context managers
-
         with (
             patch(
                 "custom_components.llm_intents.brave_search.async_get_clientsession",
@@ -122,8 +119,6 @@ class TestBraveSearch:
 
         mock_session, _ = self._setup_mock_session()
 
-        # Use both patches correctly as context managers
-
         with (
             patch(
                 "custom_components.llm_intents.brave_search.async_get_clientsession",
@@ -139,7 +134,6 @@ class TestBraveSearch:
         """Test Brave search with client error."""
         mock_hass.data = {}
         mock_hass.bus = AsyncMock()
-        # Patch the Home Assistant shared session creator to raise a ClientError
 
         with patch(
             "homeassistant.helpers.aiohttp_client.async_get_clientsession",
@@ -147,8 +141,6 @@ class TestBraveSearch:
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
-            # Accept either error message, since the fallback may be "Unexpected error during Brave Search"
-
             assert "Unable to connect to Brave Search API" in str(
                 exc_info.value
             ) or "Unexpected error during Brave Search" in str(exc_info.value)
@@ -158,7 +150,6 @@ class TestBraveSearch:
         """Test Brave search with unexpected error."""
         mock_hass.data = {}
         mock_hass.bus = AsyncMock()
-        # Patch the *Home Assistant* shared session creator, not aiohttp.ClientSession directly
 
         with patch(
             "homeassistant.helpers.aiohttp_client.async_get_clientsession",
@@ -257,7 +248,10 @@ class TestBraveSearch:
         ]
 
         speech = brave_handler.format_results_for_speech(results)
-        expected = "Here are the top results: 1. Result 1: Description 1; 2. Result 2: Description 2"
+        expected = (
+            "Here are the top results: 1. Result 1: Description 1; "
+            "2. Result 2: Description 2"
+        )
         assert speech == expected
 
     def test_format_results_for_speech_no_results(self, brave_handler):
@@ -283,7 +277,6 @@ class TestBraveSearch:
     def test_slot_schema(self, brave_handler):
         """Test slot schema validation."""
         assert "query" in brave_handler.slot_schema
-        # Instead of checking `.required`, check that the schema is a voluptuous Required object
 
         import voluptuous as vol
 
@@ -336,14 +329,10 @@ class TestBraveSearch:
         ):
             await handler.search_brave_ai("test query")
 
-            # Verify the request was made with location parameters
-
             mock_session.get.assert_called_once()
             call_args = mock_session.get.call_args
             assert "country" in call_args[1]["params"]
             assert call_args[1]["params"]["country"] == "US"
-            # Check for other expected parameters
-
             assert "q" in call_args[1]["params"]
             assert "count" in call_args[1]["params"]
 
@@ -352,8 +341,6 @@ class TestBraveSearch:
         """Test Brave search with HTTP error response."""
         mock_hass.data = {}
         mock_hass.bus = AsyncMock()
-
-        # Patch the session to raise an error during the request
 
         with patch(
             "custom_components.llm_intents.brave_search.async_get_clientsession"
@@ -366,8 +353,6 @@ class TestBraveSearch:
 
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
-            # Accept either error message since the implementation may catch different error types
-
             error_msg = str(exc_info.value)
             assert (
                 "Unable to connect to Brave Search API" in error_msg
@@ -399,8 +384,6 @@ class TestBraveSearch:
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
             error_msg = str(exc_info.value)
-            # The implementation catches ValueError and wraps it in general error
-
             assert "Unexpected error during Brave Search" in error_msg
 
     def test_format_results_for_speech_with_missing_fields(self, brave_handler):
@@ -413,8 +396,6 @@ class TestBraveSearch:
                 "snippets": ["snippet"],
             }
         ]
-
-        # The implementation expects 'description' to be present, so this should raise KeyError
 
         with pytest.raises(KeyError):
             brave_handler.format_results_for_speech(results)
@@ -437,7 +418,10 @@ class TestBraveSearch:
         ]
 
         card = brave_handler.format_results_for_card(results)
-        expected = "**Result 1**\nDescription 1\nhttps://example.com/1\n\n**Result 2**\nDescription 2\nhttps://example.com/2"
+        expected = (
+            "**Result 1**\nDescription 1\nhttps://example.com/1\n\n"
+            "**Result 2**\nDescription 2\nhttps://example.com/2"
+        )
         assert card == expected
 
     def test_format_results_for_card_with_missing_fields(self, brave_handler):
@@ -449,8 +433,6 @@ class TestBraveSearch:
                 "snippets": ["snippet"],
             }
         ]
-
-        # The implementation expects 'description' and 'url' to be present, so this should raise KeyError
 
         with pytest.raises(KeyError):
             brave_handler.format_results_for_card(results)
@@ -472,12 +454,8 @@ class TestBraveSearch:
 
             response = await brave_handler.async_handle(mock_intent_obj)
 
-            # Verify both speech and card are set
-
             response.async_set_speech.assert_called_once()
             response.async_set_card.assert_called_once()
-
-            # Check the card content
 
             card_call = response.async_set_card.call_args[1]
             assert "**Test Result**" in card_call["content"]
@@ -515,8 +493,6 @@ class TestBraveSearch:
         ):
             await handler.search_brave_ai("test query")
 
-            # Verify all optional parameters are included
-
             call_args = mock_session.get.call_args[1]["params"]
             assert "country" in call_args
             assert call_args["country"] == "US"
@@ -547,7 +523,12 @@ class TestBraveSearch:
                 }
             )
         speech = brave_handler.format_results_for_speech(results)
-        # Should handle multiple results properly
-
         assert "Here are the top results:" in speech
         assert "Result 1:" in speech
+        ConfigEntry.data = {
+            CONF_BRAVE_API_KEY: "test_key",
+            "brave_num_results": 1,  # Minimum allowed value
+        }
+
+        handler = BraveSearch(mock_hass, ConfigEntry)
+        assert handler.num_results == 1
