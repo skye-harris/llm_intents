@@ -15,7 +15,12 @@
         "description": "Configure Brave Search API settings",
         "data": {
           "brave_api_key": "Brave API Key",
-          "brave_num_results": "Number of search results"
+          "brave_num_results": "Number of search results",
+          "brave_country_code": "Country code (e.g., US, GB)",
+          "brave_latitude": "Latitude for location-based search",
+          "brave_longitude": "Longitude for location-based search",
+          "brave_timezone": "Timezone (e.g., America/New_York)",
+          "brave_post_code": "Postal/ZIP code"
         }
       },
       "google_places": {
@@ -51,7 +56,12 @@
         "description": "Update Brave Search API settings",
         "data": {
           "brave_api_key": "Brave API Key",
-          "brave_num_results": "Number of search results"
+          "brave_num_results": "Number of search results",
+          "brave_country_code": "Country code (e.g., US, GB)",
+          "brave_latitude": "Latitude for location-based search",
+          "brave_longitude": "Longitude for location-based search",
+          "brave_timezone": "Timezone (e.g., America/New_York)",
+          "brave_post_code": "Postal/ZIP code"
         }
       },
       "google_places": {

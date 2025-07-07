@@ -10,7 +10,12 @@ from homeassistant.core import callback
 
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
+    CONF_BRAVE_COUNTRY_CODE,
+    CONF_BRAVE_LATITUDE,
+    CONF_BRAVE_LONGITUDE,
     CONF_BRAVE_NUM_RESULTS,
+    CONF_BRAVE_POST_CODE,
+    CONF_BRAVE_TIMEZONE,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -48,6 +53,22 @@ def get_brave_schema(defaults: dict) -> vol.Schema:
             vol.Optional(
                 CONF_BRAVE_NUM_RESULTS, default=defaults.get(CONF_BRAVE_NUM_RESULTS, 2)
             ): vol.All(int, vol.Range(min=1)),
+            vol.Optional(
+                CONF_BRAVE_COUNTRY_CODE,
+                default=defaults.get(CONF_BRAVE_COUNTRY_CODE, ""),
+            ): str,
+            vol.Optional(
+                CONF_BRAVE_LATITUDE, default=defaults.get(CONF_BRAVE_LATITUDE, "")
+            ): str,
+            vol.Optional(
+                CONF_BRAVE_LONGITUDE, default=defaults.get(CONF_BRAVE_LONGITUDE, "")
+            ): str,
+            vol.Optional(
+                CONF_BRAVE_TIMEZONE, default=defaults.get(CONF_BRAVE_TIMEZONE, "")
+            ): str,
+            vol.Optional(
+                CONF_BRAVE_POST_CODE, default=defaults.get(CONF_BRAVE_POST_CODE, "")
+            ): str,
         }
     )
 
@@ -259,11 +280,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         self._config_data.update(user_input)
 
         if self._user_selections.get("use_google_places"):
-            defaults = {**self._config_entry.data, **self._config_entry.options}
+            defaults = {**self._config_entry.data, **(self._config_entry.options or {})}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)
         if self._user_selections.get("use_wikipedia"):
-            defaults = {**self._config_entry.data, **self._config_entry.options}
+            defaults = {**self._config_entry.data, **(self._config_entry.options or {})}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
         return self.async_create_entry(title="", data=self._config_data)
@@ -277,7 +298,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         self._config_data.update(user_input)
 
         if self._user_selections.get("use_wikipedia"):
-            defaults = {**self._config_entry.data, **self._config_entry.options}
+            defaults = {**self._config_entry.data, **(self._config_entry.options or {})}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
         return self.async_create_entry(title="", data=self._config_data)
