@@ -516,10 +516,10 @@ class TestBraveSearch:
         for i in range(10):  # More than typical display count
             results.append(
                 {
-                    "title": f"Result {i+1}",
-                    "description": f"Description {i+1}",
-                    "url": f"https://example.com/{i+1}",
-                    "snippets": [f"snippet{i+1}"],
+                    "title": f"Result {i + 1}",
+                    "description": f"Description {i + 1}",
+                    "url": f"https://example.com/{i + 1}",
+                    "snippets": [f"snippet{i + 1}"],
                 }
             )
         speech = brave_handler.format_results_for_speech(results)
