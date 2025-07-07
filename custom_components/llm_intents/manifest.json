@@ -3,11 +3,13 @@
     "name": "LLM Intents",
     "codeowners": ["@skye-harris"],
     "config_flow": true,
-    "dependencies": ["config"],
+    "dependencies": [],
     "documentation": "https://github.com/skye-harris/llm_intents",
     "integration_type": "helper",
     "iot_class": "calculated",
     "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
     "requirements": [],
-    "version": "1.0.2"
+    "version": "1.0.2",
+    "after_dependencies": [],
+    "loggers": ["custom_components.llm_intents"]
 }

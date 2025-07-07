@@ -41,6 +41,13 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 ## Configuration
 
+After installation, configure the integration through Home Assistant's UI:
+
+1. Go to **Settings** → **Devices & Services**
+2. Click **Add Integration**
+3. Search for "LLM Intents"
+4. Follow the setup wizard to configure your desired services
+
 ### 🔍 Brave Search
 
 Uses the Brave AI Web Search API to return summarized, snippet-rich results.
@@ -63,6 +70,12 @@ llm_intents:
     timezone: "Australia/Perth"
     post_code: "6000"
 ```
+
+#### Configuration Steps
+
+1. Select "Brave Search" during setup
+2. Enter your [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai)
+3. Configure optional settings like number of results, location preferences
 
 #### Options
 
@@ -96,6 +109,12 @@ llm_intents:
     num_results: 3
 ```
 
+#### Configuration Steps
+
+1. Select "Google Places" during setup  
+2. Enter your [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
+3. Configure number of results to return
+
 #### Options
 
 | Key           | Required | Default | Description                          |
@@ -127,11 +146,19 @@ llm_intents:
     num_results: 1
 ```
 
+#### Configuration Steps
+
+1. Select "Wikipedia" during setup
+2. Configure number of article summaries to return (no API key required)
+
 ### Options
 
 | Key           | Required | Default | Description                           |
 | ------------- | -------- | ------- | ------------------------------------- |
 | `num_results` | ❌        | `1`     | Number of article summaries to return |
+
+> [!IMPORTANT]
+> **Security**: All API keys are stored securely in Home Assistant's encrypted configuration database, not in plain text files.
 
 ## Acknowledgements
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)

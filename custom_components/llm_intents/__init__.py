@@ -30,49 +30,55 @@ INTENTS = [
     (CONF_WIKIPEDIA_INTENT, WikipediaSearch),
 ]
 
+PLATFORMS = []  # No platforms needed for this integration
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the LLM Intents integration (configuration via config entries)."""
+    hass.data.setdefault(DOMAIN, {})
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up LLM Intents handlers from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+
     conf = entry.options or entry.data
 
     # Handle case where both options and data are None
+
     if conf is None:
         _LOGGER.warning("Config entry %s has no data or options", entry.entry_id)
         return True
-
     # Check if any of the required API keys are present directly in config
     # This handles the flat config structure
+
     handlers_to_register = []
 
     # Check for Brave Search
+
     if conf.get(CONF_BRAVE_API_KEY):
         handlers_to_register.append((CONF_BRAVE_INTENT, BraveSearch))
-
     # Check for Google Places
+
     if conf.get(CONF_GOOGLE_PLACES_API_KEY):
         handlers_to_register.append((CONF_GOOGLE_PLACES_INTENT, GooglePlaces))
-
     # Check for Wikipedia (always available, no API key needed)
+
     if conf.get(CONF_WIKIPEDIA_NUM_RESULTS) is not None:
         handlers_to_register.append((CONF_WIKIPEDIA_INTENT, WikipediaSearch))
-
     # Also check for nested intent configuration structure
+
     for intent_key, handler_cls in INTENTS:
         intent_conf = conf.get(intent_key)
         if intent_conf:
             handlers_to_register.append((intent_key, handler_cls))
-
     # Register unique handlers (avoid duplicates)
+
     registered_intents = set()
     for intent_key, handler_cls in handlers_to_register:
         if intent_key in registered_intents:
             continue
-
         try:
             handler = handler_cls(hass, entry)
             intent.async_register(hass, handler)
@@ -95,11 +101,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 intent_key,
             )
             continue
+    hass.data[DOMAIN][entry.entry_id] = {
+        "registered_intents": registered_intents,
+        "config": conf,
+    }
 
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload LLM Intents config entry."""
-    # Optionally unregister intent handlers here if needed
+    if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
+        hass.data[DOMAIN].pop(entry.entry_id)
     return True
