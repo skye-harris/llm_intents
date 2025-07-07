@@ -47,6 +47,7 @@ class TestSchemaFunctions:
         assert isinstance(schema, vol.Schema)
 
         # Test default values
+
         defaults = {
             "use_brave": False,
             "use_google_places": False,
@@ -65,12 +66,14 @@ class TestSchemaFunctions:
         assert isinstance(schema, vol.Schema)
 
         # Test validation
+
         test_data = {
             CONF_BRAVE_API_KEY: "new_key",
             CONF_BRAVE_NUM_RESULTS: 3,
         }
         validated = schema(test_data)
         # Schema adds optional fields with default values
+
         expected_data = {
             CONF_BRAVE_API_KEY: "new_key",
             CONF_BRAVE_NUM_RESULTS: 3,
@@ -87,6 +90,7 @@ class TestSchemaFunctions:
         schema = get_brave_schema({})
 
         # Test minimum value validation
+
         with pytest.raises(vol.Invalid):
             schema(
                 {
@@ -105,6 +109,7 @@ class TestSchemaFunctions:
         assert isinstance(schema, vol.Schema)
 
         # Test validation
+
         test_data = {
             CONF_GOOGLE_PLACES_API_KEY: "new_key",
             CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
@@ -117,6 +122,7 @@ class TestSchemaFunctions:
         schema = get_google_places_schema({})
 
         # Test minimum value validation
+
         with pytest.raises(vol.Invalid):
             schema(
                 {
@@ -132,6 +138,7 @@ class TestSchemaFunctions:
         assert isinstance(schema, vol.Schema)
 
         # Test validation
+
         test_data = {CONF_WIKIPEDIA_NUM_RESULTS: 1}
         validated = schema(test_data)
         assert validated == test_data
@@ -141,6 +148,7 @@ class TestSchemaFunctions:
         schema = get_wikipedia_schema({})
 
         # Test minimum value validation
+
         with pytest.raises(vol.Invalid):
             schema({CONF_WIKIPEDIA_NUM_RESULTS: 0})  # Should be >= 1
 
@@ -211,6 +219,7 @@ class TestLlmIntentsConfigFlow:
     async def test_async_step_user_with_existing_config(self, config_flow):
         """Test user step with existing config entry."""
         # Mock an existing config entry
+
         config_flow.config_entry = Mock()
         config_flow.config_entry.data = {
             CONF_BRAVE_API_KEY: "existing_key",
@@ -232,7 +241,7 @@ class TestLlmIntentsConfigFlow:
 
     async def test_async_step_brave_with_input_no_next_service(self, config_flow):
         """Test Brave step with input and no other services selected."""
-        config_flow._user_selections = {"use_brave": True}
+        config_flow.user_selections = {"use_brave": True}
         user_input = {
             CONF_BRAVE_API_KEY: "test_key",
             CONF_BRAVE_NUM_RESULTS: 3,
@@ -244,7 +253,7 @@ class TestLlmIntentsConfigFlow:
 
     async def test_async_step_brave_with_google_places_next(self, config_flow):
         """Test Brave step that leads to Google Places configuration."""
-        config_flow._user_selections = {"use_brave": True, "use_google_places": True}
+        config_flow.user_selections = {"use_brave": True, "use_google_places": True}
         user_input = {
             CONF_BRAVE_API_KEY: "test_key",
             CONF_BRAVE_NUM_RESULTS: 3,
@@ -256,7 +265,7 @@ class TestLlmIntentsConfigFlow:
 
     async def test_async_step_brave_with_wikipedia_next(self, config_flow):
         """Test Brave step that leads to Wikipedia configuration."""
-        config_flow._user_selections = {"use_brave": True, "use_wikipedia": True}
+        config_flow.user_selections = {"use_brave": True, "use_wikipedia": True}
         user_input = {
             CONF_BRAVE_API_KEY: "test_key",
             CONF_BRAVE_NUM_RESULTS: 3,
@@ -277,7 +286,7 @@ class TestLlmIntentsConfigFlow:
         self, config_flow
     ):
         """Test Google Places step with input and no other services selected."""
-        config_flow._user_selections = {"use_google_places": True}
+        config_flow.user_selections = {"use_google_places": True}
         user_input = {
             CONF_GOOGLE_PLACES_API_KEY: "test_key",
             CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
@@ -289,7 +298,7 @@ class TestLlmIntentsConfigFlow:
 
     async def test_async_step_google_places_with_wikipedia_next(self, config_flow):
         """Test Google Places step that leads to Wikipedia configuration."""
-        config_flow._user_selections = {
+        config_flow.user_selections = {
             "use_google_places": True,
             "use_wikipedia": True,
         }
@@ -311,7 +320,7 @@ class TestLlmIntentsConfigFlow:
 
     async def test_async_step_wikipedia_with_input(self, config_flow):
         """Test Wikipedia step with input."""
-        config_flow._user_selections = {"use_wikipedia": True}
+        config_flow.user_selections = {"use_wikipedia": True}
         user_input = {CONF_WIKIPEDIA_NUM_RESULTS: 1}
         result = await config_flow.async_step_wikipedia(user_input)
 
@@ -396,6 +405,7 @@ class TestLlmIntentsOptionsFlow:
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == "LLM Intents"
         # The options flow should merge existing config with user input
+
         expected_data = {
             CONF_BRAVE_API_KEY: "test_key",
             CONF_BRAVE_NUM_RESULTS: 2,
@@ -410,10 +420,12 @@ class TestLlmIntentsOptionsFlow:
     async def test_async_step_init_defaults_merge(self, options_flow):
         """Test that defaults are properly merged from data and options."""
         # The defaults should merge data and options, with options taking precedence
+
         user_input = {"use_brave": True}
         result = await options_flow.async_step_init(user_input)
 
         # This should show the Brave form, and the schema should use merged defaults
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == STEP_BRAVE
 
@@ -438,7 +450,7 @@ class TestLlmIntentsOptionsFlow:
 
     async def test_async_step_brave_with_input_no_next_service(self, options_flow):
         """Test Brave options step with input and no other services selected."""
-        options_flow._user_selections = {"use_brave": True}
+        options_flow.user_selections = {"use_brave": True}
         user_input = {
             CONF_BRAVE_API_KEY: "updated_key",
             CONF_BRAVE_NUM_RESULTS: 5,
@@ -450,7 +462,7 @@ class TestLlmIntentsOptionsFlow:
 
     async def test_async_step_brave_with_google_places_next(self, options_flow):
         """Test Brave options step that leads to Google Places configuration."""
-        options_flow._user_selections = {"use_brave": True, "use_google_places": True}
+        options_flow.user_selections = {"use_brave": True, "use_google_places": True}
         user_input = {
             CONF_BRAVE_API_KEY: "updated_key",
             CONF_BRAVE_NUM_RESULTS: 5,
@@ -462,7 +474,7 @@ class TestLlmIntentsOptionsFlow:
 
     async def test_async_step_brave_with_wikipedia_next(self, options_flow):
         """Test Brave options step that leads to Wikipedia configuration."""
-        options_flow._user_selections = {"use_brave": True, "use_wikipedia": True}
+        options_flow.user_selections = {"use_brave": True, "use_wikipedia": True}
         user_input = {
             CONF_BRAVE_API_KEY: "updated_key",
             CONF_BRAVE_NUM_RESULTS: 5,
@@ -483,7 +495,7 @@ class TestLlmIntentsOptionsFlow:
         self, options_flow
     ):
         """Test Google Places options step with input and no other services selected."""
-        options_flow._user_selections = {"use_google_places": True}
+        options_flow.user_selections = {"use_google_places": True}
         user_input = {
             CONF_GOOGLE_PLACES_API_KEY: "updated_key",
             CONF_GOOGLE_PLACES_NUM_RESULTS: 4,
@@ -495,7 +507,7 @@ class TestLlmIntentsOptionsFlow:
 
     async def test_async_step_google_places_with_wikipedia_next(self, options_flow):
         """Test Google Places options step that leads to Wikipedia configuration."""
-        options_flow._user_selections = {
+        options_flow.user_selections = {
             "use_google_places": True,
             "use_wikipedia": True,
         }
@@ -517,7 +529,7 @@ class TestLlmIntentsOptionsFlow:
 
     async def test_async_step_wikipedia_with_input(self, options_flow):
         """Test Wikipedia options step with input."""
-        options_flow._user_selections = {"use_wikipedia": True}
+        options_flow.user_selections = {"use_wikipedia": True}
         user_input = {CONF_WIKIPEDIA_NUM_RESULTS: 3}
         result = await options_flow.async_step_wikipedia(user_input)
 
@@ -534,6 +546,7 @@ class TestLlmIntentsOptionsFlow:
         result = await options_flow.async_step_init(user_input)
 
         # Verify title is set correctly for options flow
+
         assert result["title"] == "LLM Intents"
 
 
@@ -551,11 +564,13 @@ class TestIntegrationFlow:
         flow.hass = hass
 
         # Step 1: Initial user step
+
         result = await flow.async_step_user()
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == STEP_USER
 
         # Step 2: Select Brave
+
         user_input = {"use_brave": True}
         result = await flow.async_step_user(user_input)
         assert result["type"] == FlowResultType.FORM
@@ -567,6 +582,7 @@ class TestIntegrationFlow:
         flow.hass = hass
 
         # Select both Brave and Google Places
+
         user_input = {
             "use_brave": True,
             "use_google_places": True,
@@ -574,6 +590,7 @@ class TestIntegrationFlow:
         result = await flow.async_step_user(user_input)
 
         # Should process Brave first (due to order in the code)
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == STEP_BRAVE
 
@@ -591,12 +608,14 @@ class TestEdgeCases:
     async def test_user_step_with_invalid_input(self, config_flow):
         """Test user step with invalid input types."""
         # The schema should handle type validation
+
         user_input = {
             "use_brave": "invalid",  # Should be boolean
         }
 
         # This would be caught by voluptuous validation in real usage
         # but we test the flow logic here
+
         schema = get_step_user_data_schema()
         with pytest.raises(vol.Invalid):
             schema(user_input)
@@ -606,6 +625,7 @@ class TestEdgeCases:
         schema = get_brave_schema({})
 
         # Test with negative number
+
         with pytest.raises(vol.Invalid):
             schema(
                 {
@@ -613,8 +633,8 @@ class TestEdgeCases:
                     CONF_BRAVE_NUM_RESULTS: -1,
                 }
             )
-
         # Test with zero
+
         with pytest.raises(vol.Invalid):
             schema(
                 {
@@ -628,6 +648,7 @@ class TestEdgeCases:
         schema = get_google_places_schema({})
 
         # Test with negative number
+
         with pytest.raises(vol.Invalid):
             schema(
                 {
@@ -641,6 +662,7 @@ class TestEdgeCases:
         schema = get_wikipedia_schema({})
 
         # Test with negative number
+
         with pytest.raises(vol.Invalid):
             schema({CONF_WIKIPEDIA_NUM_RESULTS: -1})
 
@@ -697,6 +719,7 @@ class TestConstantsAndDefaults:
     def test_step_constants_usage(self):
         """Test that step constants are used consistently."""
         # These constants should be used throughout the flow
+
         assert STEP_USER == "user"
         assert STEP_BRAVE == "brave"
         assert STEP_GOOGLE_PLACES == "google_places"
@@ -706,6 +729,7 @@ class TestConstantsAndDefaults:
     def test_config_constants_usage(self):
         """Test that configuration constants are imported correctly."""
         # These should be imported from const.py
+
         assert CONF_BRAVE_API_KEY is not None
         assert CONF_BRAVE_NUM_RESULTS is not None
         assert CONF_GOOGLE_PLACES_API_KEY is not None
@@ -752,6 +776,7 @@ class TestSchemaValidationEdgeCases:
         schema = get_brave_schema(defaults)
 
         # Provide minimal data to see defaults fill in
+
         test_data = {CONF_BRAVE_API_KEY: "override_key"}
         validated = schema(test_data)
 
@@ -777,17 +802,19 @@ class TestConfigFlowDataHandling:
         flow.hass = Mock(spec=HomeAssistant)
         return flow
 
-    async def test_config_data_accumulation(self, config_flow):
+    async def testconfig_data_accumulation(self, config_flow):
         """Test that config data accumulates correctly across steps."""
         # First step: user selections
+
         user_input = {"use_brave": True, "use_wikipedia": True}
         await config_flow.async_step_user(user_input)
 
-        assert config_flow._user_selections == user_input
-        assert "use_brave" in config_flow._config_data
-        assert "use_wikipedia" in config_flow._config_data
+        assert config_flow.user_selections == user_input
+        assert "use_brave" in config_flow.config_data
+        assert "use_wikipedia" in config_flow.config_data
 
         # Second step: Brave configuration
+
         brave_input = {
             CONF_BRAVE_API_KEY: "test_key",
             CONF_BRAVE_NUM_RESULTS: 3,
@@ -795,9 +822,10 @@ class TestConfigFlowDataHandling:
         await config_flow.async_step_brave(brave_input)
 
         # Verify data accumulation
-        assert CONF_BRAVE_API_KEY in config_flow._config_data
-        assert CONF_BRAVE_NUM_RESULTS in config_flow._config_data
-        assert config_flow._config_data[CONF_BRAVE_API_KEY] == "test_key"
+
+        assert CONF_BRAVE_API_KEY in config_flow.config_data
+        assert CONF_BRAVE_NUM_RESULTS in config_flow.config_data
+        assert config_flow.config_data[CONF_BRAVE_API_KEY] == "test_key"
 
     async def test_options_flow_data_merging(self):
         """Test that options flow merges data correctly."""
@@ -810,16 +838,40 @@ class TestConfigFlowDataHandling:
             CONF_GOOGLE_PLACES_API_KEY: "places_key",
         }
 
+        # Create options flow properly using the constructor
+
         options_flow = LlmIntentsOptionsFlow(config_entry)
 
         user_input = {"use_brave": True}
         await options_flow.async_step_init(user_input)
 
         # Verify data merging
+
         expected_keys = {
             CONF_BRAVE_API_KEY,
             CONF_BRAVE_NUM_RESULTS,
             CONF_GOOGLE_PLACES_API_KEY,
             "use_brave",
         }
-        assert all(key in options_flow._config_data for key in expected_keys)
+        assert all(key in options_flow.config_data for key in expected_keys)
+        # Create options flow manually to avoid the property setter
+
+        options_flow = LlmIntentsOptionsFlow.__new__(LlmIntentsOptionsFlow)
+        # Set the internal attribute directly to bypass the deprecated property
+
+        object.__setattr__(options_flow, "_config_entry", config_entry)
+        options_flow.user_selections = {}
+        options_flow.config_data = {}
+
+        user_input = {"use_brave": True}
+        await options_flow.async_step_init(user_input)
+
+        # Verify data merging
+
+        expected_keys = {
+            CONF_BRAVE_API_KEY,
+            CONF_BRAVE_NUM_RESULTS,
+            CONF_GOOGLE_PLACES_API_KEY,
+            "use_brave",
+        }
+        assert all(key in options_flow.config_data for key in expected_keys)

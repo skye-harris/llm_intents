@@ -26,6 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from homeassistant.config_entries import ConfigEntry, OptionsFlow
 # Home Assistant best practice: Use constants for step ids
 
+
 STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_GOOGLE_PLACES = "google_places"
@@ -108,8 +109,8 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._user_selections: dict[str, Any] = {}
-        self._config_data: dict[str, Any] = {}
+        self.user_selections: dict[str, Any] = {}
+        self.config_data: dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -125,8 +126,8 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # Store user selections
 
-        self._user_selections = user_input.copy()
-        self._config_data.update(user_input)
+        self.user_selections = user_input.copy()
+        self.config_data.update(user_input)
 
         # Handle each service configuration based on user selection
 
@@ -153,7 +154,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # If no service is selected, create the entry with the selected data
 
-        return self.async_create_entry(title="LLM Intents", data=self._config_data)
+        return self.async_create_entry(title="LLM Intents", data=self.config_data)
 
     async def async_step_brave(
         self, user_input: dict[str, Any] | None = None
@@ -163,18 +164,18 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id=STEP_BRAVE)
         # Store Brave configuration
 
-        self._config_data.update(user_input)
+        self.config_data.update(user_input)
 
         # Check if we need to configure other services
 
-        if self._user_selections.get("use_google_places"):
+        if self.user_selections.get("use_google_places"):
             defaults = {}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(
                 step_id=STEP_GOOGLE_PLACES,
                 data_schema=schema,
             )
-        if self._user_selections.get("use_wikipedia"):
+        if self.user_selections.get("use_wikipedia"):
             defaults = {}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(
@@ -183,7 +184,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # All done, create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self._config_data)
+        return self.async_create_entry(title="LLM Intents", data=self.config_data)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
@@ -193,11 +194,11 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES)
         # Store Google Places configuration
 
-        self._config_data.update(user_input)
+        self.config_data.update(user_input)
 
         # Check if we need to configure Wikipedia
 
-        if self._user_selections.get("use_wikipedia"):
+        if self.user_selections.get("use_wikipedia"):
             defaults = {}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(
@@ -206,7 +207,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # All done, create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self._config_data)
+        return self.async_create_entry(title="LLM Intents", data=self.config_data)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
@@ -216,11 +217,11 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id=STEP_WIKIPEDIA)
         # Store Wikipedia configuration
 
-        self._config_data.update(user_input)
+        self.config_data.update(user_input)
 
         # All done, create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self._config_data)
+        return self.async_create_entry(title="LLM Intents", data=self.config_data)
 
     @staticmethod
     @callback
@@ -234,16 +235,22 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize the options flow with the existing entry."""
+        super().__init__()
         self._config_entry = config_entry
-        self._user_selections: dict[str, Any] = {}
-        self._config_data: dict[str, Any] = {}
+        self.user_selections: dict[str, Any] = {}
+        self.config_data: dict[str, Any] = {}
+
+    @property
+    def config_entry(self) -> ConfigEntry:
+        """Return the config entry."""
+        return self._config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Present a form to update API keys and result counts."""
-        data = self._config_entry.data
-        opts = self._config_entry.options or {}
+        data = self.config_entry.data
+        opts = self.config_entry.options or {}
 
         # Use defaults from the entry's data or options
 
@@ -254,9 +261,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(step_id=STEP_INIT, data_schema=schema)
         # Store user selections and existing data
 
-        self._user_selections = user_input.copy()
-        self._config_data.update(defaults)
-        self._config_data.update(user_input)
+        self.user_selections = user_input.copy()
+        self.config_data.update(defaults)
+        self.config_data.update(user_input)
 
         if user_input.get("use_brave"):
             schema = get_brave_schema(defaults)
@@ -269,7 +276,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
         # Finalize and create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self._config_data)
+        return self.async_create_entry(title="LLM Intents", data=self.config_data)
 
     async def async_step_brave(
         self, user_input: dict[str, Any] | None = None
@@ -277,17 +284,17 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         """Handle Brave configuration step in options flow."""
         if user_input is None:
             return self.async_show_form(step_id=STEP_BRAVE)
-        self._config_data.update(user_input)
+        self.config_data.update(user_input)
 
-        if self._user_selections.get("use_google_places"):
-            defaults = {**self._config_entry.data, **(self._config_entry.options or {})}
+        if self.user_selections.get("use_google_places"):
+            defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)
-        if self._user_selections.get("use_wikipedia"):
-            defaults = {**self._config_entry.data, **(self._config_entry.options or {})}
+        if self.user_selections.get("use_wikipedia"):
+            defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        return self.async_create_entry(title="", data=self._config_data)
+        return self.async_create_entry(title="", data=self.config_data)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
@@ -295,13 +302,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         """Handle Google Places configuration step in options flow."""
         if user_input is None:
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES)
-        self._config_data.update(user_input)
+        self.config_data.update(user_input)
 
-        if self._user_selections.get("use_wikipedia"):
-            defaults = {**self._config_entry.data, **(self._config_entry.options or {})}
+        if self.user_selections.get("use_wikipedia"):
+            defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        return self.async_create_entry(title="", data=self._config_data)
+        return self.async_create_entry(title="", data=self.config_data)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
@@ -309,5 +316,5 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         """Handle Wikipedia configuration step in options flow."""
         if user_input is None:
             return self.async_show_form(step_id=STEP_WIKIPEDIA)
-        self._config_data.update(user_input)
-        return self.async_create_entry(title="", data=self._config_data)
+        self.config_data.update(user_input)
+        return self.async_create_entry(title="", data=self.config_data)

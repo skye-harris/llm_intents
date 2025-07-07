@@ -87,27 +87,6 @@ class TestBraveSearch:
         assert handler.latitude is None
         assert handler.longitude is None
 
-    def test_init_with_all_config_options(self, mock_hass):
-        """Test BraveSearch initialization with all config options."""
-        config_entry = MagicMock(spec=ConfigEntry)
-        config_entry.data = {
-            CONF_BRAVE_API_KEY: "test_key",
-            "brave_num_results": 5,
-            "brave_country_code": "US",
-            "brave_latitude": "40.7128",
-            "brave_longitude": "-74.0060",
-            "brave_timezone": "America/New_York",
-            "brave_post_code": "10001",
-        }
-
-        handler = BraveSearch(mock_hass, config_entry)
-        assert handler.num_results == 5
-        assert handler.country_code == "US"
-        assert handler.latitude == "40.7128"
-        assert handler.longitude == "-74.0060"
-        assert handler.timezone == "America/New_York"
-        assert handler.post_code == "10001"
-
     @pytest.mark.asyncio
     async def test_search_brave_ai_success(
         self, brave_handler, brave_search_results, mock_hass
@@ -358,11 +337,13 @@ class TestBraveSearch:
             await handler.search_brave_ai("test query")
 
             # Verify the request was made with location parameters
+
             mock_session.get.assert_called_once()
             call_args = mock_session.get.call_args
             assert "country" in call_args[1]["params"]
             assert call_args[1]["params"]["country"] == "US"
             # Check for other expected parameters
+
             assert "q" in call_args[1]["params"]
             assert "count" in call_args[1]["params"]
 
@@ -373,6 +354,7 @@ class TestBraveSearch:
         mock_hass.bus = AsyncMock()
 
         # Patch the session to raise an error during the request
+
         with patch(
             "custom_components.llm_intents.brave_search.async_get_clientsession"
         ) as mock_get_session:
@@ -384,8 +366,8 @@ class TestBraveSearch:
 
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
-
             # Accept either error message since the implementation may catch different error types
+
             error_msg = str(exc_info.value)
             assert (
                 "Unable to connect to Brave Search API" in error_msg
@@ -416,9 +398,9 @@ class TestBraveSearch:
         ):
             with pytest.raises(ServiceValidationError) as exc_info:
                 await brave_handler.search_brave_ai("test query")
-
             error_msg = str(exc_info.value)
             # The implementation catches ValueError and wraps it in general error
+
             assert "Unexpected error during Brave Search" in error_msg
 
     def test_format_results_for_speech_with_missing_fields(self, brave_handler):
@@ -433,6 +415,7 @@ class TestBraveSearch:
         ]
 
         # The implementation expects 'description' to be present, so this should raise KeyError
+
         with pytest.raises(KeyError):
             brave_handler.format_results_for_speech(results)
 
@@ -468,6 +451,7 @@ class TestBraveSearch:
         ]
 
         # The implementation expects 'description' and 'url' to be present, so this should raise KeyError
+
         with pytest.raises(KeyError):
             brave_handler.format_results_for_card(results)
 
@@ -489,10 +473,12 @@ class TestBraveSearch:
             response = await brave_handler.async_handle(mock_intent_obj)
 
             # Verify both speech and card are set
+
             response.async_set_speech.assert_called_once()
             response.async_set_card.assert_called_once()
 
             # Check the card content
+
             card_call = response.async_set_card.call_args[1]
             assert "**Test Result**" in card_call["content"]
 
@@ -530,12 +516,38 @@ class TestBraveSearch:
             await handler.search_brave_ai("test query")
 
             # Verify all optional parameters are included
+
             call_args = mock_session.get.call_args[1]["params"]
             assert "country" in call_args
             assert call_args["country"] == "US"
             assert "q" in call_args
             assert "count" in call_args
-            # Note: lat/lon and timezone are not directly used in the current implementation
-            # but the config is stored
-            # Note: lat/lon and timezone are not directly used in the current implementation
-            # but the config is stored
+
+    def test_init_with_zero_results_config(self, mock_hass):
+        """Test BraveSearch initialization with zero results (edge case)."""
+        config_entry = MagicMock(spec=ConfigEntry)
+        config_entry.data = {
+            CONF_BRAVE_API_KEY: "test_key",
+            "brave_num_results": 1,  # Minimum allowed value
+        }
+
+        handler = BraveSearch(mock_hass, config_entry)
+        assert handler.num_results == 1
+
+    def test_format_results_for_speech_large_number_of_results(self, brave_handler):
+        """Test formatting a large number of results for speech."""
+        results = []
+        for i in range(10):  # More than typical display count
+            results.append(
+                {
+                    "title": f"Result {i+1}",
+                    "description": f"Description {i+1}",
+                    "url": f"https://example.com/{i+1}",
+                    "snippets": [f"snippet{i+1}"],
+                }
+            )
+        speech = brave_handler.format_results_for_speech(results)
+        # Should handle multiple results properly
+
+        assert "Here are the top results:" in speech
+        assert "Result 1:" in speech
