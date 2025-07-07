@@ -25,7 +25,12 @@ from custom_components.llm_intents.config_flow import (
 )
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
+    CONF_BRAVE_COUNTRY_CODE,
+    CONF_BRAVE_LATITUDE,
+    CONF_BRAVE_LONGITUDE,
     CONF_BRAVE_NUM_RESULTS,
+    CONF_BRAVE_POST_CODE,
+    CONF_BRAVE_TIMEZONE,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -65,7 +70,17 @@ class TestSchemaFunctions:
             CONF_BRAVE_NUM_RESULTS: 3,
         }
         validated = schema(test_data)
-        assert validated == test_data
+        # Schema adds optional fields with default values
+        expected_data = {
+            CONF_BRAVE_API_KEY: "new_key",
+            CONF_BRAVE_NUM_RESULTS: 3,
+            CONF_BRAVE_COUNTRY_CODE: "",
+            CONF_BRAVE_LATITUDE: "",
+            CONF_BRAVE_LONGITUDE: "",
+            CONF_BRAVE_TIMEZONE: "",
+            CONF_BRAVE_POST_CODE: "",
+        }
+        assert validated == expected_data
 
     def test_get_brave_schema_validation(self):
         """Test Brave schema validation rules."""
@@ -208,6 +223,101 @@ class TestLlmIntentsConfigFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == STEP_BRAVE
 
+    async def test_async_step_brave_initial_form(self, config_flow):
+        """Test the Brave step shows the form when no input provided."""
+        result = await config_flow.async_step_brave()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_BRAVE
+
+    async def test_async_step_brave_with_input_no_next_service(self, config_flow):
+        """Test Brave step with input and no other services selected."""
+        config_flow._user_selections = {"use_brave": True}
+        user_input = {
+            CONF_BRAVE_API_KEY: "test_key",
+            CONF_BRAVE_NUM_RESULTS: 3,
+        }
+        result = await config_flow.async_step_brave(user_input)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "LLM Intents"
+
+    async def test_async_step_brave_with_google_places_next(self, config_flow):
+        """Test Brave step that leads to Google Places configuration."""
+        config_flow._user_selections = {"use_brave": True, "use_google_places": True}
+        user_input = {
+            CONF_BRAVE_API_KEY: "test_key",
+            CONF_BRAVE_NUM_RESULTS: 3,
+        }
+        result = await config_flow.async_step_brave(user_input)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_GOOGLE_PLACES
+
+    async def test_async_step_brave_with_wikipedia_next(self, config_flow):
+        """Test Brave step that leads to Wikipedia configuration."""
+        config_flow._user_selections = {"use_brave": True, "use_wikipedia": True}
+        user_input = {
+            CONF_BRAVE_API_KEY: "test_key",
+            CONF_BRAVE_NUM_RESULTS: 3,
+        }
+        result = await config_flow.async_step_brave(user_input)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_WIKIPEDIA
+
+    async def test_async_step_google_places_initial_form(self, config_flow):
+        """Test the Google Places step shows the form when no input provided."""
+        result = await config_flow.async_step_google_places()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_GOOGLE_PLACES
+
+    async def test_async_step_google_places_with_input_no_next_service(
+        self, config_flow
+    ):
+        """Test Google Places step with input and no other services selected."""
+        config_flow._user_selections = {"use_google_places": True}
+        user_input = {
+            CONF_GOOGLE_PLACES_API_KEY: "test_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
+        }
+        result = await config_flow.async_step_google_places(user_input)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "LLM Intents"
+
+    async def test_async_step_google_places_with_wikipedia_next(self, config_flow):
+        """Test Google Places step that leads to Wikipedia configuration."""
+        config_flow._user_selections = {
+            "use_google_places": True,
+            "use_wikipedia": True,
+        }
+        user_input = {
+            CONF_GOOGLE_PLACES_API_KEY: "test_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
+        }
+        result = await config_flow.async_step_google_places(user_input)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_WIKIPEDIA
+
+    async def test_async_step_wikipedia_initial_form(self, config_flow):
+        """Test the Wikipedia step shows the form when no input provided."""
+        result = await config_flow.async_step_wikipedia()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_WIKIPEDIA
+
+    async def test_async_step_wikipedia_with_input(self, config_flow):
+        """Test Wikipedia step with input."""
+        config_flow._user_selections = {"use_wikipedia": True}
+        user_input = {CONF_WIKIPEDIA_NUM_RESULTS: 1}
+        result = await config_flow.async_step_wikipedia(user_input)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "LLM Intents"
+
     def test_async_get_options_flow(self):
         """Test the options flow creation."""
         config_entry = Mock(spec=config_entries.ConfigEntry)
@@ -307,11 +417,6 @@ class TestLlmIntentsOptionsFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == STEP_BRAVE
 
-    def test_options_flow_init(self, config_entry):
-        """Test options flow initialization."""
-        options_flow = LlmIntentsOptionsFlow(config_entry)
-        assert options_flow.config_entry == config_entry
-
     async def test_async_step_init_with_empty_options(self):
         """Test options step when config entry has no options."""
         config_entry = Mock(spec=config_entries.ConfigEntry)
@@ -323,6 +428,113 @@ class TestLlmIntentsOptionsFlow:
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == STEP_INIT
+
+    async def test_async_step_brave_initial_form(self, options_flow):
+        """Test the Brave options step shows the form when no input provided."""
+        result = await options_flow.async_step_brave()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_BRAVE
+
+    async def test_async_step_brave_with_input_no_next_service(self, options_flow):
+        """Test Brave options step with input and no other services selected."""
+        options_flow._user_selections = {"use_brave": True}
+        user_input = {
+            CONF_BRAVE_API_KEY: "updated_key",
+            CONF_BRAVE_NUM_RESULTS: 5,
+        }
+        result = await options_flow.async_step_brave(user_input)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == ""
+
+    async def test_async_step_brave_with_google_places_next(self, options_flow):
+        """Test Brave options step that leads to Google Places configuration."""
+        options_flow._user_selections = {"use_brave": True, "use_google_places": True}
+        user_input = {
+            CONF_BRAVE_API_KEY: "updated_key",
+            CONF_BRAVE_NUM_RESULTS: 5,
+        }
+        result = await options_flow.async_step_brave(user_input)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_GOOGLE_PLACES
+
+    async def test_async_step_brave_with_wikipedia_next(self, options_flow):
+        """Test Brave options step that leads to Wikipedia configuration."""
+        options_flow._user_selections = {"use_brave": True, "use_wikipedia": True}
+        user_input = {
+            CONF_BRAVE_API_KEY: "updated_key",
+            CONF_BRAVE_NUM_RESULTS: 5,
+        }
+        result = await options_flow.async_step_brave(user_input)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_WIKIPEDIA
+
+    async def test_async_step_google_places_initial_form(self, options_flow):
+        """Test the Google Places options step shows the form when no input provided."""
+        result = await options_flow.async_step_google_places()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_GOOGLE_PLACES
+
+    async def test_async_step_google_places_with_input_no_next_service(
+        self, options_flow
+    ):
+        """Test Google Places options step with input and no other services selected."""
+        options_flow._user_selections = {"use_google_places": True}
+        user_input = {
+            CONF_GOOGLE_PLACES_API_KEY: "updated_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 4,
+        }
+        result = await options_flow.async_step_google_places(user_input)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == ""
+
+    async def test_async_step_google_places_with_wikipedia_next(self, options_flow):
+        """Test Google Places options step that leads to Wikipedia configuration."""
+        options_flow._user_selections = {
+            "use_google_places": True,
+            "use_wikipedia": True,
+        }
+        user_input = {
+            CONF_GOOGLE_PLACES_API_KEY: "updated_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 4,
+        }
+        result = await options_flow.async_step_google_places(user_input)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_WIKIPEDIA
+
+    async def test_async_step_wikipedia_initial_form(self, options_flow):
+        """Test the Wikipedia options step shows the form when no input provided."""
+        result = await options_flow.async_step_wikipedia()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == STEP_WIKIPEDIA
+
+    async def test_async_step_wikipedia_with_input(self, options_flow):
+        """Test Wikipedia options step with input."""
+        options_flow._user_selections = {"use_wikipedia": True}
+        user_input = {CONF_WIKIPEDIA_NUM_RESULTS: 3}
+        result = await options_flow.async_step_wikipedia(user_input)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == ""
+
+    async def test_async_step_init_with_title_correction(self, options_flow):
+        """Test options step title correction."""
+        user_input = {
+            "use_brave": False,
+            "use_google_places": False,
+            "use_wikipedia": False,
+        }
+        result = await options_flow.async_step_init(user_input)
+
+        # Verify title is set correctly for options flow
+        assert result["title"] == "LLM Intents"
 
 
 class TestIntegrationFlow:
@@ -500,3 +712,114 @@ class TestConstantsAndDefaults:
         assert CONF_GOOGLE_PLACES_NUM_RESULTS is not None
         assert CONF_WIKIPEDIA_NUM_RESULTS is not None
         assert DOMAIN is not None
+
+
+class TestSchemaValidationEdgeCases:
+    """Test additional schema validation scenarios."""
+
+    def test_get_brave_schema_with_all_fields(self):
+        """Test Brave schema with all optional fields populated."""
+        defaults = {
+            CONF_BRAVE_API_KEY: "test_key",
+            CONF_BRAVE_NUM_RESULTS: 5,
+            CONF_BRAVE_COUNTRY_CODE: "US",
+            CONF_BRAVE_LATITUDE: "40.7128",
+            CONF_BRAVE_LONGITUDE: "-74.0060",
+            CONF_BRAVE_TIMEZONE: "America/New_York",
+            CONF_BRAVE_POST_CODE: "10001",
+        }
+        schema = get_brave_schema(defaults)
+
+        test_data = {
+            CONF_BRAVE_API_KEY: "new_key",
+            CONF_BRAVE_NUM_RESULTS: 3,
+            CONF_BRAVE_COUNTRY_CODE: "GB",
+            CONF_BRAVE_LATITUDE: "51.5074",
+            CONF_BRAVE_LONGITUDE: "-0.1278",
+            CONF_BRAVE_TIMEZONE: "Europe/London",
+            CONF_BRAVE_POST_CODE: "SW1A 1AA",
+        }
+        validated = schema(test_data)
+        assert validated == test_data
+
+    def test_get_brave_schema_with_defaults_used(self):
+        """Test that Brave schema uses provided defaults correctly."""
+        defaults = {
+            CONF_BRAVE_API_KEY: "default_key",
+            CONF_BRAVE_NUM_RESULTS: 10,
+            CONF_BRAVE_COUNTRY_CODE: "CA",
+        }
+        schema = get_brave_schema(defaults)
+
+        # Provide minimal data to see defaults fill in
+        test_data = {CONF_BRAVE_API_KEY: "override_key"}
+        validated = schema(test_data)
+
+        expected = {
+            CONF_BRAVE_API_KEY: "override_key",
+            CONF_BRAVE_NUM_RESULTS: 10,  # From defaults
+            CONF_BRAVE_COUNTRY_CODE: "CA",  # From defaults
+            CONF_BRAVE_LATITUDE: "",  # Default empty string
+            CONF_BRAVE_LONGITUDE: "",  # Default empty string
+            CONF_BRAVE_TIMEZONE: "",  # Default empty string
+            CONF_BRAVE_POST_CODE: "",  # Default empty string
+        }
+        assert validated == expected
+
+
+class TestConfigFlowDataHandling:
+    """Test data handling and storage in config flows."""
+
+    @pytest.fixture
+    def config_flow(self):
+        """Create a config flow instance."""
+        flow = LlmIntentsConfigFlow()
+        flow.hass = Mock(spec=HomeAssistant)
+        return flow
+
+    async def test_config_data_accumulation(self, config_flow):
+        """Test that config data accumulates correctly across steps."""
+        # First step: user selections
+        user_input = {"use_brave": True, "use_wikipedia": True}
+        await config_flow.async_step_user(user_input)
+
+        assert config_flow._user_selections == user_input
+        assert "use_brave" in config_flow._config_data
+        assert "use_wikipedia" in config_flow._config_data
+
+        # Second step: Brave configuration
+        brave_input = {
+            CONF_BRAVE_API_KEY: "test_key",
+            CONF_BRAVE_NUM_RESULTS: 3,
+        }
+        await config_flow.async_step_brave(brave_input)
+
+        # Verify data accumulation
+        assert CONF_BRAVE_API_KEY in config_flow._config_data
+        assert CONF_BRAVE_NUM_RESULTS in config_flow._config_data
+        assert config_flow._config_data[CONF_BRAVE_API_KEY] == "test_key"
+
+    async def test_options_flow_data_merging(self):
+        """Test that options flow merges data correctly."""
+        config_entry = Mock(spec=config_entries.ConfigEntry)
+        config_entry.data = {
+            CONF_BRAVE_API_KEY: "original_key",
+            CONF_BRAVE_NUM_RESULTS: 2,
+        }
+        config_entry.options = {
+            CONF_GOOGLE_PLACES_API_KEY: "places_key",
+        }
+
+        options_flow = LlmIntentsOptionsFlow(config_entry)
+
+        user_input = {"use_brave": True}
+        await options_flow.async_step_init(user_input)
+
+        # Verify data merging
+        expected_keys = {
+            CONF_BRAVE_API_KEY,
+            CONF_BRAVE_NUM_RESULTS,
+            CONF_GOOGLE_PLACES_API_KEY,
+            "use_brave",
+        }
+        assert all(key in options_flow._config_data for key in expected_keys)
