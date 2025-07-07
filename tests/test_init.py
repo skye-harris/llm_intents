@@ -301,79 +301,190 @@ class TestErrorHandling:
             assert result is True
             assert mock_register.call_count == 0
 
-
-class TestIntegrationImports:
-    """Test that all required modules are properly imported."""
-
-    def test_domain_import(self):
-        """Test that DOMAIN constant is properly imported."""
-        # DOMAIN is already imported at the module level
-
-        assert isinstance(DOMAIN, str)
-
-    def test_handler_classes_imported(self):
-        """Test that handler classes are properly imported."""
-        # This test ensures the imports work correctly
-
-        assert BraveSearch is not None
-        assert GooglePlaces is not None
-        assert WikipediaSearch is not None
-
-    def test_const_imports(self):
-        """Test that constants are properly imported."""
-        # This test ensures all required constants are available
-
-        assert CONF_BRAVE_INTENT is not None
-        assert CONF_GOOGLE_PLACES_INTENT is not None
-        assert CONF_WIKIPEDIA_INTENT is not None
-
-
-class TestEdgeCases:
-    """Test edge cases and boundary conditions."""
-
-    @pytest.fixture
-    def hass(self):
-        """Create a mock Home Assistant instance."""
-        hass = Mock(spec=HomeAssistant)
-        hass.data = {}
-        return hass
-
-    async def test_setup_with_empty_config(self, hass):
-        """Test setup with completely empty configuration."""
-        result = await async_setup(hass, {})
-        assert result is True
-
-    async def test_setup_entry_with_malformed_config(self, hass):
-        """Test setup entry with malformed configuration data."""
-        mock_config_entry = Mock(spec=ConfigEntry)
-        mock_config_entry.entry_id = "test_entry_id"
-        mock_config_entry.data = {
-            CONF_BRAVE_INTENT: "invalid_config_type"  # Should be dict
-        }
-        mock_config_entry.options = None
-
+    async def test_setup_entry_handles_key_error_in_handler_init(
+        self, hass, mock_config_entry
+    ):
+        """Test that setup handles KeyError during handler initialization."""
         with (
+            patch(
+                "custom_components.llm_intents.BraveSearch",
+                side_effect=KeyError("Missing required key"),
+            ),
             patch(
                 "custom_components.llm_intents.intent.async_register"
             ) as mock_register,
             patch("custom_components.llm_intents._LOGGER.warning") as mock_logger,
         ):
-            # Should handle malformed entries gracefully
-
             result = await async_setup_entry(hass, mock_config_entry)
+
             assert result is True
-            # Should not register any handlers due to malformed config
-
             assert mock_register.call_count == 0
-            # Should log a warning about the failed initialization
-
+            # Should log a warning for KeyError
             mock_logger.assert_called_once()
+            assert "Failed to initialize handler" in mock_logger.call_args[0][0]
 
-    async def test_unload_entry_always_succeeds(self, hass):
-        """Test that unload entry always returns True."""
+    async def test_setup_entry_handles_value_error_in_handler_init(
+        self, hass, mock_config_entry
+    ):
+        """Test that setup handles ValueError during handler initialization."""
+        with (
+            patch(
+                "custom_components.llm_intents.BraveSearch",
+                side_effect=ValueError("Invalid value"),
+            ),
+            patch(
+                "custom_components.llm_intents.intent.async_register"
+            ) as mock_register,
+            patch("custom_components.llm_intents._LOGGER.warning") as mock_logger,
+        ):
+            result = await async_setup_entry(hass, mock_config_entry)
+
+            assert result is True
+            assert mock_register.call_count == 0
+            # Should log a warning for ValueError
+            mock_logger.assert_called_once()
+            assert "Failed to initialize handler" in mock_logger.call_args[0][0]
+
+    async def test_setup_entry_handles_type_error_in_handler_init(
+        self, hass, mock_config_entry
+    ):
+        """Test that setup handles TypeError during handler initialization."""
+        with (
+            patch(
+                "custom_components.llm_intents.BraveSearch",
+                side_effect=TypeError("Type error"),
+            ),
+            patch(
+                "custom_components.llm_intents.intent.async_register"
+            ) as mock_register,
+            patch("custom_components.llm_intents._LOGGER.warning") as mock_logger,
+        ):
+            result = await async_setup_entry(hass, mock_config_entry)
+
+            assert result is True
+            assert mock_register.call_count == 0
+            # Should log a warning for TypeError
+            mock_logger.assert_called_once()
+            assert "Failed to initialize handler" in mock_logger.call_args[0][0]
+
+    async def test_unload_entry_with_existing_data(self, hass):
+        """Test unload entry when data exists in hass.data."""
+        # Set up existing data
+        hass.data[DOMAIN] = {"test_entry_id": {"some": "data"}}
+
         mock_config_entry = Mock(spec=ConfigEntry)
-
-        # Should always succeed regardless of config
+        mock_config_entry.entry_id = "test_entry_id"
 
         result = await async_unload_entry(hass, mock_config_entry)
+
         assert result is True
+        # Verify the entry was removed from hass.data
+        assert "test_entry_id" not in hass.data[DOMAIN]
+
+    async def test_unload_entry_with_no_domain_data(self, hass):
+        """Test unload entry when no domain data exists."""
+        # Don't set up any data in hass.data[DOMAIN]
+        mock_config_entry = Mock(spec=ConfigEntry)
+        mock_config_entry.entry_id = "test_entry_id"
+
+        result = await async_unload_entry(hass, mock_config_entry)
+
+        assert result is True
+
+    async def test_setup_entry_with_empty_nested_intent_config(self, hass):
+        """Test setup entry with empty nested intent configuration."""
+        mock_config_entry = Mock(spec=ConfigEntry)
+        mock_config_entry.entry_id = "test_entry_id"
+        # Use nested config that exists but is empty/falsy
+        mock_config_entry.data = {
+            CONF_BRAVE_INTENT: {},  # Empty dict should be falsy
+            CONF_BRAVE_API_KEY: "test_key",  # This should trigger flat config
+        }
+        mock_config_entry.options = None
+
+        with patch(
+            "custom_components.llm_intents.intent.async_register"
+        ) as mock_register:
+            result = await async_setup_entry(hass, mock_config_entry)
+
+            assert result is True
+            # Should register 1 handler from flat config, not nested
+            assert mock_register.call_count == 1
+
+    async def test_setup_entry_data_storage(self, hass):
+        """Test that setup entry stores data correctly in hass.data."""
+        mock_config_entry = Mock(spec=ConfigEntry)
+        mock_config_entry.entry_id = "test_entry_id"
+        mock_config_entry.data = {CONF_BRAVE_API_KEY: "test_key"}
+        mock_config_entry.options = None
+
+        with patch("custom_components.llm_intents.intent.async_register"):
+            result = await async_setup_entry(hass, mock_config_entry)
+
+            assert result is True
+            # Verify data was stored correctly
+            assert DOMAIN in hass.data
+            assert "test_entry_id" in hass.data[DOMAIN]
+            stored_data = hass.data[DOMAIN]["test_entry_id"]
+            assert "registered_intents" in stored_data
+            assert "config" in stored_data
+            assert CONF_BRAVE_INTENT in stored_data["registered_intents"]
+
+    async def test_setup_entry_duplicate_handler_prevention(self, hass):
+        """Test that duplicate handlers are not registered."""
+        mock_config_entry = Mock(spec=ConfigEntry)
+        mock_config_entry.entry_id = "test_entry_id"
+        # Set up config that would create duplicate handlers
+        mock_config_entry.data = {
+            CONF_BRAVE_API_KEY: "test_key",  # Flat config
+            CONF_BRAVE_INTENT: {"enabled": True},  # Nested config for same handler
+        }
+        mock_config_entry.options = None
+
+        with (
+            patch("custom_components.llm_intents.BraveSearch") as mock_brave_class,
+            patch(
+                "custom_components.llm_intents.intent.async_register"
+            ) as mock_register,
+        ):
+            # Mock the handler class to return a mock instance
+            mock_handler = Mock()
+            mock_brave_class.return_value = mock_handler
+
+            result = await async_setup_entry(hass, mock_config_entry)
+
+            assert result is True
+            # Should only register 1 handler despite duplicate config
+            assert mock_register.call_count == 1
+            # Should only create handler once due to duplicate prevention
+            assert mock_brave_class.call_count == 1
+        """Test that duplicate handlers are not registered."""
+        mock_config_entry = Mock(spec=ConfigEntry)
+        mock_config_entry.entry_id = "test_entry_id"
+        # Set up config that would create duplicate handlers
+        mock_config_entry.data = {
+            CONF_BRAVE_API_KEY: "test_key",  # Flat config
+            CONF_BRAVE_INTENT: {  # Nested config for same handler
+                CONF_BRAVE_API_KEY: "nested_key",
+                "some_config": "value",
+            },
+        }
+        mock_config_entry.options = None
+
+        with (
+            patch("custom_components.llm_intents.BraveSearch") as mock_brave_class,
+            patch(
+                "custom_components.llm_intents.intent.async_register"
+            ) as mock_register,
+        ):
+            # Mock the handler class to return a mock instance
+            mock_handler = Mock()
+            mock_brave_class.return_value = mock_handler
+
+            result = await async_setup_entry(hass, mock_config_entry)
+
+            assert result is True
+            # Should only register 1 handler despite duplicate config
+            assert mock_register.call_count == 1
+            # Should only create handler once due to duplicate prevention
+            mock_brave_class.assert_called_once()
