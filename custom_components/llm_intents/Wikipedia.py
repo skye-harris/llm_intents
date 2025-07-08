@@ -1,0 +1,97 @@
+import logging
+import urllib.parse
+import voluptuous as vol
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import llm
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util.json import JsonObjectType
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class SearchWikipediaTool(llm.Tool):
+    """Tool for searching Wikipedia."""
+
+    name = "search_wikipedia"
+    description = "Search Wikipedia for information about a topic"
+
+    parameters = vol.Schema(
+        {
+            vol.Required("query"): str,
+        }
+    )
+
+    async def async_call(
+        self,
+        hass: HomeAssistant,
+        tool_input: llm.ToolInput,
+        llm_context: llm.LLMContext,
+    ) -> JsonObjectType:
+        """Call the tool."""
+        config_data = hass.data[DOMAIN].get("config")
+        query = tool_input.tool_args["query"]
+        _LOGGER.info("Wikipedia search requested for: %s", query)
+
+        if not config_data.get("use_wikipedia"):
+            return {"error": "Wikipedia search is not enabled"}
+
+        num_results = config_data.get("wikipedia_num_results", 1)
+
+        try:
+            session = async_get_clientsession(hass)
+
+            # First, search for pages
+            search_params = {
+                "action": "query",
+                "format": "json",
+                "list": "search",
+                "srsearch": query,
+                "srlimit": num_results,
+            }
+
+            async with session.get(
+                "https://en.wikipedia.org/w/api.php",
+                params=search_params,
+            ) as resp:
+                if resp.status != 200:
+                    return {"error": f"Wikipedia search error: {resp.status}"}
+
+                search_data = await resp.json()
+                search_results = search_data.get("query", {}).get("search", [])
+
+                if not search_results:
+                    return {"result": f"No Wikipedia articles found for '{query}'"}
+
+                # Get summaries for each result
+                results = []
+                for result in search_results:
+                    title = result.get("title", "")
+                    snippet = result.get("snippet", "")
+
+                    # Clean HTML tags from snippet
+                    import re
+
+                    snippet = re.sub(r"<[^>]+>", "", snippet)
+
+                    # Try to get full summary
+                    summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
+                    try:
+                        async with session.get(summary_url) as summary_resp:
+                            if summary_resp.status == 200:
+                                summary_data = await summary_resp.json()
+                                extract = summary_data.get("extract", snippet)
+                            else:
+                                extract = snippet
+                    except Exception:
+                        extract = snippet
+
+                    results.append({"title": title, "summary": extract})
+
+                return {"results": results}
+
+        except Exception as e:
+            _LOGGER.error("Wikipedia search error: %s", e)
+            return {"error": f"Error searching Wikipedia: {e!s}"}
