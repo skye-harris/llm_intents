@@ -1,0 +1,10 @@
+-r requirements.txt
+flake8~=7.3
+flake8-docstrings~=1.7
+pytest>=7.2
+pytest-cov
+pytest-homeassistant-custom-component
+pytest-asyncio>=0.20
+pytest-tornasync
+pytest-trio
+pre-commit
