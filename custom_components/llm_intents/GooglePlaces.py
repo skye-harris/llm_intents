@@ -7,6 +7,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
 from .const import DOMAIN
+from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ class FindPlacesTool(llm.Tool):
     parameters = vol.Schema(
         {
             vol.Required("query"): str,
-            vol.Optional("location", default=""): str,
         }
     )
 
@@ -33,11 +33,10 @@ class FindPlacesTool(llm.Tool):
         """Call the tool."""
         config_data = hass.data[DOMAIN].get("config")
         query = tool_input.tool_args["query"]
-        location = tool_input.tool_args.get("location", "")
+
         _LOGGER.info(
-            "Places search requested for: %s in %s",
-            query,
-            location or "any location",
+            "Places search requested for: %s",
+            query
         )
 
         if not config_data.get("use_google_places"):
@@ -50,31 +49,41 @@ class FindPlacesTool(llm.Tool):
         try:
             session = async_get_clientsession(hass)
             params = {
-                "query": f"{query} {location}".strip(),
-                "key": api_key,
+                "textQuery": query,
+                "pageSize": config_data.get("google_places_num_results", 2),
             }
 
-            async with session.get(
-                "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            cache = SQLiteCache()
+            cached_response = cache.get(__name__, params)
+            if cached_response:
+                return cached_response
+
+            headers = {
+                "Accept": "application/json",
+                "Accept-Encoding": "gzip",
+                "X-Goog-Api-Key": api_key,
+                "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location",
+            }
+
+            async with session.post(
+                "https://places.googleapis.com/v1/places:searchText",
                 params=params,
+                headers=headers,
             ) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     results = []
-                    max_results = config_data.get("google_places_num_results", 2)
 
-                    for place in data.get("results", [])[:max_results]:
-                        name = place.get("name", "")
-                        address = place.get("formatted_address", "")
-                        rating = place.get("rating", "")
+                    results = [
+                        {
+                            "name": place.get("displayName", {}).get("text", None),
+                            "address": place.get("formattedAddress", None),
+                        }
+                        for place in data.get("places", [])
+                    ]
 
-                        place_data = {"name": name}
-                        if address:
-                            place_data["address"] = address
-                        if rating:
-                            place_data["rating"] = rating
-
-                        results.append(place_data)
+                    if results:
+                        cache.set(__name__, params, {"results": results})
 
                     return (
                         {"results": results}

@@ -7,6 +7,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
 from .const import DOMAIN
+from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +53,12 @@ class SearchWebTool(llm.Tool):
                 "count": config_data.get("brave_num_results", 2),
             }
 
+            cache = SQLiteCache()
+            cached_response = cache.get(__name__, params)
+
+            if cached_response:
+                return cached_response
+
             async with session.get(
                 "https://api.search.brave.com/res/v1/web/search",
                 headers=headers,
@@ -64,6 +71,9 @@ class SearchWebTool(llm.Tool):
                         title = result.get("title", "")
                         description = result.get("description", "")
                         results.append({"title": title, "description": description})
+
+                    if results:
+                        cache.set(__name__, params, {"results": results})
 
                     return (
                         {"results": results}

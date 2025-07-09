@@ -8,6 +8,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
 from .const import DOMAIN
+from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +53,11 @@ class SearchWikipediaTool(llm.Tool):
                 "srlimit": num_results,
             }
 
+            cache = SQLiteCache()
+            cached_response = cache.get(__name__, search_params)
+            if cached_response:
+                return cached_response
+
             async with session.get(
                 "https://en.wikipedia.org/w/api.php",
                 params=search_params,
@@ -89,6 +95,9 @@ class SearchWikipediaTool(llm.Tool):
                         extract = snippet
 
                     results.append({"title": title, "summary": extract})
+
+                if results:
+                    cache.set(__name__, search_params, {"results": results})
 
                 return {"results": results}
 
