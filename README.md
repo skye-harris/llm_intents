@@ -63,13 +63,13 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 | Key            | Required | Default | Description                                       |
 | -------------- | -------- | ------- | ------------------------------------------------- |
-| `api_key`      | ✅        | —       | Brave Search API key                              |
-| `num_results`  | ❌        | `2`     | Number of results to return                       |
-| `country_code` | ❌        | —       | ISO country code to bias results                  |
-| `latitude`     | ❌        | —       | Optional latitude for local relevance             |
-| `longitude`    | ❌        | —       | Optional longitude for local relevance            |
-| `timezone`     | ❌        | —       | Timezone for contextual answers                   |
-| `post_code`    | ❌        | —       | Optional postcode for more accurate geo targeting |
+| `API Key`      | ✅        | —       | Brave Search API key                              |
+| `Number of Results`  | ❌        | `2`     | Number of results to return                       |
+| `Country Code` | ❌        | —       | ISO country code to bias results                  |
+| `Latitude`     | ❌        | —       | Optional latitude for local result relevance             |
+| `Longitude`    | ❌        | —       | Optional longitude for local result relevance            |
+| `Timezone`     | ❌        | —       | Optional timezone for local result relevance             |
+| `Post Code`    | ❌        | —       | Optional post code for local result relevance |
 
 ---
 
@@ -92,8 +92,8 @@ Searches for locations, businesses, or points of interest using the Google Place
 
 | Key           | Required | Default | Description                          |
 | ------------- | -------- | ------- | ------------------------------------ |
-| `api_key`     | ✅        | —       | Google Places API key                |
-| `num_results` | ❌        | `2`     | Number of location results to return |
+| `API Key`     | ✅        | —       | Google Places API key                |
+| `Number of Results` | ❌        | `2`     | Number of location results to return |
 
 ---
 
@@ -115,7 +115,7 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 | Key           | Required | Default | Description                           |
 | ------------- | -------- | ------- | ------------------------------------- |
-| `num_results` | ❌        | `1`     | Number of article summaries to return |
+| `Number of Results` | ❌        | `1`     | Number of article summaries to return |
 
 > [!IMPORTANT]
 > **Security**: All API keys are stored securely in Home Assistant's encrypted configuration database, not in plain text files.
