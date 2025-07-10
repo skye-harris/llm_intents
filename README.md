@@ -57,20 +57,6 @@ Uses the Brave AI Web Search API to return summarized, snippet-rich results.
 * Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai)
 * The free tier plan is supported
 
-#### Example Configuration
-
-```yaml
-llm_intents:
-  brave_search:
-    api_key: !secret brave_ai_api
-    num_results: 2
-    country_code: "AU"
-    latitude: -31.95
-    longitude: 115.86
-    timezone: "Australia/Perth"
-    post_code: "6000"
-```
-
 #### Configuration Steps
 
 1. Select "Brave Search" during setup
@@ -100,15 +86,6 @@ Searches for locations, businesses, or points of interest using the Google Place
 * Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
 * Ensure the Places API is enabled in your Google Cloud project.
 
-#### Example Configuration
-
-```yaml
-llm_intents:
-  google_places:
-    api_key: !secret google_api
-    num_results: 3
-```
-
 #### Configuration Steps
 
 1. Select "Google Places" during setup  
@@ -132,19 +109,6 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 * No API key required.
 * Uses the public Wikipedia search and summary APIs.
-
-#### Example Configuration
-
-```yaml
-llm_intents:
-  wikipedia: true
-
-or
-
-llm_intents:
-  wikipedia:
-    num_results: 1
-```
 
 #### Configuration Steps
 
