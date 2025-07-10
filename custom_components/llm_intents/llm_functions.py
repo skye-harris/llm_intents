@@ -52,10 +52,12 @@ class SearchAPI(llm.API):
             if tool_enabled:
                 tools = tools + [tool_class()]
 
-		# todo: either restore assists prompt or provide a better / more generic prompt here
+        # Pull in the entities and tool prompting from Assist..
+        api_prompt = assist_api.api_prompt
+
         return llm.APIInstance(
             api=self,
-            api_prompt="Call the tools to search for information on the web, Wikipedia, and find places.",
+            api_prompt=api_prompt,
             llm_context=llm_context,
             tools=tools + assist_tools,
         )
