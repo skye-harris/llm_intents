@@ -7,7 +7,11 @@ from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_WIKIPEDIA_NUM_RESULTS,
+)
+
 from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,14 +36,14 @@ class SearchWikipediaTool(llm.Tool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        config_data = hass.data[DOMAIN].get("config")
+        config_data = hass.data[DOMAIN].get("config", {})
+        entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
+        config_data = {**config_data, **entry.options}
+
         query = tool_input.tool_args["query"]
         _LOGGER.info("Wikipedia search requested for: %s", query)
 
-        if not config_data.get("use_wikipedia"):
-            return {"error": "Wikipedia search is not enabled"}
-
-        num_results = config_data.get("wikipedia_num_results", 1)
+        num_results = config_data.get(CONF_WIKIPEDIA_NUM_RESULTS, 1)
 
         try:
             session = async_get_clientsession(hass)

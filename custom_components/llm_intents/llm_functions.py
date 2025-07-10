@@ -1,7 +1,6 @@
 """LLM function implementations for search services."""
 
 import logging
-import urllib.parse
 from typing import Any
 from .BraveSearch import SearchWebTool
 from .GooglePlaces import FindPlacesTool
@@ -10,12 +9,21 @@ import voluptuous as vol
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.util.json import JsonObjectType
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_GOOGLE_PLACES_ENABLED,
+    CONF_WIKIPEDIA_ENABLED,
+    CONF_BRAVE_ENABLED,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+TOOLS_CONF_ENABLED_MAP = [
+    (CONF_BRAVE_ENABLED, SearchWebTool),
+    (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
+    (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),
+]
 
 
 class SearchAPI(llm.API):
@@ -24,12 +32,6 @@ class SearchAPI(llm.API):
     def __init__(self, hass: HomeAssistant, api_id: str, name: str) -> None:
         """Initialize the API."""
         super().__init__(hass=hass, id=api_id, name=name)
-
-        self._tools = [
-            SearchWikipediaTool(),
-            SearchWebTool(),
-            FindPlacesTool(),
-        ]
 
     async def async_get_api_instance(
         self, llm_context: llm.LLMContext
@@ -40,11 +42,22 @@ class SearchAPI(llm.API):
         assist_api = await llm.async_get_api(self.hass, llm.LLM_API_ASSIST, llm_context)
         assist_tools = assist_api.tools
 
+        config_data = self.hass.data[DOMAIN].get("config", {})
+        entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
+        config_data = {**config_data, **entry.options}
+        tools = []
+
+        for key, tool_class in TOOLS_CONF_ENABLED_MAP:
+            tool_enabled = config_data.get(key)
+            if tool_enabled:
+                tools = tools + [tool_class()]
+
+		# todo: either restore assists prompt or provide a better / more generic prompt here
         return llm.APIInstance(
             api=self,
             api_prompt="Call the tools to search for information on the web, Wikipedia, and find places.",
             llm_context=llm_context,
-            tools=self._tools + assist_tools,
+            tools=tools + assist_tools,
         )
 
 
