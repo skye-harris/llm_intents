@@ -22,6 +22,8 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 * Adding Tools for Assist to HACS can be using this button:
 [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm-intents&category=integration)
 
+<br>
+
 > [!NOTE]
 > If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
 
@@ -116,9 +118,6 @@ Looks up Wikipedia articles and returns summaries of the top results.
 | Key           | Required | Default | Description                           |
 | ------------- | -------- | ------- | ------------------------------------- |
 | `Number of Results` | ❌        | `1`     | Number of article summaries to return |
-
-> [!IMPORTANT]
-> **Security**: All API keys are stored securely in Home Assistant's encrypted configuration database, not in plain text files.
 
 ## Acknowledgements
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
