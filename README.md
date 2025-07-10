@@ -1,19 +1,15 @@
-# LLM Intents (Custom Integration for Home Assistant)
+# Tools for Assist (Custom Integration for Home Assistant)
 
-Additional tool intents for LLM-backed Assist for Home Assistant
+Additional tools for LLM-backed Assist for Home Assistant
 
 Supported search sources:
 
-* **Brave Search**
+* **Brave Web Search**
 * **Google Places**
 * **Wikipedia**
 
-Each intent is optional and configurable via YAML. Some require API keys, but are usable on free tiers.
-
-TODOs:
-- [ ] Add UI capabilities for configuration
-- [ ] Implement proper error handling
-- [ ] Code optimization/cleanup
+Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
+A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 12-hour period. 
 
 ---
 
@@ -24,18 +20,18 @@ TODOs:
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 * Adding LLM Intents to HACS can be using this button:
-[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=douskye-harris&repository=llm-intents&category=integration)
+[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm-intents&category=integration)
 
 > [!NOTE]
 > If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
 
-* Click install on the `LLM Intents` integration.
+* Click install on the `Tools for Assist` integration.
 * Restart Home Assistant.
 
 
 <details><summary>Manual Install</summary>
 
-* Copy the `llm-intents`  folder from [latest release](https://github.com/dougiteixeira/proxmoxve/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
+* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
 * Restart the Home Assistant.
 </details>
 
@@ -45,12 +41,12 @@ After installation, configure the integration through Home Assistant's UI:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **Add Integration**
-3. Search for "LLM Intents"
+3. Search for "Tools for Assist"
 4. Follow the setup wizard to configure your desired services
 
-### 🔍 Brave Search
+### 🔍 Brave Web Search
 
-Uses the Brave AI Web Search API to return summarized, snippet-rich results.
+Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 ##### Requirements
 
