@@ -1,6 +1,6 @@
 {
     "domain": "llm_intents",
-    "name": "LLM Intents",
+    "name": "Tools for Assist",
     "after_dependencies": [],
     "codeowners": ["@skye-harris"],
     "config_flow": true,
@@ -11,5 +11,5 @@
     "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
     "loggers": ["custom_components.llm_intents"],
     "requirements": [],
-    "version": "1.0.2"
+    "version": "1.0.3"
 }
