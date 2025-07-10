@@ -12,6 +12,7 @@ from homeassistant.helpers import llm
 
 from .const import (
     DOMAIN,
+    SEARCH_API_NAME,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     CONF_BRAVE_ENABLED,
@@ -38,10 +39,6 @@ class SearchAPI(llm.API):
     ) -> llm.APIInstance:
         """Get API instance."""
 
-        # Retrieve the tools that the Assist API makes available
-        assist_api = await llm.async_get_api(self.hass, llm.LLM_API_ASSIST, llm_context)
-        assist_tools = assist_api.tools
-
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}
@@ -52,14 +49,11 @@ class SearchAPI(llm.API):
             if tool_enabled:
                 tools = tools + [tool_class()]
 
-        # Pull in the entities and tool prompting from Assist..
-        api_prompt = assist_api.api_prompt
-
         return llm.APIInstance(
             api=self,
-            api_prompt=api_prompt,
+            api_prompt="Call the tools to search for information on the web.",
             llm_context=llm_context,
-            tools=tools + assist_tools,
+            tools=tools,
         )
 
 
@@ -80,7 +74,7 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
 
     # Store API instance and config in hass.data
     hass.data.setdefault(DOMAIN, {})
-    api = SearchAPI(hass, DOMAIN, "Search Services")
+    api = SearchAPI(hass, DOMAIN, SEARCH_API_NAME)
     hass.data[DOMAIN]["api"] = api
     hass.data[DOMAIN]["config"] = config_data.copy()
 

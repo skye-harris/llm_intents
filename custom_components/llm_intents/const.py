@@ -6,6 +6,7 @@ integrations.
 """
 
 DOMAIN = "llm_intents"
+SEARCH_API_NAME = "Search Services"
 
 # Brave-specific constants
 
