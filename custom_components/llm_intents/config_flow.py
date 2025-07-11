@@ -9,7 +9,12 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.llm_intents.const import (
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
+from .const import (
+    CONF_BRAVE_ENABLED,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
@@ -17,8 +22,10 @@ from custom_components.llm_intents.const import (
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
+    CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
+    CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
 )
@@ -33,16 +40,15 @@ STEP_BRAVE = "brave"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_INIT = "init"
-STEP_DELETE = "delete"
 STEP_CONFIGURE = "configure"
 
 
 def get_step_user_data_schema() -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
-        vol.Optional("use_brave", default=False): bool,
-        vol.Optional("use_google_places", default=False): bool,
-        vol.Optional("use_wikipedia", default=False): bool,
+        vol.Optional(CONF_BRAVE_ENABLED, default=False): bool,
+        vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
+        vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
 
@@ -144,21 +150,21 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Handle each service configuration based on user selection
 
-        if user_input.get("use_brave"):
+        if user_input.get(CONF_BRAVE_ENABLED):
             defaults = {}
             schema = get_brave_schema(defaults)
             return self.async_show_form(
                 step_id=STEP_BRAVE,
                 data_schema=schema,
             )
-        if user_input.get("use_google_places"):
+        if user_input.get(CONF_GOOGLE_PLACES_ENABLED):
             defaults = {}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(
                 step_id=STEP_GOOGLE_PLACES,
                 data_schema=schema,
             )
-        if user_input.get("use_wikipedia"):
+        if user_input.get(CONF_WIKIPEDIA_ENABLED):
             defaults = {}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(
@@ -182,14 +188,14 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if we need to configure other services
 
-        if self.user_selections.get("use_google_places"):
+        if self.user_selections.get(CONF_GOOGLE_PLACES_ENABLED):
             defaults = {}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(
                 step_id=STEP_GOOGLE_PLACES,
                 data_schema=schema,
             )
-        if self.user_selections.get("use_wikipedia"):
+        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
             defaults = {}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(
@@ -212,7 +218,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if we need to configure Wikipedia
 
-        if self.user_selections.get("use_wikipedia"):
+        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
             defaults = {}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(
@@ -262,11 +268,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Present a menu to configure services or delete the integration."""
+        """Present a menu to configure services the integration."""
         if user_input is None:
             return self.async_show_menu(
                 step_id=STEP_INIT,
-                menu_options=["configure", "delete"],
+                menu_options=["configure"],
                 description_placeholders={
                     "current_services": self._get_current_services_description()
                 },
@@ -284,14 +290,15 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         if user_input is None:
             schema_dict = {
                 vol.Optional(
-                    "use_brave", default=defaults.get("use_brave", False)
+                    CONF_BRAVE_ENABLED, default=defaults.get(CONF_BRAVE_ENABLED, False)
                 ): bool,
                 vol.Optional(
-                    "use_google_places",
-                    default=defaults.get("use_google_places", False),
+                    CONF_GOOGLE_PLACES_ENABLED,
+                    default=defaults.get(CONF_GOOGLE_PLACES_ENABLED, False),
                 ): bool,
                 vol.Optional(
-                    "use_wikipedia", default=defaults.get("use_wikipedia", False)
+                    CONF_WIKIPEDIA_ENABLED,
+                    default=defaults.get(CONF_WIKIPEDIA_ENABLED, False),
                 ): bool,
             }
             schema = vol.Schema(schema_dict)
@@ -308,65 +315,29 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         self.config_data.update(defaults)
         self.config_data.update(user_input)
 
-        if user_input.get("use_brave"):
+        if user_input.get(CONF_BRAVE_ENABLED):
             schema = get_brave_schema(defaults)
             return self.async_show_form(step_id=STEP_BRAVE, data_schema=schema)
-        if user_input.get("use_google_places"):
+        if user_input.get(CONF_GOOGLE_PLACES_ENABLED):
             schema = get_google_places_schema(defaults)
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)
-        if user_input.get("use_wikipedia"):
+        if user_input.get(CONF_WIKIPEDIA_ENABLED):
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
 
         # No services selected, just update with current selections
-        return self.async_create_entry(title="", data=self.config_data)
-
-    async def async_step_delete(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
-        """Handle deletion confirmation."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id=STEP_DELETE,
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("confirm_delete", default=False): bool,
-                    }
-                ),
-                description_placeholders={
-                    "entry_title": self.config_entry.title or "LLM Intents"
-                },
-            )
-
-        if user_input.get("confirm_delete"):
-            # Remove any created entities first
-            entity_registry = er.async_get(self.hass)
-            entities = er.async_entries_for_config_entry(
-                entity_registry, self.config_entry.entry_id
-            )
-
-            for entity in entities:
-                entity_registry.async_remove(entity.entity_id)
-
-            # Remove the config entry
-            await self.hass.config_entries.async_remove(self.config_entry.entry_id)
-
-            # Return a proper abort result manually
-            return {"type": "abort", "reason": "instance_deleted"}
-
-        # User cancelled, go back to menu
-        return await self.async_step_init()
+        return self.async_create_entry(data=self.config_data)
 
     def _get_current_services_description(self) -> str:
         """Get a description of currently configured services."""
         services = []
         data = {**self.config_entry.data, **(self.config_entry.options or {})}
 
-        if data.get("use_brave"):
+        if data.get(CONF_BRAVE_ENABLED):
             services.append("Brave Search")
-        if data.get("use_google_places"):
+        if data.get(CONF_GOOGLE_PLACES_ENABLED):
             services.append("Google Places")
-        if data.get("use_wikipedia"):
+        if data.get(CONF_WIKIPEDIA_ENABLED):
             services.append("Wikipedia")
 
         if services:
@@ -381,15 +352,15 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(step_id=STEP_BRAVE)
         self.config_data.update(user_input)
 
-        if self.user_selections.get("use_google_places"):
+        if self.user_selections.get(CONF_BRAVE_ENABLED):
             defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)
-        if self.user_selections.get("use_wikipedia"):
+        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
             defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        return self.async_create_entry(title="", data=self.config_data)
+        return self.async_create_entry(data=self.config_data)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
@@ -399,11 +370,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES)
         self.config_data.update(user_input)
 
-        if self.user_selections.get("use_wikipedia"):
+        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
             defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_wikipedia_schema(defaults)
             return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        return self.async_create_entry(title="", data=self.config_data)
+        return self.async_create_entry(data=self.config_data)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
@@ -412,4 +383,4 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         if user_input is None:
             return self.async_show_form(step_id=STEP_WIKIPEDIA)
         self.config_data.update(user_input)
-        return self.async_create_entry(title="", data=self.config_data)
+        return self.async_create_entry(data=self.config_data)
