@@ -9,7 +9,7 @@ Supported search sources:
 * **Wikipedia**
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
-A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 12-hour period. 
+A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 12-hour period.
 
 ---
 
@@ -20,7 +20,7 @@ A caching layer is utilised in order to reduce both API usage and latency on rep
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 * Adding Tools for Assist to HACS can be using this button:
-[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm-intents&category=integration)
+  [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm-intents&category=integration)
 
 <br>
 
@@ -30,11 +30,12 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 * Click install on the `Tools for Assist` integration.
 * Restart Home Assistant.
 
-
 <details><summary>Manual Install</summary>
 
-* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
+* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [
+  `custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
 * Restart the Home Assistant.
+
 </details>
 
 ## Configuration
@@ -63,15 +64,15 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 #### Options
 
-| Key            | Required | Default | Description                                       |
-| -------------- | -------- | ------- | ------------------------------------------------- |
-| `API Key`      | ✅        | —       | Brave Search API key                              |
-| `Number of Results`  | ❌        | `2`     | Number of results to return                       |
-| `Country Code` | ❌        | —       | ISO country code to bias results                  |
-| `Latitude`     | ❌        | —       | Optional latitude for local result relevance             |
-| `Longitude`    | ❌        | —       | Optional longitude for local result relevance            |
-| `Timezone`     | ❌        | —       | Optional timezone for local result relevance             |
-| `Post Code`    | ❌        | —       | Optional post code for local result relevance |
+| Setting             | Required | Default | Description                                   |
+|---------------------|----------|---------|-----------------------------------------------|
+| `API Key`           | ✅        | —       | Brave Search API key                          |
+| `Number of Results` | ❌        | `2`     | Number of results to return                   |
+| `Country Code`      | ❌        | —       | ISO country code to bias results              |
+| `Latitude`          | ❌        | —       | Optional latitude for local result relevance  |
+| `Longitude`         | ❌        | —       | Optional longitude for local result relevance |
+| `Timezone`          | ❌        | —       | Optional timezone for local result relevance  |
+| `Post Code`         | ❌        | —       | Optional post code for local result relevance |
 
 ---
 
@@ -86,15 +87,15 @@ Searches for locations, businesses, or points of interest using the Google Place
 
 #### Configuration Steps
 
-1. Select "Google Places" during setup  
+1. Select "Google Places" during setup
 2. Enter your [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
 3. Configure number of results to return
 
 #### Options
 
-| Key           | Required | Default | Description                          |
-| ------------- | -------- | ------- | ------------------------------------ |
-| `API Key`     | ✅        | —       | Google Places API key                |
+| Setting             | Required | Default | Description                          |
+|---------------------|----------|---------|--------------------------------------|
+| `API Key`           | ✅        | —       | Google Places API key                |
 | `Number of Results` | ❌        | `2`     | Number of location results to return |
 
 ---
@@ -115,9 +116,10 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 ### Options
 
-| Key           | Required | Default | Description                           |
-| ------------- | -------- | ------- | ------------------------------------- |
+| Setting             | Required | Default | Description                           |
+|---------------------|----------|---------|---------------------------------------|
 | `Number of Results` | ❌        | `1`     | Number of article summaries to return |
 
 ## Acknowledgements
+
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
