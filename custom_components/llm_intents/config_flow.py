@@ -41,7 +41,6 @@ STEP_BRAVE = "brave"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_INIT = "init"
-STEP_DELETE = "delete"
 STEP_CONFIGURE = "configure"
 
 
@@ -271,11 +270,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Present a menu to configure services or delete the integration."""
+        """Present a menu to configure services the integration."""
         if user_input is None:
             return self.async_show_menu(
                 step_id=STEP_INIT,
-                menu_options=["configure", "delete"],
+                menu_options=["configure"],
                 description_placeholders={
                     "current_services": self._get_current_services_description()
                 },
@@ -330,42 +329,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
 
         # No services selected, just update with current selections
         return self.async_create_entry(data=self.config_data)
-
-    async def async_step_delete(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
-        """Handle deletion confirmation."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id=STEP_DELETE,
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("confirm_delete", default=False): bool,
-                    }
-                ),
-                description_placeholders={
-                    "entry_title": self.config_entry.title or ADDON_NAME
-                },
-            )
-
-        if user_input.get("confirm_delete"):
-            # Remove any created entities first
-            entity_registry = er.async_get(self.hass)
-            entities = er.async_entries_for_config_entry(
-                entity_registry, self.config_entry.entry_id
-            )
-
-            for entity in entities:
-                entity_registry.async_remove(entity.entity_id)
-
-            # Remove the config entry
-            await self.hass.config_entries.async_remove(self.config_entry.entry_id)
-
-            # Return a proper abort result manually
-            return {"type": "abort", "reason": "instance_deleted"}
-
-        # User cancelled, go back to menu
-        return await self.async_step_init()
 
     def _get_current_services_description(self) -> str:
         """Get a description of currently configured services."""
