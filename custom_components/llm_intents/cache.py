@@ -24,9 +24,9 @@ class SQLiteCache:
         db_path = os.path.join(base_dir, "cache.db")
         os.makedirs(base_dir, exist_ok=True)  # ensure folder exists
 
-		if os.path.exists(db_path):
-			# Recreate cache file when addon is initialised
-			os.remove(db_path)
+        if os.path.exists(db_path):
+            # Recreate cache file when addon is initialised
+            os.remove(db_path)
 
         self._conn = sqlite3.connect(db_path)
         self._conn.execute("""
