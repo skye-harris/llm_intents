@@ -24,12 +24,16 @@ class SQLiteCache:
         db_path = os.path.join(base_dir, "cache.db")
         os.makedirs(base_dir, exist_ok=True)  # ensure folder exists
 
+		if os.path.exists(db_path):
+			# Recreate cache file when addon is initialised
+			os.remove(db_path)
+
         self._conn = sqlite3.connect(db_path)
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS cache (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key TEXT NOT NULL UNIQUE,
-                expires_at INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
                 data TEXT NOT NULL
             )
         """)
@@ -46,8 +50,9 @@ class SQLiteCache:
 
     def _cleanup(self):
         now = int(time.time())
+        cutoff = now - self.DEFAULT_MAX_AGE
         deleted = self._conn.execute(
-            "DELETE FROM cache WHERE expires_at < ?", (now,)
+            "DELETE FROM cache WHERE created_at < ?", (cutoff,)
         ).rowcount
         self._conn.commit()
         if deleted:
@@ -71,24 +76,18 @@ class SQLiteCache:
             logger.debug(f"Cache miss for tool: {tool} Params: {params}")
             return None
 
-    def set(
-        self,
-        tool: str,
-        params: Optional[dict],
-        data: Any,
-        max_age_seconds: int = DEFAULT_MAX_AGE,
-    ):
+    def set(self, tool: str, params: Optional[dict], data: dict):
         key = self._make_key(tool, params)
-        expires_at = int(time.time()) + max_age_seconds
+        created_at = int(time.time())
         data_json = json.dumps(data)
         self._conn.execute(
             """
-            INSERT INTO cache (key, expires_at, data)
+            INSERT INTO cache (key, created_at, data)
             VALUES (?, ?, ?)
             ON CONFLICT(key) DO UPDATE SET
-                expires_at=excluded.expires_at,
+                created_at=excluded.created_at,
                 data=excluded.data
         """,
-            (key, expires_at, data_json),
+            (key, created_at, data_json),
         )
         self._conn.commit()

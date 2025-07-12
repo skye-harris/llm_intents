@@ -6,7 +6,13 @@ integrations.
 """
 
 DOMAIN = "llm_intents"
+ADDON_NAME = "Tools for Assist"
+
 SEARCH_API_NAME = "Search Services"
+
+# SQLite Cache
+
+CONF_CACHE_MAX_AGE = "cache_max_age"
 
 # Brave-specific constants
 

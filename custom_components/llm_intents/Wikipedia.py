@@ -21,11 +21,13 @@ class SearchWikipediaTool(llm.Tool):
     """Tool for searching Wikipedia."""
 
     name = "search_wikipedia"
-    description = "Search Wikipedia for information about a topic"
+    description = "Use this tool to retrieve information from Wikipedia on a specified subject matter"
 
     parameters = vol.Schema(
         {
-            vol.Required("query"): str,
+            vol.Required(
+                "query", description="The subject matter to search Wikipedia for"
+            ): str,
         }
     )
 

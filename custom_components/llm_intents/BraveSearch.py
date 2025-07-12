@@ -1,6 +1,9 @@
 import logging
 import voluptuous as vol
 
+import html
+import re
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -25,13 +28,29 @@ class SearchWebTool(llm.Tool):
     """Tool for searching the web."""
 
     name = "search_web"
-    description = "Search the web using Brave Search"
+    description = "Search the web to lookup information and answer user queries. You should use this tool to access additional information about the world"
+    response_instruction = """
+    Review the results to provide the user with a clear and concise answer to their query.
+    You may offer to perform related searches for the user, and if confirmed, search new queries to continue assisting the user.
+    Your response must be in plain-text, without the use of any formatting, and should be kept to 2-3 sentences.
+    """
 
     parameters = vol.Schema(
         {
-            vol.Required("query"): str,
+            vol.Required("query", description="The query to search for"): str,
         }
     )
+
+    def wrap_response(self, response: dict) -> dict:
+        response["instruction"] = self.response_instruction
+        return response
+
+    async def cleanup_text(self, text: str) -> str:
+        text = html.unescape(text)
+        text = re.sub(r"<[^>]+>", "", text)
+        text = re.sub(r"\s+", " ", text).strip()
+
+        return text
 
     async def async_call(
         self,
@@ -45,6 +64,7 @@ class SearchWebTool(llm.Tool):
         config_data = {**config_data, **entry.options}
 
         query = tool_input.tool_args["query"]
+        use_extra_snippets = True
         _LOGGER.info("Web search requested for: %s", query)
 
         api_key = config_data.get(CONF_BRAVE_API_KEY)
@@ -68,7 +88,12 @@ class SearchWebTool(llm.Tool):
             params = {
                 "q": query,
                 "count": num_results,
+                "result_filter": "web",
+                "summary": "true",
             }
+
+            if use_extra_snippets:
+                params["extra_snippets"] = "true"
 
             if latitude is not None:
                 headers["X-Loc-Lat"] = str(latitude)
@@ -90,7 +115,7 @@ class SearchWebTool(llm.Tool):
             cached_response = cache.get(__name__, params)
 
             if cached_response:
-                return cached_response
+                return self.wrap_response(cached_response)
 
             async with session.get(
                 "https://api.search.brave.com/res/v1/web/search",
@@ -103,16 +128,30 @@ class SearchWebTool(llm.Tool):
                     for result in data.get("web", {}).get("results", []):
                         title = result.get("title", "")
                         description = result.get("description", "")
-                        results.append({"title": title, "description": description})
+
+                        # just use the first 2 snippets
+                        extra_snippets = result.get("extra_snippets", [])[0:2]
+
+                        if use_extra_snippets and extra_snippets:
+                            # todo: would love to filter/sort by relevance
+                            result_content = [
+                                await self.cleanup_text(snippet)
+                                for snippet in extra_snippets
+                            ]
+                        else:
+                            result_content = await self.cleanup_text(description)
+
+                        result = {"title": title, "description": result_content}
+
+                        results.append(result)
+
+                    response = {"results": results if results else "No results found"}
 
                     if results:
-                        cache.set(__name__, params, {"results": results})
+                        cache.set(__name__, params, response)
+                        return self.wrap_response(response)
 
-                    return (
-                        {"results": results}
-                        if results
-                        else {"result": "No results found"}
-                    )
+                    return response
                 return {"error": f"Search error: {resp.status}"}
 
         except Exception as e:

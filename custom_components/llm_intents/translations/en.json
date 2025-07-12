@@ -2,17 +2,17 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configure LLM Intents",
-        "description": "Select the services you want to enable for LLM intents.",
+        "title": "Configure Tools for Assist",
+        "description": "Select the services you want to enable for Tools for Assist.",
         "data": {
-          "use_brave": "Enable Brave Search",
+          "use_brave": "Enable Brave Web Search",
           "use_google_places": "Enable Google Places",
           "use_wikipedia": "Enable Wikipedia Search"
         }
       },
       "brave": {
-        "title": "Configure Brave Search",
-        "description": "Configure Brave Search API settings.",
+        "title": "Configure Brave Web Search",
+        "description": "Configure Brave Web Search API settings.",
         "data": {
           "brave_api_key": "API Key",
           "brave_num_results": "Number of Results",
@@ -42,7 +42,7 @@
         "title": "Configure Services",
         "description": "Select which services to enable or disable.\n\n{current_services}",
         "data": {
-          "use_brave": "Enable Brave Search",
+          "use_brave": "Enable Brave Web Search",
           "use_google_places": "Enable Google Places",
           "use_wikipedia": "Enable Wikipedia Search"
         }
@@ -59,13 +59,13 @@
       }
     },
     "abort": {
-      "single_instance_allowed": "Only one instance of LLM Intents is allowed"
+      "single_instance_allowed": "Only one instance of Tools for Assist is allowed"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "LLM Intents Options",
+        "title": "Tools for Assist Options",
         "description": "Choose what you want to do:\n\n{current_services}",
         "menu_options": {
           "configure": "Configure Services",
@@ -76,14 +76,14 @@
         "title": "Configure Services",
         "description": "Select which services to enable or disable.\n\n{current_services}",
         "data": {
-          "use_brave": "Enable Brave Search",
+          "use_brave": "Enable Brave Web Search",
           "use_google_places": "Enable Google Places",
           "use_wikipedia": "Enable Wikipedia Search"
         }
       },
       "brave": {
-        "title": "Configure Brave Search",
-        "description": "Configure Brave Search API settings.",
+        "title": "Configure Brave Web Search",
+        "description": "Configure Brave Web Search API settings.",
         "data": {
           "brave_api_key": "API Key",
           "brave_num_results": "Number of Results",

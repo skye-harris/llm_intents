@@ -1,4 +1,4 @@
-"""Config flow for the LLM Intents integration."""
+"""Config flow for the Tools for Assist integration."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 from .const import (
+    ADDON_NAME,
     CONF_BRAVE_ENABLED,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
@@ -113,7 +114,7 @@ def get_wikipedia_schema(defaults: dict) -> vol.Schema:
 
 
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for the LLM Intents integration."""
+    """Handle a config flow for the Tools for Assist integration."""
 
     VERSION = 1
 
@@ -130,6 +131,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if entry already exists
         if self._async_current_entries():
+            # todo: support a single instance of multiple LLM API types (diff tools)
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is None:
@@ -174,7 +176,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # If no service is selected, create the entry with the selected data
         return self.async_create_entry(
-            title="LLM Intents", data=self.config_data, options={}
+            title=ADDON_NAME, data=self.config_data, options={}
         )
 
     async def async_step_brave(
@@ -205,7 +207,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # All done, create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self.config_data)
+        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
@@ -228,7 +230,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # All done, create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self.config_data)
+        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
@@ -242,7 +244,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # All done, create the entry
 
-        return self.async_create_entry(title="LLM Intents", data=self.config_data)
+        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
 
     @staticmethod
     @callback
@@ -252,7 +254,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
-    """Handle an options flow for an existing LLM Intents config entry."""
+    """Handle an options flow for an existing Tools for Assist config entry."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize the options flow with the existing entry."""
@@ -342,7 +344,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
                     }
                 ),
                 description_placeholders={
-                    "entry_title": self.config_entry.title or "LLM Intents"
+                    "entry_title": self.config_entry.title or ADDON_NAME
                 },
             )
 

@@ -20,11 +20,13 @@ class FindPlacesTool(llm.Tool):
     """Tool for finding places."""
 
     name = "find_places"
-    description = "Find places using Google Places API"
+    description = "Use this tool to perform a location search on Google Places, to provide address information"
 
     parameters = vol.Schema(
         {
-            vol.Required("query"): str,
+            vol.Required(
+                "query", description="The place or location to search for"
+            ): str,
         }
     )
 
