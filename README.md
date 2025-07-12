@@ -1,19 +1,15 @@
-# LLM Intents (Custom Integration for Home Assistant)
+# Tools for Assist (Custom Integration for Home Assistant)
 
-Additional tool intents for LLM-backed Assist for Home Assistant
+Additional tools for LLM-backed Assist for Home Assistant
 
 Supported search sources:
 
-* **Brave Search**
+* **Brave Web Search**
 * **Google Places**
 * **Wikipedia**
 
-Each intent is optional and configurable via YAML. Some require API keys, but are usable on free tiers.
-
-TODOs:
-- [ ] Add UI capabilities for configuration
-- [ ] Implement proper error handling
-- [ ] Code optimization/cleanup
+Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
+A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 12-hour period. 
 
 ---
 
@@ -23,19 +19,21 @@ TODOs:
 
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
-* Adding LLM Intents to HACS can be using this button:
-[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=douskye-harris&repository=llm-intents&category=integration)
+* Adding Tools for Assist to HACS can be using this button:
+[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm-intents&category=integration)
+
+<br>
 
 > [!NOTE]
 > If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
 
-* Click install on the `LLM Intents` integration.
+* Click install on the `Tools for Assist` integration.
 * Restart Home Assistant.
 
 
 <details><summary>Manual Install</summary>
 
-* Copy the `llm-intents`  folder from [latest release](https://github.com/dougiteixeira/proxmoxve/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
+* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
 * Restart the Home Assistant.
 </details>
 
@@ -45,31 +43,17 @@ After installation, configure the integration through Home Assistant's UI:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **Add Integration**
-3. Search for "LLM Intents"
+3. Search for "Tools for Assist"
 4. Follow the setup wizard to configure your desired services
 
-### 🔍 Brave Search
+### 🔍 Brave Web Search
 
-Uses the Brave AI Web Search API to return summarized, snippet-rich results.
+Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 ##### Requirements
 
 * Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai)
 * The free tier plan is supported
-
-#### Example Configuration
-
-```yaml
-llm_intents:
-  brave_search:
-    api_key: !secret brave_ai_api
-    num_results: 2
-    country_code: "AU"
-    latitude: -31.95
-    longitude: 115.86
-    timezone: "Australia/Perth"
-    post_code: "6000"
-```
 
 #### Configuration Steps
 
@@ -81,13 +65,13 @@ llm_intents:
 
 | Key            | Required | Default | Description                                       |
 | -------------- | -------- | ------- | ------------------------------------------------- |
-| `api_key`      | ✅        | —       | Brave Search API key                              |
-| `num_results`  | ❌        | `2`     | Number of results to return                       |
-| `country_code` | ❌        | —       | ISO country code to bias results                  |
-| `latitude`     | ❌        | —       | Optional latitude for local relevance             |
-| `longitude`    | ❌        | —       | Optional longitude for local relevance            |
-| `timezone`     | ❌        | —       | Timezone for contextual answers                   |
-| `post_code`    | ❌        | —       | Optional postcode for more accurate geo targeting |
+| `API Key`      | ✅        | —       | Brave Search API key                              |
+| `Number of Results`  | ❌        | `2`     | Number of results to return                       |
+| `Country Code` | ❌        | —       | ISO country code to bias results                  |
+| `Latitude`     | ❌        | —       | Optional latitude for local result relevance             |
+| `Longitude`    | ❌        | —       | Optional longitude for local result relevance            |
+| `Timezone`     | ❌        | —       | Optional timezone for local result relevance             |
+| `Post Code`    | ❌        | —       | Optional post code for local result relevance |
 
 ---
 
@@ -100,15 +84,6 @@ Searches for locations, businesses, or points of interest using the Google Place
 * Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
 * Ensure the Places API is enabled in your Google Cloud project.
 
-#### Example Configuration
-
-```yaml
-llm_intents:
-  google_places:
-    api_key: !secret google_api
-    num_results: 3
-```
-
 #### Configuration Steps
 
 1. Select "Google Places" during setup  
@@ -119,8 +94,8 @@ llm_intents:
 
 | Key           | Required | Default | Description                          |
 | ------------- | -------- | ------- | ------------------------------------ |
-| `api_key`     | ✅        | —       | Google Places API key                |
-| `num_results` | ❌        | `2`     | Number of location results to return |
+| `API Key`     | ✅        | —       | Google Places API key                |
+| `Number of Results` | ❌        | `2`     | Number of location results to return |
 
 ---
 
@@ -133,19 +108,6 @@ Looks up Wikipedia articles and returns summaries of the top results.
 * No API key required.
 * Uses the public Wikipedia search and summary APIs.
 
-#### Example Configuration
-
-```yaml
-llm_intents:
-  wikipedia: true
-
-or
-
-llm_intents:
-  wikipedia:
-    num_results: 1
-```
-
 #### Configuration Steps
 
 1. Select "Wikipedia" during setup
@@ -155,10 +117,7 @@ llm_intents:
 
 | Key           | Required | Default | Description                           |
 | ------------- | -------- | ------- | ------------------------------------- |
-| `num_results` | ❌        | `1`     | Number of article summaries to return |
-
-> [!IMPORTANT]
-> **Security**: All API keys are stored securely in Home Assistant's encrypted configuration database, not in plain text files.
+| `Number of Results` | ❌        | `1`     | Number of article summaries to return |
 
 ## Acknowledgements
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
