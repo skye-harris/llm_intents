@@ -7,7 +7,7 @@
     "dependencies": [],
     "documentation": "https://github.com/skye-harris/llm_intents",
     "integration_type": "service",
-    "iot_class": "calculated",
+    "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/skye-harris/llm_intents/issues",
     "loggers": ["custom_components.llm_intents"],
     "requirements": [],
