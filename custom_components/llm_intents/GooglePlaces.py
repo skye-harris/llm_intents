@@ -1,17 +1,17 @@
 import logging
-import voluptuous as vol
 
+import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
+from .cache import SQLiteCache
 from .const import (
-    DOMAIN,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
+    DOMAIN,
 )
-from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,6 +94,10 @@ class FindPlacesTool(llm.Tool):
                         if results
                         else {"result": "No places found"}
                     )
+
+                _LOGGER.error(
+                    f"Places search received a HTTP {resp.status} error from Google"
+                )
                 return {"error": f"Places search error: {resp.status}"}
 
         except Exception as e:

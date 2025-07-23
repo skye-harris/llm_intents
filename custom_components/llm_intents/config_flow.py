@@ -2,29 +2,28 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import entity_registry as er
-
-import logging
 
 _LOGGER = logging.getLogger(__name__)
 
 from .const import (
     ADDON_NAME,
-    CONF_BRAVE_ENABLED,
+    BRAVE_DEFAULTS,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
+    CONF_BRAVE_ENABLED,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
-    CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_API_KEY,
+    CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -130,7 +129,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if entry already exists
         if self._async_current_entries():
-            # todo: support a single instance of multiple LLM API types (diff tools)
+            # TODO: support a single instance of multiple LLM API types (diff tools)
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is None:
@@ -314,11 +313,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
 
         # Store user selections and existing data
         self.user_selections = user_input.copy()
-        self.config_data.update(defaults)
         self.config_data.update(user_input)
 
         if user_input.get(CONF_BRAVE_ENABLED):
-            schema = get_brave_schema(defaults)
+            schema = get_brave_schema(BRAVE_DEFAULTS)
+            schema = self.add_suggested_values_to_schema(schema, defaults)
             return self.async_show_form(step_id=STEP_BRAVE, data_schema=schema)
         if user_input.get(CONF_GOOGLE_PLACES_ENABLED):
             schema = get_google_places_schema(defaults)
@@ -354,7 +353,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(step_id=STEP_BRAVE)
         self.config_data.update(user_input)
 
-        if self.user_selections.get(CONF_BRAVE_ENABLED):
+        if self.user_selections.get(CONF_GOOGLE_PLACES_ENABLED):
             defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
             schema = get_google_places_schema(defaults)
             return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)

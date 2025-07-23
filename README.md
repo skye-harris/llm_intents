@@ -42,10 +42,12 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 After installation, configure the integration through Home Assistant's UI:
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **Add Integration**
-3. Search for "Tools for Assist"
+1. Go to `Settings` → `Devices & Services`
+2. Click `Add Integration`
+3. Search for `Tools for Assist`
 4. Follow the setup wizard to configure your desired services
+
+Once the integration is installed and configured, you will need to enable this on your Converation Agent entities. For the Ollama and OpenAI Conversation integrations, this can be found within your Conversation Agent configuration options, beneath the `Control Home Assistant` heading.
 
 ### 🔍 Brave Web Search
 

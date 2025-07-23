@@ -1,18 +1,18 @@
 import logging
+import re
 import urllib.parse
-import voluptuous as vol
 
+import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
-from .const import (
-    DOMAIN,
-    CONF_WIKIPEDIA_NUM_RESULTS,
-)
-
 from .cache import SQLiteCache
+from .const import (
+    CONF_WIKIPEDIA_NUM_RESULTS,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +69,9 @@ class SearchWikipediaTool(llm.Tool):
                 params=search_params,
             ) as resp:
                 if resp.status != 200:
+                    _LOGGER.error(
+                        f"Wikipedia search received a HTTP {resp.status} error from Wikipedia"
+                    )
                     return {"error": f"Wikipedia search error: {resp.status}"}
 
                 search_data = await resp.json()
@@ -84,8 +87,6 @@ class SearchWikipediaTool(llm.Tool):
                     snippet = result.get("snippet", "")
 
                     # Clean HTML tags from snippet
-                    import re
-
                     snippet = re.sub(r"<[^>]+>", "", snippet)
 
                     # Try to get full summary

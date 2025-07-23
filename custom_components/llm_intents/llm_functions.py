@@ -2,21 +2,20 @@
 
 import logging
 from typing import Any
-from .BraveSearch import SearchWebTool
-from .GooglePlaces import FindPlacesTool
-from .Wikipedia import SearchWikipediaTool
-import voluptuous as vol
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
+from .BraveSearch import SearchWebTool
 from .const import (
-    DOMAIN,
-    SEARCH_API_NAME,
+    CONF_BRAVE_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
-    CONF_BRAVE_ENABLED,
+    DOMAIN,
+    SEARCH_API_NAME,
 )
+from .GooglePlaces import FindPlacesTool
+from .Wikipedia import SearchWikipediaTool
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +37,6 @@ class SearchAPI(llm.API):
         self, llm_context: llm.LLMContext
     ) -> llm.APIInstance:
         """Get API instance."""
-
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}
@@ -59,7 +57,6 @@ class SearchAPI(llm.API):
 
 async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) -> None:
     """Set up LLM functions for search services."""
-
     # Check if already set up with same config to avoid unnecessary work
     if (
         DOMAIN in hass.data
