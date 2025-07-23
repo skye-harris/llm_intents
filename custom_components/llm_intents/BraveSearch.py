@@ -95,20 +95,20 @@ class SearchWebTool(llm.Tool):
             if use_extra_snippets:
                 params["extra_snippets"] = "true"
 
-            if latitude is not None:
+            if latitude:
                 headers["X-Loc-Lat"] = str(latitude)
 
-            if longitude is not None:
+            if longitude:
                 headers["X-Loc-Long"] = str(longitude)
 
-            if timezone is not None:
+            if timezone:
                 headers["X-Loc-Timezone"] = timezone
 
-            if country_code is not None:
+            if country_code:
                 headers["X-Loc-Country"] = country_code
                 params["country"] = country_code
 
-            if post_code is not None:
+            if post_code:
                 headers["X-Loc-Postal-Code"] = str(post_code)
 
             cache = SQLiteCache()
