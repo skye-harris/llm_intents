@@ -1,10 +1,10 @@
-import os
-import sqlite3
 import hashlib
 import json
-import time
 import logging
-from typing import Optional, Any
+import os
+import sqlite3
+import time
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class SQLiteCache:
         """)
         self._conn.commit()
 
-    def _make_key(self, tool: str, params: Optional[dict]) -> str:
+    def _make_key(self, tool: str, params: dict | None) -> str:
         params_str = (
             ""
             if params is None
@@ -58,7 +58,7 @@ class SQLiteCache:
         if deleted:
             logger.debug(f"Cache cleanup ran, deleted {deleted} expired entries")
 
-    def get(self, tool: str, params: Optional[dict]) -> Optional[Any]:
+    def get(self, tool: str, params: dict | None) -> Any | None:
         self._cleanup()
         key = self._make_key(tool, params)
         cursor = self._conn.execute("SELECT data FROM cache WHERE key = ?", (key,))
@@ -76,7 +76,7 @@ class SQLiteCache:
             logger.debug(f"Cache miss for tool: {tool} Params: {params}")
             return None
 
-    def set(self, tool: str, params: Optional[dict], data: dict):
+    def set(self, tool: str, params: dict | None, data: dict):
         key = self._make_key(tool, params)
         created_at = int(time.time())
         data_json = json.dumps(data)

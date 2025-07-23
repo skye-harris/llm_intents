@@ -1,14 +1,13 @@
 """Test the LLM functions."""
 
-import json
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.llm_intents.llm_functions import (
-    setup_llm_functions,
     cleanup_llm_functions,
+    setup_llm_functions,
 )
 
 
@@ -204,8 +203,7 @@ class TestLlmFunctions:
             # Return different responses based on URL
             if "api.php" in str(args[0]):
                 return MockContext(mock_search_response)
-            else:
-                return MockContext(mock_summary_response)
+            return MockContext(mock_summary_response)
 
         mock_session.get = mock_get
 
@@ -675,8 +673,7 @@ class TestLlmFunctions:
             call_count += 1
             if call_count == 1:
                 return MockContext(mock_response)  # Search API
-            else:
-                return MockContext(summary_response)  # Summary API (fails)
+            return MockContext(summary_response)  # Summary API (fails)
 
         mock_session.get = mock_get
 
@@ -743,8 +740,9 @@ class TestLlmFunctions:
 
     async def test_config_change_detection(self, hass):
         """Test that configuration changes are properly detected."""
-        from custom_components.llm_intents import async_update_options
         from homeassistant.config_entries import ConfigEntry
+
+        from custom_components.llm_intents import async_update_options
 
         # Set up initial config
         hass.data["llm_intents"] = {

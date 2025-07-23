@@ -1,25 +1,24 @@
-import logging
-import voluptuous as vol
-
 import html
+import logging
 import re
 
+import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
+from .cache import SQLiteCache
 from .const import (
-    DOMAIN,
     CONF_BRAVE_API_KEY,
-    CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
-    CONF_BRAVE_TIMEZONE,
+    CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
+    CONF_BRAVE_TIMEZONE,
+    DOMAIN,
 )
-from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,20 +94,20 @@ class SearchWebTool(llm.Tool):
             if use_extra_snippets:
                 params["extra_snippets"] = "true"
 
-            if latitude is not None:
+            if latitude:
                 headers["X-Loc-Lat"] = str(latitude)
 
-            if longitude is not None:
+            if longitude:
                 headers["X-Loc-Long"] = str(longitude)
 
-            if timezone is not None:
+            if timezone:
                 headers["X-Loc-Timezone"] = timezone
 
-            if country_code is not None:
+            if country_code:
                 headers["X-Loc-Country"] = country_code
                 params["country"] = country_code
 
-            if post_code is not None:
+            if post_code:
                 headers["X-Loc-Postal-Code"] = str(post_code)
 
             cache = SQLiteCache()
@@ -133,7 +132,7 @@ class SearchWebTool(llm.Tool):
                         extra_snippets = result.get("extra_snippets", [])[0:2]
 
                         if use_extra_snippets and extra_snippets:
-                            # todo: would love to filter/sort by relevance
+                            # TODO: would love to filter/sort by relevance
                             result_content = [
                                 await self.cleanup_text(snippet)
                                 for snippet in extra_snippets
@@ -152,6 +151,9 @@ class SearchWebTool(llm.Tool):
                         return self.wrap_response(response)
 
                     return response
+                _LOGGER.error(
+                    f"Web search received a HTTP {resp.status} error from Brave"
+                )
                 return {"error": f"Search error: {resp.status}"}
 
         except Exception as e:

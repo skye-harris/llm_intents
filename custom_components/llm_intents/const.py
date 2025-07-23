@@ -25,6 +25,16 @@ CONF_BRAVE_LONGITUDE = "brave_longitude"
 CONF_BRAVE_TIMEZONE = "brave_timezone"
 CONF_BRAVE_POST_CODE = "brave_post_code"
 
+BRAVE_DEFAULTS = {
+    CONF_BRAVE_API_KEY: "",
+    CONF_BRAVE_NUM_RESULTS: 2,
+    CONF_BRAVE_LATITUDE: "",
+    CONF_BRAVE_LONGITUDE: "",
+    CONF_BRAVE_TIMEZONE: "",
+    CONF_BRAVE_COUNTRY_CODE: "",
+    CONF_BRAVE_POST_CODE: "",
+}
+
 # Google Places-specific constants
 
 CONF_GOOGLE_PLACES_ENABLED = "google_places_enabled"
