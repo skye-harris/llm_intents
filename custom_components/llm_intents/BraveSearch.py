@@ -151,6 +151,9 @@ class SearchWebTool(llm.Tool):
                         return self.wrap_response(response)
 
                     return response
+                _LOGGER.error(
+                    f"Web search received a HTTP {resp.status} error from Brave"
+                )
                 return {"error": f"Search error: {resp.status}"}
 
         except Exception as e:

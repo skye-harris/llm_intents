@@ -69,6 +69,9 @@ class SearchWikipediaTool(llm.Tool):
                 params=search_params,
             ) as resp:
                 if resp.status != 200:
+                    _LOGGER.error(
+                        f"Wikipedia search received a HTTP {resp.status} error from Wikipedia"
+                    )
                     return {"error": f"Wikipedia search error: {resp.status}"}
 
                 search_data = await resp.json()

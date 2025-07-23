@@ -94,6 +94,10 @@ class FindPlacesTool(llm.Tool):
                         if results
                         else {"result": "No places found"}
                     )
+
+                _LOGGER.error(
+                    f"Places search received a HTTP {resp.status} error from Google"
+                )
                 return {"error": f"Places search error: {resp.status}"}
 
         except Exception as e:
