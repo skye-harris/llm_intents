@@ -126,7 +126,7 @@ class WeatherForecastTool(llm.Tool):
                 "\n".join(
                     [
                         f"- Date: {self.format_date(day['datetime'])}",
-                        f"  Temperature: {day['templow']} - {day['temperature']}",
+                        f"  Temperature: {round(day['templow'])} - {round(day['temperature'])}",
                         f"  General Condition: {day['condition']}",
                         f"  Rain: {self.friendly_rain_chance(day['precipitation_probability'])}",
                     ]
@@ -155,7 +155,7 @@ class WeatherForecastTool(llm.Tool):
                 "\n".join(
                     [
                         f"- Time: {self.format_time(hour['datetime'])}",
-                        f"  Temperature: {hour['temperature']}",
+                        f"  Temperature: {round(hour['temperature'])}",
                         f"  General Condition: {hour['condition']}",
                         f"  Rain: {self.friendly_rain_chance(hour['precipitation_probability'])}",
                     ]
