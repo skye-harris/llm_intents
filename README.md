@@ -130,7 +130,7 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 ---
 
-### 📚 Weather Forecast
+### ⛅ Weather Forecast
 
 Rather than accessing the internet directly for weather information, this tool utilises your existing Home Assistant weather integration and makes the forecast data accessible to your LLM in an intelligent manner.
 
