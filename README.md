@@ -1,12 +1,11 @@
-# Tools for Assist (Custom Integration for Home Assistant)
+# Tools for Assist _(Custom Integration for Home Assistant)_
 
-Additional tools for LLM-backed Assist for Home Assistant
-
-Supported search sources:
+Additional tools for LLM-backed Assist for Home Assistant:
 
 * **Brave Web Search**
 * **Google Places**
 * **Wikipedia**
+* **Weather Forecast**
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
 A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 12-hour period.
@@ -38,16 +37,23 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 </details>
 
-## Configuration
+## Integration Configuration
 
 After installation, configure the integration through Home Assistant's UI:
 
-1. Go to `Settings` → `Devices & Services`
-2. Click `Add Integration`
-3. Search for `Tools for Assist`
-4. Follow the setup wizard to configure your desired services
+1. Go to `Settings` → `Devices & Services`.
+2. Click `Add Integration`.
+3. Search for `Tools for Assist`.
+4. Follow the setup wizard to configure your desired services.
 
-Once the integration is installed and configured, you will need to enable this on your Converation Agent entities. For the Ollama and OpenAI Conversation integrations, this can be found within your Conversation Agent configuration options, beneath the `Control Home Assistant` heading.
+## Conversation Agent Configuration 
+
+Once the integration is installed and configured, you will need to enable the desired services within your Conversation Agent entities.
+
+For the Ollama and OpenAI Conversation integrations, this can be found within your Conversation Agent configuration options, beneath
+the `Control Home Assistant` heading, and enabling the services desired for the Agent:
+- Search Services
+- Weather Forecast
 
 ### 🔍 Brave Web Search
 
@@ -55,21 +61,21 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 ##### Requirements
 
-* Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai)
-* The free tier plan is supported
+* Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
+* The free tier plan is supported.
 
 #### Configuration Steps
 
-1. Select "Brave Search" during setup
-2. Enter your [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai)
-3. Configure optional settings like number of results, location preferences
+1. Select "Brave Search" during setup.
+2. Enter your [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
+3. Configure optional settings like number of results, location preferences.
 
 #### Options
 
 | Setting             | Required | Default | Description                                   |
 |---------------------|----------|---------|-----------------------------------------------|
 | `API Key`           | ✅        | —       | Brave Search API key                          |
-| `Number of Results` | ❌        | `2`     | Number of results to return                   |
+| `Number of Results` | ✅        | `2`     | Number of results to return                   |
 | `Country Code`      | ❌        | —       | ISO country code to bias results              |
 | `Latitude`          | ❌        | —       | Optional latitude for local result relevance  |
 | `Longitude`         | ❌        | —       | Optional longitude for local result relevance |
@@ -84,21 +90,21 @@ Searches for locations, businesses, or points of interest using the Google Place
 
 #### Requirements
 
-* Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
+* Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview).
 * Ensure the Places API is enabled in your Google Cloud project.
 
 #### Configuration Steps
 
-1. Select "Google Places" during setup
-2. Enter your [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview)
-3. Configure number of results to return
+1. Select "Google Places" during setup.
+2. Enter your [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview).
+3. Configure number of results to return.
 
 #### Options
 
 | Setting             | Required | Default | Description                          |
 |---------------------|----------|---------|--------------------------------------|
 | `API Key`           | ✅        | —       | Google Places API key                |
-| `Number of Results` | ❌        | `2`     | Number of location results to return |
+| `Number of Results` | ✅        | `2`     | Number of location results to return |
 
 ---
 
@@ -113,14 +119,43 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 #### Configuration Steps
 
-1. Select "Wikipedia" during setup
-2. Configure number of article summaries to return (no API key required)
+1. Select "Wikipedia" during setup.
+2. Configure number of article summaries to return (no API key required).
 
 ### Options
 
 | Setting             | Required | Default | Description                           |
 |---------------------|----------|---------|---------------------------------------|
-| `Number of Results` | ❌        | `1`     | Number of article summaries to return |
+| `Number of Results` | ✅        | `1`     | Number of article summaries to return |
+
+---
+
+### 📚 Weather Forecast
+
+Rather than accessing the internet directly for weather information, this tool utilises your existing Home Assistant weather integration and makes the forecast data accessible to your LLM in an intelligent manner.
+
+At a minimum, this tool requires a weather entity that provides daily forecast data.
+It is recommended, though optional, to also specify a weather entity that provides hourly weather data.
+
+For cases where a specific days weather is requested (eg: "today", "tomorrow", "wednesday"), the hourly data will be provided if available.
+If data for the week is requested, no hourly forecast entity is set, or the hourly forecast does not contain data for the requested day, the daily weather data will be used instead.
+
+#### Requirements
+
+* An existing weather forecast integration configured within Home Assistant.
+
+#### Configuration Steps
+
+1. Select "Weather Forecast" during setup.
+2. Select the weather entity that provides daily forecast information.
+3. Optionally, select the weather entity that provides hourly forecast information.
+
+### Options
+
+| Setting                 | Required | Description                                                 |
+|-------------------------|----------|-------------------------------------------------------------|
+| `Daily Weather Entity`  | ✅        | The weather entity to use for daily weather forecast data   |
+| `Hourly Weather Entity` | ❌        | The weather entity to use for hourly weather forecast d ata |
 
 ## Acknowledgements
 
