@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import callback
 
 _LOGGER = logging.getLogger(__name__)
 
 from .const import (
     ADDON_NAME,
-    BRAVE_DEFAULTS,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_ENABLED,
@@ -22,12 +23,16 @@ from .const import (
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
+    CONF_DAILY_WEATHER_ENTITY,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
+    CONF_HOURLY_WEATHER_ENTITY,
+    CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
+    SERVICE_DEFAULTS,
 )
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -39,76 +44,139 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
+STEP_WEATHER = "weather"
 STEP_INIT = "init"
-STEP_CONFIGURE = "configure"
+STEP_CONFIGURE_SEARCH = "configure"
+STEP_CONFIGURE_WEATHER = "configure_weather"
 
 
-def get_step_user_data_schema() -> vol.Schema:
+def get_step_user_data_schema(hass) -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
         vol.Optional(CONF_BRAVE_ENABLED, default=False): bool,
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
+        vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
 
 
-def get_brave_schema(defaults: dict) -> vol.Schema:
+def get_brave_schema(hass) -> vol.Schema:
     """Return the static schema for Brave service configuration."""
     return vol.Schema(
         {
             vol.Required(
-                CONF_BRAVE_API_KEY, default=defaults.get(CONF_BRAVE_API_KEY, "")
+                CONF_BRAVE_API_KEY, default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY)
             ): str,
-            vol.Optional(
-                CONF_BRAVE_NUM_RESULTS, default=defaults.get(CONF_BRAVE_NUM_RESULTS, 2)
+            vol.Required(
+                CONF_BRAVE_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_BRAVE_NUM_RESULTS),
             ): vol.All(int, vol.Range(min=1)),
             vol.Optional(
                 CONF_BRAVE_COUNTRY_CODE,
-                default=defaults.get(CONF_BRAVE_COUNTRY_CODE, ""),
+                default=SERVICE_DEFAULTS.get(CONF_BRAVE_COUNTRY_CODE),
             ): str,
             vol.Optional(
-                CONF_BRAVE_LATITUDE, default=defaults.get(CONF_BRAVE_LATITUDE, "")
+                CONF_BRAVE_LATITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE)
             ): str,
             vol.Optional(
-                CONF_BRAVE_LONGITUDE, default=defaults.get(CONF_BRAVE_LONGITUDE, "")
+                CONF_BRAVE_LONGITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE)
             ): str,
             vol.Optional(
-                CONF_BRAVE_TIMEZONE, default=defaults.get(CONF_BRAVE_TIMEZONE, "")
+                CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
             ): str,
             vol.Optional(
-                CONF_BRAVE_POST_CODE, default=defaults.get(CONF_BRAVE_POST_CODE, "")
+                CONF_BRAVE_POST_CODE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE)
             ): str,
         }
     )
 
 
-def get_google_places_schema(defaults: dict) -> vol.Schema:
+def get_google_places_schema(hass) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
         {
             vol.Required(
                 CONF_GOOGLE_PLACES_API_KEY,
-                default=defaults.get(CONF_GOOGLE_PLACES_API_KEY, ""),
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_API_KEY),
             ): str,
-            vol.Optional(
+            vol.Required(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
-                default=defaults.get(CONF_GOOGLE_PLACES_NUM_RESULTS, 2),
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
             ): vol.All(int, vol.Range(min=1)),
         }
     )
 
 
-def get_wikipedia_schema(defaults: dict) -> vol.Schema:
+def get_wikipedia_schema(hass) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
         {
-            vol.Optional(
+            vol.Required(
                 CONF_WIKIPEDIA_NUM_RESULTS,
-                default=defaults.get(CONF_WIKIPEDIA_NUM_RESULTS, 1),
+                default=SERVICE_DEFAULTS.get(CONF_WIKIPEDIA_NUM_RESULTS),
             ): vol.All(int, vol.Range(min=1)),
         }
     )
+
+
+def get_weather_schema(hass) -> vol.Schema:
+    """Return the static schema for Weather configuration."""
+    daily_entities = []
+    hourly_entities = ["None"]
+
+    for state in hass.states.async_all("weather"):
+        entity_id = state.entity_id
+        features = state.attributes.get("supported_features", 0)
+
+        if features & WeatherEntityFeature.FORECAST_DAILY:
+            daily_entities.append(entity_id)
+
+        if features & WeatherEntityFeature.FORECAST_HOURLY:
+            hourly_entities.append(entity_id)
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_DAILY_WEATHER_ENTITY): vol.In(daily_entities),
+            vol.Required(CONF_HOURLY_WEATHER_ENTITY): vol.In(hourly_entities),
+        }
+    )
+
+
+SEARCH_STEP_ORDER = {
+    STEP_USER: [None, get_step_user_data_schema],
+    STEP_BRAVE: [CONF_BRAVE_ENABLED, get_brave_schema],
+    STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
+    STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
+}
+
+WEATHER_STEP_ORDER = {
+    STEP_CONFIGURE_WEATHER: [None, None],
+    STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
+}
+
+# TODO: handle better
+INITIAL_CONFIG_STEP_ORDER = {
+    **SEARCH_STEP_ORDER,
+    STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
+}
+
+
+def get_next_step(
+    current_step: str, config_data: dict, step_order: dict
+) -> tuple[str, Callable] | None:
+    keys = list(step_order.keys())
+    try:
+        start = keys.index(current_step) + 1
+    except ValueError:
+        return None
+
+    for key in keys[start:]:
+        config_key, schema_func = step_order[key]
+        if config_key is None or config_data.get(config_key):
+            return key, schema_func
+
+    return None
 
 
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -120,6 +188,28 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self.user_selections: dict[str, Any] = {}
         self.config_data: dict[str, Any] = {}
+
+    async def handle_step(self, current_step: str, user_input: dict[str, Any] | None):
+        if user_input is None:
+            return self.async_show_form(step_id=current_step)
+
+        self.config_data.update(user_input)
+
+        # Check if we need to configure other services
+
+        next_step = get_next_step(
+            current_step, self.user_selections, INITIAL_CONFIG_STEP_ORDER
+        )
+        if next_step:
+            step_id, schema_func = next_step
+            schema = schema_func(self.hass)
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=schema,
+            )
+
+        # All done, create the entry
+        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -135,7 +225,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             # Display the main menu with checkboxes for Brave, Google Places, and Wikipedia
 
-            schema = get_step_user_data_schema()
+            schema = get_step_user_data_schema(self.hass)
             return self.async_show_form(
                 step_id=STEP_USER,
                 data_schema=schema,
@@ -151,27 +241,15 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Handle each service configuration based on user selection
 
-        if user_input.get(CONF_BRAVE_ENABLED):
-            defaults = {}
-            schema = get_brave_schema(defaults)
+        next_step = get_next_step(STEP_USER, user_input, INITIAL_CONFIG_STEP_ORDER)
+        if next_step:
+            step_id, schema_func = next_step
+            schema = schema_func(self.hass)
             return self.async_show_form(
-                step_id=STEP_BRAVE,
+                step_id=step_id,
                 data_schema=schema,
             )
-        if user_input.get(CONF_GOOGLE_PLACES_ENABLED):
-            defaults = {}
-            schema = get_google_places_schema(defaults)
-            return self.async_show_form(
-                step_id=STEP_GOOGLE_PLACES,
-                data_schema=schema,
-            )
-        if user_input.get(CONF_WIKIPEDIA_ENABLED):
-            defaults = {}
-            schema = get_wikipedia_schema(defaults)
-            return self.async_show_form(
-                step_id=STEP_WIKIPEDIA,
-                data_schema=schema,
-            )
+
         # If no service is selected, create the entry with the selected data
         return self.async_create_entry(
             title=ADDON_NAME, data=self.config_data, options={}
@@ -181,68 +259,25 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step."""
-        if user_input is None:
-            return self.async_show_form(step_id=STEP_BRAVE)
-        # Store Brave configuration
-
-        self.config_data.update(user_input)
-
-        # Check if we need to configure other services
-
-        if self.user_selections.get(CONF_GOOGLE_PLACES_ENABLED):
-            defaults = {}
-            schema = get_google_places_schema(defaults)
-            return self.async_show_form(
-                step_id=STEP_GOOGLE_PLACES,
-                data_schema=schema,
-            )
-        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
-            defaults = {}
-            schema = get_wikipedia_schema(defaults)
-            return self.async_show_form(
-                step_id=STEP_WIKIPEDIA,
-                data_schema=schema,
-            )
-        # All done, create the entry
-
-        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
+        return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Google Places configuration step."""
-        if user_input is None:
-            return self.async_show_form(step_id=STEP_GOOGLE_PLACES)
-        # Store Google Places configuration
-
-        self.config_data.update(user_input)
-
-        # Check if we need to configure Wikipedia
-
-        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
-            defaults = {}
-            schema = get_wikipedia_schema(defaults)
-            return self.async_show_form(
-                step_id=STEP_WIKIPEDIA,
-                data_schema=schema,
-            )
-        # All done, create the entry
-
-        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
+        return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Wikipedia configuration step."""
-        if user_input is None:
-            return self.async_show_form(step_id=STEP_WIKIPEDIA)
-        # Store Wikipedia configuration
+        return await self.handle_step(STEP_WIKIPEDIA, user_input)
 
-        self.config_data.update(user_input)
-
-        # All done, create the entry
-
-        return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
+    async def async_step_weather(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Weather configuration step."""
+        return await self.handle_step(STEP_WEATHER, user_input)
 
     @staticmethod
     @callback
@@ -273,7 +308,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         if user_input is None:
             return self.async_show_menu(
                 step_id=STEP_INIT,
-                menu_options=["configure"],
+                menu_options=[STEP_CONFIGURE_SEARCH, "configure_weather"],
                 description_placeholders={
                     "current_services": self._get_current_services_description()
                 },
@@ -304,7 +339,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             }
             schema = vol.Schema(schema_dict)
             return self.async_show_form(
-                step_id=STEP_CONFIGURE,
+                step_id=STEP_CONFIGURE_SEARCH,
                 data_schema=schema,
                 description_placeholders={
                     "current_services": self._get_current_services_description()
@@ -315,16 +350,58 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
         self.user_selections = user_input.copy()
         self.config_data.update(user_input)
 
-        if user_input.get(CONF_BRAVE_ENABLED):
-            schema = get_brave_schema(BRAVE_DEFAULTS)
+        next_step = get_next_step(STEP_USER, user_input, SEARCH_STEP_ORDER)
+        if next_step:
+            step_id, schema_func = next_step
+            schema = schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(schema, defaults)
-            return self.async_show_form(step_id=STEP_BRAVE, data_schema=schema)
-        if user_input.get(CONF_GOOGLE_PLACES_ENABLED):
-            schema = get_google_places_schema(defaults)
-            return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)
-        if user_input.get(CONF_WIKIPEDIA_ENABLED):
-            schema = get_wikipedia_schema(defaults)
-            return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=schema,
+            )
+
+        # No services selected, just update with current selections
+        return self.async_create_entry(data=self.config_data)
+
+    async def async_step_configure_weather(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle the configure menu option."""
+        data = self.config_entry.data
+        opts = self.config_entry.options or {}
+        defaults = {**data, **opts}
+
+        if user_input is None:
+            schema_dict = {
+                vol.Optional(
+                    CONF_WEATHER_ENABLED,
+                    default=defaults.get(CONF_WEATHER_ENABLED, False),
+                ): bool,
+            }
+            schema = vol.Schema(schema_dict)
+            return self.async_show_form(
+                step_id=STEP_CONFIGURE_WEATHER,
+                data_schema=schema,
+                description_placeholders={
+                    "current_services": self._get_current_services_description()
+                },
+            )
+
+        # Store user selections and existing data
+        self.user_selections = user_input.copy()
+        self.config_data.update(user_input)
+
+        next_step = get_next_step(
+            STEP_CONFIGURE_WEATHER, user_input, WEATHER_STEP_ORDER
+        )
+        if next_step:
+            step_id, schema_func = next_step
+            schema = schema_func(self.hass)
+            schema = self.add_suggested_values_to_schema(schema, defaults)
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=schema,
+            )
 
         # No services selected, just update with current selections
         return self.async_create_entry(data=self.config_data)
@@ -340,48 +417,58 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
             services.append("Google Places")
         if data.get(CONF_WIKIPEDIA_ENABLED):
             services.append("Wikipedia")
+        if data.get(CONF_WEATHER_ENABLED):
+            services.append("Weather")
 
         if services:
             return f"Currently configured: {', '.join(services)}"
         return "No services currently configured"
 
+    async def handle_step(
+        self, current_step: str, user_input: dict[str, Any] | None = None
+    ):
+        if user_input is None:
+            return self.async_show_form(step_id=current_step)
+        self.config_data.update(user_input)
+
+        next_step = get_next_step(current_step, self.user_selections, SEARCH_STEP_ORDER)
+        opts = {**self.config_entry.data, **(self.config_entry.options or {})}
+        if next_step:
+            step_id, schema_func = next_step
+            schema = schema_func(self.hass)
+            schema = self.add_suggested_values_to_schema(schema, opts)
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=schema,
+            )
+
+        self.hass.config_entries.async_update_entry(self.config_entry, options=opts)
+
+        # Manual reload to match OptionsFlowWithReload behavior as we cant seem to import that successfully
+        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+        return self.async_create_entry(data=self.config_data)
+
     async def async_step_brave(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step in options flow."""
-        if user_input is None:
-            return self.async_show_form(step_id=STEP_BRAVE)
-        self.config_data.update(user_input)
-
-        if self.user_selections.get(CONF_GOOGLE_PLACES_ENABLED):
-            defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = get_google_places_schema(defaults)
-            return self.async_show_form(step_id=STEP_GOOGLE_PLACES, data_schema=schema)
-        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
-            defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = get_wikipedia_schema(defaults)
-            return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        return self.async_create_entry(data=self.config_data)
+        return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Google Places configuration step in options flow."""
-        if user_input is None:
-            return self.async_show_form(step_id=STEP_GOOGLE_PLACES)
-        self.config_data.update(user_input)
-
-        if self.user_selections.get(CONF_WIKIPEDIA_ENABLED):
-            defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = get_wikipedia_schema(defaults)
-            return self.async_show_form(step_id=STEP_WIKIPEDIA, data_schema=schema)
-        return self.async_create_entry(data=self.config_data)
+        return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Wikipedia configuration step in options flow."""
-        if user_input is None:
-            return self.async_show_form(step_id=STEP_WIKIPEDIA)
-        self.config_data.update(user_input)
-        return self.async_create_entry(data=self.config_data)
+        return await self.handle_step(STEP_WIKIPEDIA, user_input)
+
+    async def async_step_weather(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Weather configuration step in options flow."""
+        return await self.handle_step(STEP_WEATHER, user_input)

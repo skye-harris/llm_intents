@@ -7,7 +7,8 @@
         "data": {
           "brave_search_enabled": "Enable Brave Web Search",
           "google_places_enabled": "Enable Google Places",
-          "wikipedia_enabled": "Enable Wikipedia Search"
+          "wikipedia_enabled": "Enable Wikipedia Search",
+          "weather_enabled": "Enable Weather Forecast"
         }
       },
       "brave": {
@@ -36,6 +37,14 @@
         "description": "Configure Wikipedia search settings.",
         "data": {
           "wikipedia_num_results": "Number of Results"
+        }
+      },
+      "weather": {
+        "title": "Configure Weather",
+        "description": "Configure Weather sources.",
+        "data": {
+          "weather_daily_entity": "Daily Weather Entity",
+          "weather_hourly_entity": "Hourly Weather Entity"
         }
       }
     },
@@ -49,16 +58,24 @@
         "title": "Tools for Assist Options",
         "description": "{current_services}\n\nChoose what you want to do:",
         "menu_options": {
-          "configure": "Configure Services"
+          "configure": "Configure Search Services",
+          "configure_weather": "Configure Weather Forecast"
         }
       },
       "configure": {
-        "title": "Configure Services",
+        "title": "Configure Search Services",
         "description": "Select which services to enable or disable.\n\n{current_services}",
         "data": {
           "brave_search_enabled": "Enable Brave Web Search",
           "google_places_enabled": "Enable Google Places",
           "wikipedia_enabled": "Enable Wikipedia Search"
+        }
+      },
+      "configure_weather": {
+        "title": "Configure Weather Forecast",
+        "description": "Select which services to enable or disable.\n\n{current_services}",
+        "data": {
+          "weather_enabled": "Enable Weather Forecast"
         }
       },
       "brave": {
@@ -87,6 +104,14 @@
         "description": "Configure Wikipedia search settings.",
         "data": {
           "wikipedia_num_results": "Number of Results"
+        }
+      },
+      "weather": {
+        "title": "Configure Weather",
+        "description": "Configure Weather sources.",
+        "data": {
+          "weather_daily_entity": "Daily Weather Entity",
+          "weather_hourly_entity": "Hourly Weather Entity"
         }
       }
     }

@@ -9,10 +9,21 @@ DOMAIN = "llm_intents"
 ADDON_NAME = "Tools for Assist"
 
 SEARCH_API_NAME = "Search Services"
+WEATHER_API_NAME = "Weather Forecast"
 
 # SQLite Cache
 
 CONF_CACHE_MAX_AGE = "cache_max_age"
+
+SEARCH_SERVICES_PROMPT = """
+You may utilise the Search Services tools to lookup up-to-date information from the internet.
+- General knowledge questions should be deferred to the web search tool for data.
+- Do not rely upon your trained knowledge.
+""".strip()
+
+WEATHER_SERVICES_PROMPT = """
+Use the Weather Services tools to access weather forecast data.
+""".strip()
 
 # Brave-specific constants
 
@@ -25,16 +36,6 @@ CONF_BRAVE_LONGITUDE = "brave_longitude"
 CONF_BRAVE_TIMEZONE = "brave_timezone"
 CONF_BRAVE_POST_CODE = "brave_post_code"
 
-BRAVE_DEFAULTS = {
-    CONF_BRAVE_API_KEY: "",
-    CONF_BRAVE_NUM_RESULTS: 2,
-    CONF_BRAVE_LATITUDE: "",
-    CONF_BRAVE_LONGITUDE: "",
-    CONF_BRAVE_TIMEZONE: "",
-    CONF_BRAVE_COUNTRY_CODE: "",
-    CONF_BRAVE_POST_CODE: "",
-}
-
 # Google Places-specific constants
 
 CONF_GOOGLE_PLACES_ENABLED = "google_places_enabled"
@@ -45,3 +46,26 @@ CONF_GOOGLE_PLACES_NUM_RESULTS = "google_places_num_results"
 
 CONF_WIKIPEDIA_ENABLED = "wikipedia_enabled"
 CONF_WIKIPEDIA_NUM_RESULTS = "wikipedia_num_results"
+
+# Weather constants
+
+CONF_WEATHER_ENABLED = "weather_enabled"
+CONF_DAILY_WEATHER_ENTITY = "weather_daily_entity"
+CONF_HOURLY_WEATHER_ENTITY = "weather_hourly_entity"
+
+# Service defaults
+
+SERVICE_DEFAULTS = {
+    CONF_BRAVE_API_KEY: "",
+    CONF_BRAVE_NUM_RESULTS: 2,
+    CONF_BRAVE_LATITUDE: "",
+    CONF_BRAVE_LONGITUDE: "",
+    CONF_BRAVE_TIMEZONE: "",
+    CONF_BRAVE_COUNTRY_CODE: "",
+    CONF_BRAVE_POST_CODE: "",
+    CONF_GOOGLE_PLACES_API_KEY: "",
+    CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
+    CONF_WIKIPEDIA_NUM_RESULTS: 1,
+    CONF_DAILY_WEATHER_ENTITY: None,
+    CONF_HOURLY_WEATHER_ENTITY: None,
+}
