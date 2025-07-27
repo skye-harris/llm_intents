@@ -137,7 +137,7 @@ Rather than accessing the internet directly for weather information, this tool u
 At a minimum, this tool requires a weather entity that provides daily forecast data.
 It is recommended, though optional, to also specify a weather entity that provides hourly weather data.
 
-For cases where a specific days weather is requested (eg: "today", "tomorrow", "wednesday"), the hourly data will be provided if available.
+For cases where a specific days weather is requested (eg: `today`, `tomorrow`, `wednesday`), the hourly data will be provided if available.
 If data for the week is requested, no hourly forecast entity is set, or the hourly forecast does not contain data for the requested day, the daily weather data will be used instead.
 
 #### Requirements
