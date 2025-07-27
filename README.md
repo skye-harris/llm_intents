@@ -154,8 +154,8 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 
 | Setting                 | Required | Description                                                 |
 |-------------------------|----------|-------------------------------------------------------------|
-| `Daily Weather Entity`  | ✅        | The weather entity to use for daily weather forecast data   |
-| `Hourly Weather Entity` | ❌        | The weather entity to use for hourly weather forecast d ata |
+| `Daily Weather Entity`  | ✅        | The weather entity to use for daily weather forecast data  |
+| `Hourly Weather Entity` | ❌        | The weather entity to use for hourly weather forecast data |
 
 ## Acknowledgements
 
