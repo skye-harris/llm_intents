@@ -15,6 +15,8 @@ from .const import (
     DOMAIN,
     SEARCH_API_NAME,
     WEATHER_API_NAME,
+    SEARCH_SERVICES_PROMPT,
+    WEATHER_SERVICES_PROMPT,
 )
 from .GooglePlaces import FindPlacesTool
 from .Weather import WeatherForecastTool
@@ -72,7 +74,7 @@ class SearchAPI(BaseAPI):
     """Search API for LLM integration."""
 
     _TOOLS_CONF_MAP = SEARCH_CONF_ENABLED_MAP
-    _API_PROMPT = SEARCH_API_NAME
+    _API_PROMPT = SEARCH_SERVICES_PROMPT
 
     def __init__(self, hass: HomeAssistant, name: str) -> None:
         # Maintain compatibility with prior version
@@ -83,7 +85,7 @@ class WeatherAPI(BaseAPI):
     """Weather forecast API for LLM integration."""
 
     _TOOLS_CONF_MAP = WEATHER_CONF_ENABLED_MAP
-    _API_PROMPT = WEATHER_API_NAME
+    _API_PROMPT = WEATHER_SERVICES_PROMPT
 
 
 async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) -> None:
