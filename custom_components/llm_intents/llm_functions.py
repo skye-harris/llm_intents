@@ -136,7 +136,7 @@ async def cleanup_llm_functions(hass: HomeAssistant) -> None:
             try:
                 unreg_func()
             except Exception as e:
-                _LOGGER.warning("Error unregistering LLM API: %s", e)
+                _LOGGER.debug("Error unregistering LLM API: %s", e)
 
         # Clean up stored data
         hass.data.pop(DOMAIN, None)

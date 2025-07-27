@@ -68,7 +68,7 @@ class SQLiteCache:
             try:
                 return json.loads(row[0])
             except json.JSONDecodeError:
-                logger.warning(
+                logger.debug(
                     f"Failed to decode cached data for tool: {tool} Params: {params}"
                 )
                 return None
