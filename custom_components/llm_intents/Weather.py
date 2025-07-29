@@ -122,11 +122,17 @@ class WeatherForecastTool(llm.Tool):
 
         output = []
         for day in forecast:
+            temp_low = day.get("templow")
+            temperature = (
+                f"{round(temp_low)} - {round(day['temperature'])}"
+                if temp_low is not None
+                else round(day["temperature"])
+            )
             output.append(
                 "\n".join(
                     [
                         f"- Date: {self.format_date(day['datetime'])}",
-                        f"  Temperature: {round(day['templow'])} - {round(day['temperature'])}",
+                        f"  Temperature: {temperature}",
                         f"  General Condition: {day['condition']}",
                         f"  Rain: {self.friendly_rain_chance(day['precipitation_probability'])}",
                     ]
