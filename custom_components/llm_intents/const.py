@@ -41,6 +41,10 @@ CONF_BRAVE_POST_CODE = "brave_post_code"
 CONF_GOOGLE_PLACES_ENABLED = "google_places_enabled"
 CONF_GOOGLE_PLACES_API_KEY = "google_places_api_key"
 CONF_GOOGLE_PLACES_NUM_RESULTS = "google_places_num_results"
+CONF_GOOGLE_PLACES_LATITUDE = "google_places_latitude"
+CONF_GOOGLE_PLACES_LONGITUDE = "google_places_longitude"
+CONF_GOOGLE_PLACES_RADIUS = "google_places_radius"
+CONF_GOOGLE_PLACES_RANKING = "google_places_rank_preference"
 
 # Wikipedia-specific constants
 
@@ -65,6 +69,10 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_POST_CODE: "",
     CONF_GOOGLE_PLACES_API_KEY: "",
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
+    CONF_GOOGLE_PLACES_LATITUDE: "",
+    CONF_GOOGLE_PLACES_LONGITUDE: "",
+    CONF_GOOGLE_PLACES_RADIUS: 5,
+    CONF_GOOGLE_PLACES_RANKING: "Distance",
     CONF_WIKIPEDIA_NUM_RESULTS: 1,
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,

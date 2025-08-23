@@ -30,6 +30,7 @@ class SearchWebTool(llm.Tool):
     description = "Search the web to lookup information and answer user queries. You should use this tool to access additional information about the world"
     response_instruction = """
     Review the results to provide the user with a clear and concise answer to their query.
+    If the search results provided do not answer the user request, advise the user of this.
     You may offer to perform related searches for the user, and if confirmed, search new queries to continue assisting the user.
     Your response must be in plain-text, without the use of any formatting, and should be kept to 2-3 sentences.
     """

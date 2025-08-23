@@ -29,7 +29,11 @@
         "description": "Configure Google Places API settings.",
         "data": {
           "google_places_api_key": "API Key",
-          "google_places_num_results": "Number of Results"
+          "google_places_rank_preference": "Rank Preference",
+          "google_places_num_results": "Number of Results",
+          "google_places_latitude": "Location Bias Latitude (optional)",
+          "google_places_longitude": "Location Bias Longitude (optional)",
+          "google_places_radius": "Location Bias Radius (KM)"
         }
       },
       "wikipedia": {
@@ -96,7 +100,11 @@
         "description": "Configure Google Places API settings.",
         "data": {
           "google_places_api_key": "API Key",
-          "google_places_num_results": "Number of Results"
+          "google_places_rank_preference": "Rank Preference",
+          "google_places_num_results": "Number of Results",
+          "google_places_latitude": "Location Bias Latitude (optional)",
+          "google_places_longitude": "Location Bias Longitude (optional)",
+          "google_places_radius": "Location Bias Radius (KM)"
         }
       },
       "wikipedia": {

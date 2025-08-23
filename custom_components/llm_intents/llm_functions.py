@@ -14,8 +14,8 @@ from .const import (
     CONF_WIKIPEDIA_ENABLED,
     DOMAIN,
     SEARCH_API_NAME,
-    WEATHER_API_NAME,
     SEARCH_SERVICES_PROMPT,
+    WEATHER_API_NAME,
     WEATHER_SERVICES_PROMPT,
 )
 from .GooglePlaces import FindPlacesTool

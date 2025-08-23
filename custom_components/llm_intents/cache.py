@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class SQLiteCache:
     _instance = None
-    DEFAULT_MAX_AGE = 43200  # 12 hours
+    DEFAULT_MAX_AGE = 7200  # 2 hour
 
     def __new__(cls):
         if cls._instance is None:

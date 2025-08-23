@@ -46,12 +46,13 @@ After installation, configure the integration through Home Assistant's UI:
 3. Search for `Tools for Assist`.
 4. Follow the setup wizard to configure your desired services.
 
-## Conversation Agent Configuration 
+## Conversation Agent Configuration
 
 Once the integration is installed and configured, you will need to enable the desired services within your Conversation Agent entities.
 
 For the Ollama and OpenAI Conversation integrations, this can be found within your Conversation Agent configuration options, beneath
 the `Control Home Assistant` heading, and enabling the services desired for the Agent:
+
 - Search Services
 - Weather Forecast
 
@@ -72,21 +73,23 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 #### Options
 
-| Setting             | Required | Default | Description                                   |
-|---------------------|----------|---------|-----------------------------------------------|
-| `API Key`           | ✅        | —       | Brave Search API key                          |
-| `Number of Results` | ✅        | `2`     | Number of results to return                   |
-| `Country Code`      | ❌        | —       | ISO country code to bias results              |
-| `Latitude`          | ❌        | —       | Optional latitude for local result relevance  |
-| `Longitude`         | ❌        | —       | Optional longitude for local result relevance |
-| `Timezone`          | ❌        | —       | Optional timezone for local result relevance  |
-| `Post Code`         | ❌        | —       | Optional post code for local result relevance |
+| Setting             | Required | Default | Description                                                 |
+|---------------------|----------|---------|-------------------------------------------------------------|
+| `API Key`           | ✅        | —       | Brave Search API key                                        |
+| `Number of Results` | ✅        | `2`     | Number of results to return                                 |
+| `Country Code`      | ❌        | —       | ISO country code to bias results                            |
+| `Latitude`          | ❌        | —       | Optional latitude for local result relevance (recommended)  |
+| `Longitude`         | ❌        | —       | Optional longitude for local result relevance (recommended) |
+| `Timezone`          | ❌        | —       | Optional TZ timezone identifier for local result relevance  |
+| `Post Code`         | ❌        | —       | Optional post code for local result relevance               |
 
 ---
 
 ### 📍 Google Places
 
 Searches for locations, businesses, or points of interest using the Google Places API.
+
+Search results include the location name, address, rating score, current open state, and when it next opens/closes.
 
 #### Requirements
 
@@ -101,10 +104,14 @@ Searches for locations, businesses, or points of interest using the Google Place
 
 #### Options
 
-| Setting             | Required | Default | Description                          |
-|---------------------|----------|---------|--------------------------------------|
-| `API Key`           | ✅        | —       | Google Places API key                |
-| `Number of Results` | ✅        | `2`     | Number of location results to return |
+| Setting             | Required | Default    | Description                                                                 |
+|---------------------|----------|------------|-----------------------------------------------------------------------------|
+| `API Key`           | ✅        | —          | Google Places API key                                                       |
+| `Number of Results` | ✅        | `2`        | Number of location results to return                                        |
+| `Latitude`          | ❌        | —          | Your locations latitude, if you wish to use location biasing (recommended)  |
+| `Longitude`         | ❌        | —          | Your locations longitude, if you wish to use location biasing (recommended) |
+| `Radius`            | ❌        | `5`        | The radius around your location for location biased results (in kilometres) |
+| `Rank Preference`   | ❌        | `Distance` | The ranking preference for search results from Google Places                |
 
 ---
 
@@ -152,8 +159,8 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 
 ### Options
 
-| Setting                 | Required | Description                                                 |
-|-------------------------|----------|-------------------------------------------------------------|
+| Setting                 | Required | Description                                                |
+|-------------------------|----------|------------------------------------------------------------|
 | `Daily Weather Entity`  | ✅        | The weather entity to use for daily weather forecast data  |
 | `Hourly Weather Entity` | ❌        | The weather entity to use for hourly weather forecast data |
 

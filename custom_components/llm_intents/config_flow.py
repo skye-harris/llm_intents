@@ -26,7 +26,11 @@ from .const import (
     CONF_DAILY_WEATHER_ENTITY,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
+    CONF_GOOGLE_PLACES_LATITUDE,
+    CONF_GOOGLE_PLACES_LONGITUDE,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
+    CONF_GOOGLE_PLACES_RADIUS,
+    CONF_GOOGLE_PLACES_RANKING,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -71,7 +75,7 @@ def get_brave_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_BRAVE_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_BRAVE_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1)),
+            ): vol.All(int, vol.Range(min=1, max=20)),
             vol.Optional(
                 CONF_BRAVE_COUNTRY_CODE,
                 default=SERVICE_DEFAULTS.get(CONF_BRAVE_COUNTRY_CODE),
@@ -103,7 +107,23 @@ def get_google_places_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1)),
+            ): vol.All(int, vol.Range(min=1, max=20)),
+            vol.Optional(
+                CONF_GOOGLE_PLACES_LATITUDE,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LATITUDE),
+            ): str,
+            vol.Optional(
+                CONF_GOOGLE_PLACES_LONGITUDE,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LONGITUDE),
+            ): str,
+            vol.Optional(
+                CONF_GOOGLE_PLACES_RADIUS,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
+            ): vol.All(int, vol.Range(min=1, max=50)),
+            vol.Optional(
+                CONF_GOOGLE_PLACES_RANKING,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RANKING),
+            ): vol.In(["None", "Distance", "Relevance"]),
         }
     )
 
@@ -115,7 +135,7 @@ def get_wikipedia_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_WIKIPEDIA_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_WIKIPEDIA_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1)),
+            ): vol.All(int, vol.Range(min=1, max=20)),
         }
     )
 
@@ -286,7 +306,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return LlmIntentsOptionsFlow(config_entry)
 
 
-class LlmIntentsOptionsFlow(config_entries.OptionsFlow):
+class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle an options flow for an existing Tools for Assist config entry."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
