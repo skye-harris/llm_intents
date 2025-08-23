@@ -8,7 +8,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Weather Forecast**
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
-A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 12-hour period.
+A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 2-hour period.
 
 ---
 
