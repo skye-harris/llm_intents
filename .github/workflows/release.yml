@@ -16,7 +16,7 @@ jobs:
       contents: write
     steps:
       - name: "Checkout the repository"
-        uses: "actions/checkout@v4.2.2"
+        uses: "actions/checkout@v5.0.0"
 
       - name: Adjust version number
         shell: bash
@@ -40,6 +40,6 @@ jobs:
           inputs: ${{ github.workspace }}/custom_components/llm_intents/llm_intents.zip
 
       - name: "Upload the ZIP file to the release"
-        uses: "softprops/action-gh-release@v2.3.2"
+        uses: "softprops/action-gh-release@v2.3.3"
         with:
           files: ${{ github.workspace }}/custom_components/llm_intents/llm_intents.zip
