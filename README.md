@@ -19,7 +19,7 @@ A caching layer is utilised in order to reduce both API usage and latency on rep
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 * Adding Tools for Assist to HACS can be using this button:
-  [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm-intents&category=integration)
+  [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm_intents&category=integration)
 
 <br>
 
@@ -167,3 +167,4 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 ## Acknowledgements
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
