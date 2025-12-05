@@ -1,7 +1,5 @@
 import logging
-from collections import UserDict
 from datetime import datetime, timedelta
-from typing import Callable, Optional
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
