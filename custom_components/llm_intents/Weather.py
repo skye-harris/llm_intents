@@ -1,7 +1,5 @@
 import logging
-from collections import UserDict
 from datetime import datetime, timedelta
-from typing import Callable
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -17,24 +15,24 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _friendly_rain_chance(rain_chance) -> str:
+def _friendly_precipitation_chance(precipitation_chance: int) -> str:
     return (
         "none"
-        if rain_chance == 0
+        if precipitation_chance == 0
         else "very unlikely"
-        if rain_chance <= 5
+        if precipitation_chance <= 5
         else "unlikely"
-        if rain_chance <= 15
+        if precipitation_chance <= 15
         else "possible"
-        if rain_chance <= 30
+        if precipitation_chance <= 30
         else "moderate"
-        if rain_chance <= 50
+        if precipitation_chance <= 50
         else "likely"
-        if rain_chance <= 70
+        if precipitation_chance <= 70
         else "very likely"
-        if rain_chance <= 85
+        if precipitation_chance <= 85
         else "extremely likely"
-        if rain_chance <= 95
+        if precipitation_chance <= 95
         else "almost guaranteed"
     )
 
@@ -58,7 +56,7 @@ def _build_attributes(attribute_list: list[WeatherAttribute], weather_data: dict
 class WeatherForecastTool(llm.Tool):
     """Tool for weather forecast data."""
 
-    name = "get_weather_forecast"
+    name = "GetWeatherForecast"
     description = "Use this tool to retrieve weather forecasts for a particular period. Defaults to the weeks weather if `range` is not specified."
 
     parameters = vol.Schema(
@@ -126,7 +124,7 @@ class WeatherForecastTool(llm.Tool):
         date = dt.strftime("%A")
 
         if now.date() == dt.date():
-            return f"Today ({date}))"
+            return f"Today ({date})"
 
         return date
 
@@ -147,7 +145,7 @@ class WeatherForecastTool(llm.Tool):
 
         daily_attributes = [
             WeatherAttribute(key="condition", name="General Condition", formatter=None),
-            WeatherAttribute(key="precipitation_probability", name="Rain", formatter=_friendly_rain_chance),
+            WeatherAttribute(key="precipitation_probability", name="Precipitation", formatter=_friendly_precipitation_chance),
         ]
 
         output = []
@@ -185,7 +183,7 @@ class WeatherForecastTool(llm.Tool):
 
         hourly_attributes = [
             WeatherAttribute(name="General Condition", key="condition", formatter=None),
-            WeatherAttribute(name="Rain", key="precipitation_probability", formatter=_friendly_rain_chance),
+            WeatherAttribute(name="Precipitation", key="precipitation_probability", formatter=_friendly_precipitation_chance),
         ]
 
         output = []
