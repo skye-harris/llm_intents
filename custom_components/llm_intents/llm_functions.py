@@ -11,6 +11,7 @@ from .const import (
     CONF_BRAVE_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_WEATHER_ENABLED,
+    CONF_WH40K_FANDOM_ENABLED,
     CONF_WH40K_LEXICANUM_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     DOMAIN,
@@ -21,6 +22,7 @@ from .const import (
 )
 from .GooglePlaces import FindPlacesTool
 from .Weather import WeatherForecastTool
+from .Wh40kFandom import SearchWh40kFandomTool
 from .Wh40kLexicanum import SearchWh40kLexicanumTool
 from .Wikipedia import SearchWikipediaTool
 
@@ -31,6 +33,7 @@ SEARCH_CONF_ENABLED_MAP = [
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),
     (CONF_WH40K_LEXICANUM_ENABLED, SearchWh40kLexicanumTool),
+    (CONF_WH40K_FANDOM_ENABLED, SearchWh40kFandomTool),
 ]
 
 WEATHER_CONF_ENABLED_MAP = [
