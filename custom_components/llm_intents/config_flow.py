@@ -33,6 +33,10 @@ from .const import (
     CONF_GOOGLE_PLACES_RANKING,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_WEATHER_ENABLED,
+    CONF_WH40K_FANDOM_ENABLED,
+    CONF_WH40K_FANDOM_NUM_RESULTS,
+    CONF_WH40K_LEXICANUM_ENABLED,
+    CONF_WH40K_LEXICANUM_NUM_RESULTS,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
@@ -48,6 +52,8 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
+STEP_WH40K_LEXICANUM = "wh40k_lexicanum"
+STEP_WH40K_FANDOM = "wh40k_fandom"
 STEP_WEATHER = "weather"
 STEP_INIT = "init"
 STEP_CONFIGURE_SEARCH = "configure"
@@ -60,6 +66,8 @@ def get_step_user_data_schema(hass) -> vol.Schema:
         vol.Optional(CONF_BRAVE_ENABLED, default=False): bool,
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
+        vol.Optional(CONF_WH40K_LEXICANUM_ENABLED, default=False): bool,
+        vol.Optional(CONF_WH40K_FANDOM_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
@@ -140,6 +148,30 @@ def get_wikipedia_schema(hass) -> vol.Schema:
     )
 
 
+def get_wh40k_lexicanum_schema(hass) -> vol.Schema:
+    """Return the static schema for Warhammer 40k Lexicanum service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_WH40K_LEXICANUM_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_WH40K_LEXICANUM_NUM_RESULTS),
+            ): vol.All(int, vol.Range(min=1, max=20)),
+        }
+    )
+
+
+def get_wh40k_fandom_schema(hass) -> vol.Schema:
+    """Return the static schema for Warhammer 40k Fandom service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_WH40K_FANDOM_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_WH40K_FANDOM_NUM_RESULTS),
+            ): vol.All(int, vol.Range(min=1, max=20)),
+        }
+    )
+
+
 def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
@@ -168,6 +200,8 @@ SEARCH_STEP_ORDER = {
     STEP_BRAVE: [CONF_BRAVE_ENABLED, get_brave_schema],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
+    STEP_WH40K_LEXICANUM: [CONF_WH40K_LEXICANUM_ENABLED, get_wh40k_lexicanum_schema],
+    STEP_WH40K_FANDOM: [CONF_WH40K_FANDOM_ENABLED, get_wh40k_fandom_schema],
 }
 
 WEATHER_STEP_ORDER = {
@@ -293,6 +327,18 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Wikipedia configuration step."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
 
+    async def async_step_wh40k_lexicanum(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Warhammer 40k Lexicanum configuration step."""
+        return await self.handle_step(STEP_WH40K_LEXICANUM, user_input)
+
+    async def async_step_wh40k_fandom(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Warhammer 40k Fandom configuration step."""
+        return await self.handle_step(STEP_WH40K_FANDOM, user_input)
+
     async def async_step_weather(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
@@ -355,6 +401,14 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 vol.Optional(
                     CONF_WIKIPEDIA_ENABLED,
                     default=defaults.get(CONF_WIKIPEDIA_ENABLED, False),
+                ): bool,
+                vol.Optional(
+                    CONF_WH40K_LEXICANUM_ENABLED,
+                    default=defaults.get(CONF_WH40K_LEXICANUM_ENABLED, False),
+                ): bool,
+                vol.Optional(
+                    CONF_WH40K_FANDOM_ENABLED,
+                    default=defaults.get(CONF_WH40K_FANDOM_ENABLED, False),
                 ): bool,
             }
             schema = vol.Schema(schema_dict)
@@ -437,6 +491,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             services.append("Google Places")
         if data.get(CONF_WIKIPEDIA_ENABLED):
             services.append("Wikipedia")
+        if data.get(CONF_WH40K_LEXICANUM_ENABLED):
+            services.append("Warhammer 40k Lexicanum")
+        if data.get(CONF_WH40K_FANDOM_ENABLED):
+            services.append("Warhammer 40k Fandom")
         if data.get(CONF_WEATHER_ENABLED):
             services.append("Weather")
 
@@ -486,6 +544,18 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle Wikipedia configuration step in options flow."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
+
+    async def async_step_wh40k_lexicanum(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Warhammer 40k Lexicanum configuration step in options flow."""
+        return await self.handle_step(STEP_WH40K_LEXICANUM, user_input)
+
+    async def async_step_wh40k_fandom(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Warhammer 40k Fandom configuration step in options flow."""
+        return await self.handle_step(STEP_WH40K_FANDOM, user_input)
 
     async def async_step_weather(
         self, user_input: dict[str, Any] | None = None
