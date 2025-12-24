@@ -51,6 +51,11 @@ CONF_GOOGLE_PLACES_RANKING = "google_places_rank_preference"
 CONF_WIKIPEDIA_ENABLED = "wikipedia_enabled"
 CONF_WIKIPEDIA_NUM_RESULTS = "wikipedia_num_results"
 
+# Warhammer 40k Lexicanum-specific constants
+
+CONF_WH40K_LEXICANUM_ENABLED = "wh40k_lexicanum_enabled"
+CONF_WH40K_LEXICANUM_NUM_RESULTS = "wh40k_lexicanum_num_results"
+
 # Weather constants
 
 CONF_WEATHER_ENABLED = "weather_enabled"
@@ -74,6 +79,7 @@ SERVICE_DEFAULTS = {
     CONF_GOOGLE_PLACES_RADIUS: 5,
     CONF_GOOGLE_PLACES_RANKING: "Distance",
     CONF_WIKIPEDIA_NUM_RESULTS: 1,
+    CONF_WH40K_LEXICANUM_NUM_RESULTS: 1,
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,
 }

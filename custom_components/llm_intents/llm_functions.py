@@ -11,6 +11,7 @@ from .const import (
     CONF_BRAVE_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_WEATHER_ENABLED,
+    CONF_WH40K_LEXICANUM_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     DOMAIN,
     SEARCH_API_NAME,
@@ -20,6 +21,7 @@ from .const import (
 )
 from .GooglePlaces import FindPlacesTool
 from .Weather import WeatherForecastTool
+from .Wh40kLexicanum import SearchWh40kLexicanumTool
 from .Wikipedia import SearchWikipediaTool
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ SEARCH_CONF_ENABLED_MAP = [
     (CONF_BRAVE_ENABLED, SearchWebTool),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),
+    (CONF_WH40K_LEXICANUM_ENABLED, SearchWh40kLexicanumTool),
 ]
 
 WEATHER_CONF_ENABLED_MAP = [
