@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure WH40k Tools for Assist",
+        "description": "Select the Warhammer 40k lore services you want to enable.",
+        "data": {
+          "wh40k_lexicanum_enabled": "Enable Warhammer 40k Lexicanum",
+          "wh40k_fandom_enabled": "Enable Warhammer 40k Fandom Wiki"
+        }
+      },
+      "wh40k_lexicanum": {
+        "title": "Configure Warhammer 40k Lexicanum",
+        "description": "Configure Warhammer 40k Lexicanum search settings.",
+        "data": {
+          "wh40k_lexicanum_num_results": "Number of Results"
+        }
+      },
+      "wh40k_fandom": {
+        "title": "Configure Warhammer 40k Fandom",
+        "description": "Configure Warhammer 40k Fandom Wiki search settings.",
+        "data": {
+          "wh40k_fandom_num_results": "Number of Results"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance of WH40k Tools for Assist is allowed"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "WH40k Tools for Assist Options",
+        "description": "{current_services}\n\nConfigure which Warhammer 40k lore sources to enable.",
+        "data": {
+          "wh40k_lexicanum_enabled": "Enable Warhammer 40k Lexicanum",
+          "wh40k_fandom_enabled": "Enable Warhammer 40k Fandom Wiki"
+        }
+      },
+      "wh40k_lexicanum": {
+        "title": "Configure Warhammer 40k Lexicanum",
+        "description": "Configure Warhammer 40k Lexicanum search settings.",
+        "data": {
+          "wh40k_lexicanum_num_results": "Number of Results"
+        }
+      },
+      "wh40k_fandom": {
+        "title": "Configure Warhammer 40k Fandom",
+        "description": "Configure Warhammer 40k Fandom Wiki search settings.",
+        "data": {
+          "wh40k_fandom_num_results": "Number of Results"
+        }
+      }
+    }
+  }
+}

@@ -1,14 +1,15 @@
-# Tools for Assist _(Custom Integration for Home Assistant)_
+# WH40k Tools for Assist _(Custom Integration for Home Assistant)_
 
-Additional tools for LLM-backed Assist for Home Assistant:
+Bring the grim darkness of the far future to your Home Assistant! This custom integration provides Warhammer 40,000 lore tools for LLM-backed Assist, allowing your AI assistant to answer questions about the Warhammer 40k universe.
 
-* **Brave Web Search**
-* **Google Places**
-* **Wikipedia**
-* **Weather Forecast**
+## Features
 
-Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
-A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 2-hour period.
+* **🛡️ Warhammer 40k Lexicanum** - Concise, curated lore from the community-maintained wiki
+* **📖 Warhammer 40k Fandom Wiki** - Detailed, comprehensive articles from the largest WH40k wiki
+
+Each tool is optional and configurable via the integrations UI. No API keys required!
+
+A caching layer reduces latency on repeated requests for the same information within a 2-hour period.
 
 ---
 
@@ -18,22 +19,20 @@ A caching layer is utilised in order to reduce both API usage and latency on rep
 
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
-* Adding Tools for Assist to HACS can be using this button:
-  [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm_intents&category=integration)
+* Add WH40k Tools for Assist to HACS as a custom repository:
+  - In HACS, go to **Integrations**
+  - Click the three dots in the top right and select **Custom repositories**
+  - Add `https://github.com/portertech/wh40k_tools_for_assist` as a custom repository
+  - Category: **Integration**
 
-<br>
-
-> [!NOTE]
-> If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
-
-* Click install on the `Tools for Assist` integration.
+* Click **Download** on the `WH40k Tools for Assist` integration.
 * Restart Home Assistant.
 
 <details><summary>Manual Install</summary>
 
-* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [
+* Copy the `wh40k_tools_for_assist` folder from [latest release](https://github.com/portertech/wh40k_tools_for_assist/releases/latest) to the [
   `custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
-* Restart the Home Assistant.
+* Restart Home Assistant.
 
 </details>
 
@@ -43,131 +42,94 @@ After installation, configure the integration through Home Assistant's UI:
 
 1. Go to `Settings` → `Devices & Services`.
 2. Click `Add Integration`.
-3. Search for `Tools for Assist`.
-4. Follow the setup wizard to configure your desired services.
+3. Search for `WH40k Tools for Assist`.
+4. Follow the setup wizard to enable your desired lore sources.
 
 ## Conversation Agent Configuration
 
-Once the integration is installed and configured, you will need to enable the desired services within your Conversation Agent entities.
+Once the integration is installed and configured, you will need to enable it within your Conversation Agent entities.
 
 For the Ollama and OpenAI Conversation integrations, this can be found within your Conversation Agent configuration options, beneath
-the `Control Home Assistant` heading, and enabling the services desired for the Agent:
+the `Control Home Assistant` heading. Enable the following API:
 
-- Search Services
-- Weather Forecast
+- **Warhammer 40k Lore**
 
-### 🔍 Brave Web Search
+Now you can ask your assistant questions like:
+- "Who is the Emperor of Mankind?"
+- "Tell me about the Horus Heresy"
+- "What are Space Marines?"
+- "Explain the Chaos Gods"
+- "What is the Eye of Terror?"
 
-Uses the Brave Web Search API to return summarized, snippet-rich results.
+---
 
-##### Requirements
+## Tools
 
-* Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
-* The free tier plan is supported.
+### 🛡️ Warhammer 40k Lexicanum
+
+Searches the [Warhammer 40k Lexicanum](https://wh40k.lexicanum.com), a community-maintained wiki focused on providing concise, well-sourced information about the Warhammer 40,000 universe.
+
+#### Requirements
+
+* No API key required
+* Uses the public MediaWiki API
 
 #### Configuration Steps
 
-1. Select "Brave Search" during setup.
-2. Enter your [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
-3. Configure optional settings like number of results, location preferences.
+1. Select "Warhammer 40k Lexicanum" during setup
+2. Configure the number of results to return (1-20)
 
 #### Options
 
-| Setting             | Required | Default | Description                                                 |
-|---------------------|----------|---------|-------------------------------------------------------------|
-| `API Key`           | ✅        | —       | Brave Search API key                                        |
-| `Number of Results` | ✅        | `2`     | Number of results to return                                 |
-| `Country Code`      | ❌        | —       | ISO country code to bias results                            |
-| `Latitude`          | ❌        | —       | Optional latitude for local result relevance (recommended)  |
-| `Longitude`         | ❌        | —       | Optional longitude for local result relevance (recommended) |
-| `Timezone`          | ❌        | —       | Optional TZ timezone identifier for local result relevance  |
-| `Post Code`         | ❌        | —       | Optional post code for local result relevance               |
+| Setting             | Required | Default | Description                     |
+|---------------------|----------|---------|---------------------------------|
+| `Number of Results` | ✅        | `1`     | Number of articles to return    |
 
 ---
 
-### 📍 Google Places
+### 📖 Warhammer 40k Fandom Wiki
 
-Searches for locations, businesses, or points of interest using the Google Places API.
-
-Search results include the location name, address, rating score, current open state, and when it next opens/closes.
+Searches the [Warhammer 40k Fandom Wiki](https://warhammer40k.fandom.com), the largest and most comprehensive Warhammer 40,000 wiki with detailed articles covering all aspects of the lore.
 
 #### Requirements
 
-* Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview).
-* Ensure the Places API is enabled in your Google Cloud project.
+* No API key required
+* Uses the public MediaWiki API
 
 #### Configuration Steps
 
-1. Select "Google Places" during setup.
-2. Enter your [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview).
-3. Configure number of results to return.
+1. Select "Warhammer 40k Fandom" during setup
+2. Configure the number of results to return (1-20)
 
 #### Options
 
-| Setting             | Required | Default    | Description                                                                 |
-|---------------------|----------|------------|-----------------------------------------------------------------------------|
-| `API Key`           | ✅        | —          | Google Places API key                                                       |
-| `Number of Results` | ✅        | `2`        | Number of location results to return                                        |
-| `Latitude`          | ❌        | —          | Your locations latitude, if you wish to use location biasing (recommended)  |
-| `Longitude`         | ❌        | —          | Your locations longitude, if you wish to use location biasing (recommended) |
-| `Radius`            | ❌        | `5`        | The radius around your location for location biased results (in kilometres) |
-| `Rank Preference`   | ❌        | `Distance` | The ranking preference for search results from Google Places                |
+| Setting             | Required | Default | Description                     |
+|---------------------|----------|---------|---------------------------------|
+| `Number of Results` | ✅        | `1`     | Number of articles to return    |
 
 ---
 
-### 📚 Wikipedia
+## Usage Examples
 
-Looks up Wikipedia articles and returns summaries of the top results.
+Ask your Home Assistant about:
 
-#### Requirements
+- **Factions**: "What are the Adeptus Mechanicus?", "Tell me about Orks"
+- **Characters**: "Who is Roboute Guilliman?", "Explain Abaddon the Despoiler"
+- **Events**: "What was the Horus Heresy?", "Describe the Fall of Cadia"
+- **Locations**: "Where is Terra?", "What is Commorragh?"
+- **Technology**: "What is a Bolter?", "Explain Warp travel"
+- **Concepts**: "What is the Warp?", "Describe the Astronomican"
 
-* No API key required.
-* Uses the public Wikipedia search and summary APIs.
-
-#### Configuration Steps
-
-1. Select "Wikipedia" during setup.
-2. Configure number of article summaries to return (no API key required).
-
-### Options
-
-| Setting             | Required | Default | Description                           |
-|---------------------|----------|---------|---------------------------------------|
-| `Number of Results` | ✅        | `1`     | Number of article summaries to return |
+The integration will automatically search both wikis if both are enabled, giving your assistant access to comprehensive lore information.
 
 ---
-
-### ⛅ Weather Forecast
-
-Rather than accessing the internet directly for weather information, this tool utilises your existing Home Assistant weather integration and makes the forecast data accessible to your LLM in an intelligent manner.
-
-At a minimum, this tool requires a weather entity that provides daily forecast data.
-It is recommended, though optional, to also specify a weather entity that provides hourly weather data.
-
-For cases where a specific days weather is requested (eg: `today`, `tomorrow`, `wednesday`), the hourly data will be provided if available.
-If data for the week is requested, no hourly forecast entity is set, or the hourly forecast does not contain data for the requested day, the daily weather data will be used instead.
-
-#### Requirements
-
-* An existing weather forecast integration configured within Home Assistant.
-
-#### Configuration Steps
-
-1. Select "Weather Forecast" during setup.
-2. Select the weather entity that provides daily forecast information.
-3. Optionally, select the weather entity that provides hourly forecast information.
-
-### Options
-
-| Setting                 | Required | Description                                                |
-|-------------------------|----------|------------------------------------------------------------|
-| `Daily Weather Entity`  | ✅        | The weather entity to use for daily weather forecast data  |
-| `Hourly Weather Entity` | ❌        | The weather entity to use for hourly weather forecast data |
 
 ## Acknowledgements
+
+This integration is a fork of [Tools for Assist](https://github.com/skye-harris/llm_intents) by [@skye-harris](https://github.com/skye-harris), refactored to focus specifically on Warhammer 40k lore tools.
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 ---
 
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/skyeharris)
+For the Emperor! 🛡️

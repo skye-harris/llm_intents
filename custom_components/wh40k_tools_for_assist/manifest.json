@@ -1,0 +1,19 @@
+{
+  "domain": "wh40k_tools_for_assist",
+  "name": "WH40k Tools for Assist",
+  "after_dependencies": [],
+  "codeowners": [
+    "@portertech"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/portertech/wh40k_tools_for_assist",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/portertech/wh40k_tools_for_assist/issues",
+  "loggers": [
+    "custom_components.wh40k_tools_for_assist"
+  ],
+  "requirements": [],
+  "version": "1.0.0"
+}

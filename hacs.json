@@ -1,9 +1,9 @@
 {
-  "name": "Tools for Assist",
+  "name": "WH40k Tools for Assist",
   "hide_default_branch": false,
   "homeassistant": "2025.7",
   "hacs": "2.0.5",
   "render_readme": true,
   "zip_release": true,
-  "filename": "llm_intents.zip"
+  "filename": "wh40k_tools_for_assist.zip"
 }
