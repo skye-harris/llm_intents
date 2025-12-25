@@ -1,5 +1,5 @@
-name: Report a bug with LLM Intent Custom Integration
-description: Report a bug with LLM Intent Custom Integration
+name: Report a bug with WH40k Tools for Assist
+description: Report a bug with WH40k Tools for Assist integration
 labels: [bug]
 body:
   - type: checkboxes
@@ -7,7 +7,7 @@ body:
       label: Checklist
       description: Please verify that you've followed these steps
       options:
-        - label: I have updated to the latest available LLM Intent Custom Integration version, [see the latest version here](https://github.com/skye-harris/llm_intents/releases/latest).
+        - label: I have updated to the latest available WH40k Tools for Assist version, [see the latest version here](https://github.com/portertech/wh40k_tools_for_assist/releases/latest).
           required: true
   - type: markdown
     attributes:
@@ -35,12 +35,7 @@ body:
     validations:
       required: true
     attributes:
-      label: What version of LLM Intent Custom Integration has the issue?
-  - type: input
-    validations:
-      required: true
-    attributes:
-      label: What version of LLM Intent do you have the problem?
+      label: What version of WH40k Tools for Assist has the issue?
   - type: textarea
     validations:
       required: true
