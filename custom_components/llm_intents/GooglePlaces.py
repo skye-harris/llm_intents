@@ -30,7 +30,9 @@ class FindPlacesTool(llm.Tool):
     description = "\n".join(
         [
             "Use this tool to search Google Places when the user requests or infers they are after any of the following information:",
-            "- Address- Phone number- Open & Close time",
+            "- Address",
+            "- Phone number",
+            "- Open & Close time",
         ]
     )
 
