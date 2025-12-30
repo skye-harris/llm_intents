@@ -9,18 +9,21 @@ from homeassistant.helpers import llm
 from .const import (
     CONF_WH40K_FANDOM_ENABLED,
     CONF_WH40K_LEXICANUM_ENABLED,
+    CONF_WH40K_WAHAPEDIA_ENABLED,
     DOMAIN,
     WH40K_API_NAME,
     WH40K_SERVICES_PROMPT,
 )
 from .Wh40kFandom import SearchWh40kFandomTool
 from .Wh40kLexicanum import SearchWh40kLexicanumTool
+from .Wh40kWahapedia import SearchWh40kWahapediaTool
 
 _LOGGER = logging.getLogger(__name__)
 
 WH40K_CONF_ENABLED_MAP = [
     (CONF_WH40K_LEXICANUM_ENABLED, SearchWh40kLexicanumTool),
     (CONF_WH40K_FANDOM_ENABLED, SearchWh40kFandomTool),
+    (CONF_WH40K_WAHAPEDIA_ENABLED, SearchWh40kWahapediaTool),
 ]
 
 

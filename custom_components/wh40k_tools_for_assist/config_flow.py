@@ -17,6 +17,8 @@ from .const import (
     CONF_WH40K_FANDOM_NUM_RESULTS,
     CONF_WH40K_LEXICANUM_ENABLED,
     CONF_WH40K_LEXICANUM_NUM_RESULTS,
+    CONF_WH40K_WAHAPEDIA_ENABLED,
+    CONF_WH40K_WAHAPEDIA_NUM_RESULTS,
     DOMAIN,
     SERVICE_DEFAULTS,
 )
@@ -29,6 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover
 STEP_USER = "user"
 STEP_WH40K_LEXICANUM = "wh40k_lexicanum"
 STEP_WH40K_FANDOM = "wh40k_fandom"
+STEP_WH40K_WAHAPEDIA = "wh40k_wahapedia"
 STEP_INIT = "init"
 
 
@@ -37,6 +40,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
     schema = {
         vol.Optional(CONF_WH40K_LEXICANUM_ENABLED, default=False): bool,
         vol.Optional(CONF_WH40K_FANDOM_ENABLED, default=False): bool,
+        vol.Optional(CONF_WH40K_WAHAPEDIA_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
 
@@ -65,10 +69,23 @@ def get_wh40k_fandom_schema(hass) -> vol.Schema:
     )
 
 
+def get_wh40k_wahapedia_schema(hass) -> vol.Schema:
+    """Return the static schema for Warhammer 40k Wahapedia service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_WH40K_WAHAPEDIA_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_WH40K_WAHAPEDIA_NUM_RESULTS),
+            ): vol.All(int, vol.Range(min=1, max=10)),
+        }
+    )
+
+
 STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
     STEP_WH40K_LEXICANUM: [CONF_WH40K_LEXICANUM_ENABLED, get_wh40k_lexicanum_schema],
     STEP_WH40K_FANDOM: [CONF_WH40K_FANDOM_ENABLED, get_wh40k_fandom_schema],
+    STEP_WH40K_WAHAPEDIA: [CONF_WH40K_WAHAPEDIA_ENABLED, get_wh40k_wahapedia_schema],
 }
 
 
@@ -172,6 +189,12 @@ class Wh40kToolsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Warhammer 40k Fandom configuration step."""
         return await self.handle_step(STEP_WH40K_FANDOM, user_input)
 
+    async def async_step_wh40k_wahapedia(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Warhammer 40k Wahapedia configuration step."""
+        return await self.handle_step(STEP_WH40K_WAHAPEDIA, user_input)
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
@@ -212,6 +235,10 @@ class Wh40kToolsOptionsFlow(config_entries.OptionsFlowWithReload):
                     CONF_WH40K_FANDOM_ENABLED,
                     default=defaults.get(CONF_WH40K_FANDOM_ENABLED, False),
                 ): bool,
+                vol.Optional(
+                    CONF_WH40K_WAHAPEDIA_ENABLED,
+                    default=defaults.get(CONF_WH40K_WAHAPEDIA_ENABLED, False),
+                ): bool,
             }
             schema = vol.Schema(schema_dict)
             return self.async_show_form(
@@ -248,6 +275,8 @@ class Wh40kToolsOptionsFlow(config_entries.OptionsFlowWithReload):
             services.append("Warhammer 40k Lexicanum")
         if data.get(CONF_WH40K_FANDOM_ENABLED):
             services.append("Warhammer 40k Fandom")
+        if data.get(CONF_WH40K_WAHAPEDIA_ENABLED):
+            services.append("Wahapedia Rules")
 
         if services:
             return f"Currently configured: {', '.join(services)}"
@@ -290,3 +319,9 @@ class Wh40kToolsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle Warhammer 40k Fandom configuration step in options flow."""
         return await self.handle_step(STEP_WH40K_FANDOM, user_input)
+
+    async def async_step_wh40k_wahapedia(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Warhammer 40k Wahapedia configuration step in options flow."""
+        return await self.handle_step(STEP_WH40K_WAHAPEDIA, user_input)
