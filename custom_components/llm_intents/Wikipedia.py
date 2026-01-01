@@ -22,6 +22,7 @@ class SearchWikipediaTool(llm.Tool):
 
     name = "search_wikipedia"
     description = "Use this tool to retrieve information from Wikipedia on a specified subject matter"
+    prompt_description = None
 
     parameters = vol.Schema(
         {

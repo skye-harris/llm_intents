@@ -62,9 +62,18 @@ class BaseAPI(llm.API):
         self, llm_context: llm.LLMContext
     ) -> llm.APIInstance:
         """Get API instance."""
+        tools = self.get_enabled_tools()
+        tool_prompts = "\n".join(
+            tool.prompt_description for tool in tools if tool.prompt_description
+        )
+
+        prompt = [self._API_PROMPT]
+        if tool_prompts:
+            prompt.append(tool_prompts)
+
         return llm.APIInstance(
             api=self,
-            api_prompt=self._API_PROMPT,
+            api_prompt="\n\n".join(prompt),
             llm_context=llm_context,
             tools=self.get_enabled_tools(),
         )

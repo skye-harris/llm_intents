@@ -35,6 +35,13 @@ class SearchWebTool(llm.Tool):
     Your response must be in plain-text, without the use of any formatting, and should be kept to 2-3 sentences.
     """
 
+    prompt_description = "\n".join(
+        [
+            "General knowledge questions should be deferred to the web search tool for data:",
+            "- Do not rely upon your trained knowledge.",
+        ]
+    )
+
     parameters = vol.Schema(
         {
             vol.Required("query", description="The query to search for"): str,

@@ -1,4 +1,5 @@
 import logging
+import re
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -29,10 +30,18 @@ class FindPlacesTool(llm.Tool):
 
     description = "\n".join(
         [
-            "Use this tool to search Google Places when the user requests or infers they are after any of the following information:",
+            "Use this tool to search Google Places when the user requests or infers they are after any of the following information for a business or location:",
             "- Address",
-            "- Phone number",
-            "- Open & Close time",
+            "- Contact telephone number",
+            "- Regular Open & Close times",
+            "- Average user rating",
+        ]
+    )
+
+    prompt_description = "\n".join(
+        [
+            "Use the `find_places` tool to search for information about a business or public location:",
+            "- This includes address, phone number, and opening hours.",
         ]
     )
 
@@ -153,6 +162,9 @@ class FindPlacesTool(llm.Tool):
                             this_place["open_now"] = opening_hours.get("openNow", False)
                             next_closes = opening_hours.get("nextCloseTime")
                             next_opens = opening_hours.get("nextOpenTime")
+                            weekday_descriptions = opening_hours.get(
+                                "weekdayDescriptions"
+                            )
 
                             if next_closes:
                                 utc_time = dt.parse_datetime(next_closes)
@@ -167,6 +179,12 @@ class FindPlacesTool(llm.Tool):
                                     "%Y-%m-%d %H:%M"
                                 )
                                 this_place["next_opens_at"] = local_time
+
+                            if weekday_descriptions:
+                                this_place["regular_open_hours"] = [
+                                    re.sub(r"[\u2000-\u200F\u202F]", " ", desc)
+                                    for desc in weekday_descriptions
+                                ]
 
                         results.append(this_place)
 

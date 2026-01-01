@@ -44,12 +44,17 @@ class WeatherAttribute:
         self.key: str = key
         self.name: str = name
 
-def _build_attributes(attribute_list: list[WeatherAttribute], weather_data: dict) -> list[str]:
+
+def _build_attributes(
+    attribute_list: list[WeatherAttribute], weather_data: dict
+) -> list[str]:
     output = []
     for attribute in attribute_list:
         if attribute.key in weather_data:
             attr_data = weather_data.get(attribute.key)
-            output.append(f"  {attribute.name}: {attribute.formatter(attr_data) if attribute.formatter else attr_data}")
+            output.append(
+                f"  {attribute.name}: {attribute.formatter(attr_data) if attribute.formatter else attr_data}"
+            )
     return output
 
 
@@ -58,6 +63,7 @@ class WeatherForecastTool(llm.Tool):
 
     name = "GetWeatherForecast"
     description = "Use this tool to retrieve weather forecasts for a particular period. Defaults to the weeks weather if `range` is not specified."
+    prompt_description = None
 
     parameters = vol.Schema(
         {
@@ -145,7 +151,11 @@ class WeatherForecastTool(llm.Tool):
 
         daily_attributes = [
             WeatherAttribute(key="condition", name="General Condition", formatter=None),
-            WeatherAttribute(key="precipitation_probability", name="Precipitation", formatter=_friendly_precipitation_chance),
+            WeatherAttribute(
+                key="precipitation_probability",
+                name="Precipitation",
+                formatter=_friendly_precipitation_chance,
+            ),
         ]
 
         output = []
@@ -161,7 +171,8 @@ class WeatherForecastTool(llm.Tool):
                     [
                         f"- Date: {self._format_date(day['datetime'])}",
                         f"  Temperature: {temperature}",
-                    ] + _build_attributes(daily_attributes, day),
+                    ]
+                    + _build_attributes(daily_attributes, day),
                 )
             )
 
@@ -183,7 +194,11 @@ class WeatherForecastTool(llm.Tool):
 
         hourly_attributes = [
             WeatherAttribute(name="General Condition", key="condition", formatter=None),
-            WeatherAttribute(name="Precipitation", key="precipitation_probability", formatter=_friendly_precipitation_chance),
+            WeatherAttribute(
+                name="Precipitation",
+                key="precipitation_probability",
+                formatter=_friendly_precipitation_chance,
+            ),
         ]
 
         output = []
@@ -193,7 +208,8 @@ class WeatherForecastTool(llm.Tool):
                     [
                         f"- Time: {self._format_time(hour['datetime'])}",
                         f"  Temperature: {round(hour['temperature'])}",
-                    ] + _build_attributes(hourly_attributes, hour),
+                    ]
+                    + _build_attributes(hourly_attributes, hour),
                 )
             )
 

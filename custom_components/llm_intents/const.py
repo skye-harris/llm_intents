@@ -15,15 +15,11 @@ WEATHER_API_NAME = "Weather Forecast"
 
 CONF_CACHE_MAX_AGE = "cache_max_age"
 
-SEARCH_SERVICES_PROMPT = """
-You may utilise the Search Services tools to lookup up-to-date information from the internet.
-- General knowledge questions should be deferred to the web search tool for data.
-- Do not rely upon your trained knowledge.
-""".strip()
+SEARCH_SERVICES_PROMPT = "You may utilise the Search Services tools to lookup up-to-date information from the internet."
 
-WEATHER_SERVICES_PROMPT = """
-Use the Weather Services tools to access weather forecast data.
-""".strip()
+WEATHER_SERVICES_PROMPT = f"""
+Use the Weather Services tools to access current weather and forecast data.
+"""
 
 # Brave-specific constants
 
