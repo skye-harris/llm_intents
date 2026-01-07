@@ -110,6 +110,7 @@ CONF_HOURLY_WEATHER_ENTITY = "weather_hourly_entity"
 CONF_WEATHER_DATA_INCLUDED = "weather_data_included"
 CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
+CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
 # Service defaults
 
@@ -132,4 +133,5 @@ SERVICE_DEFAULTS = {
     CONF_WIKIPEDIA_NUM_RESULTS: 1,
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,
+    CONF_WEATHER_TEMPERATURE_SENSOR: "None",
 }

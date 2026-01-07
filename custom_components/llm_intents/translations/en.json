@@ -48,7 +48,8 @@
         "description": "Configure Weather sources.",
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
-          "weather_hourly_entity": "Hourly Weather Entity"
+          "weather_hourly_entity": "Hourly Weather Entity",
+          "weather_temperature_sensor": "Current Temperature Sensor (optional)"
         }
       }
     },
@@ -127,7 +128,8 @@
         "description": "Configure Weather sources.",
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
-          "weather_hourly_entity": "Hourly Weather Entity"
+          "weather_hourly_entity": "Hourly Weather Entity",
+          "weather_temperature_sensor": "Current Temperature Sensor (optional)"
         }
       }
     }

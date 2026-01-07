@@ -11,6 +11,7 @@ from .BaseTool import BaseTool
 from .const import (
     CONF_DAILY_WEATHER_ENTITY,
     CONF_HOURLY_WEATHER_ENTITY,
+    CONF_WEATHER_TEMPERATURE_SENSOR,
     DOMAIN,
 )
 
@@ -279,7 +280,7 @@ class WeatherForecastTool(BaseTool):
         return "\n".join(output)
 
     async def _get_hourly_forecast(
-        self, hass: HomeAssistant, entity_id: str, date
+        self, hass: HomeAssistant, entity_id: str, date, sensor_entity_id: str = None
     ) -> str:
         """Build the hourly forecast data"""
         forecast = await hass.services.async_call(
@@ -305,6 +306,24 @@ class WeatherForecastTool(BaseTool):
         ]
 
         output = []
+        
+        # Add current temperature from sensor if provided and this is today's forecast
+        if sensor_entity_id and sensor_entity_id != "None" and date == datetime.now().date():
+            sensor_state = hass.states.get(sensor_entity_id)
+            if sensor_state and sensor_state.state not in ("unknown", "unavailable"):
+                try:
+                    current_temp = round(float(sensor_state.state))
+                    output.append(
+                        "\n".join(
+                            [
+                                f"- Time: current",
+                                f"  Temperature: {current_temp}",
+                            ]
+                        )
+                    )
+                except (ValueError, TypeError):
+                    _LOGGER.warning(f"Could not parse temperature sensor value: {sensor_state.state}")
+        
         for hour in forecast:
             output.append(
                 "\n".join(
@@ -335,6 +354,7 @@ class WeatherForecastTool(BaseTool):
         try:
             hourly_entity_id = config_data.get(CONF_HOURLY_WEATHER_ENTITY)
             daily_entity_id = config_data.get(CONF_DAILY_WEATHER_ENTITY)
+            sensor_entity_id = config_data.get(CONF_WEATHER_TEMPERATURE_SENSOR, "None")
 
             forecast = None
             target_date = None
@@ -342,7 +362,7 @@ class WeatherForecastTool(BaseTool):
             if date_range != "week" and hourly_entity_id:
                 target_date = self._find_target_date(date_range)
                 forecast = await self._get_hourly_forecast(
-                    hass, hourly_entity_id, target_date
+                    hass, hourly_entity_id, target_date, sensor_entity_id
                 )
 
             if not forecast and daily_entity_id:
