@@ -52,6 +52,7 @@ CONF_WIKIPEDIA_NUM_RESULTS = "wikipedia_num_results"
 CONF_WEATHER_ENABLED = "weather_enabled"
 CONF_DAILY_WEATHER_ENTITY = "weather_daily_entity"
 CONF_HOURLY_WEATHER_ENTITY = "weather_hourly_entity"
+CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
 # Service defaults
 
@@ -72,4 +73,5 @@ SERVICE_DEFAULTS = {
     CONF_WIKIPEDIA_NUM_RESULTS: 1,
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,
+    CONF_WEATHER_TEMPERATURE_SENSOR: "None",
 }
