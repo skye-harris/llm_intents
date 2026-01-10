@@ -314,7 +314,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         super().__init__()
         self._config_entry = config_entry
         self.user_selections: dict[str, Any] = {}
-        self.config_data: dict[str, Any] = {}
+        self.config_data = {**self.config_entry.data, **(self.config_entry.options or {})}
 
     @property
     def config_entry(self) -> ConfigEntry:
@@ -339,22 +339,18 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle the configure menu option."""
-        data = self.config_entry.data
-        opts = self.config_entry.options or {}
-        defaults = {**data, **opts}
-
         if user_input is None:
             schema_dict = {
                 vol.Optional(
-                    CONF_BRAVE_ENABLED, default=defaults.get(CONF_BRAVE_ENABLED, False)
+                    CONF_BRAVE_ENABLED, default=self.config_data.get(CONF_BRAVE_ENABLED, False)
                 ): bool,
                 vol.Optional(
                     CONF_GOOGLE_PLACES_ENABLED,
-                    default=defaults.get(CONF_GOOGLE_PLACES_ENABLED, False),
+                    default=self.config_data.get(CONF_GOOGLE_PLACES_ENABLED, False),
                 ): bool,
                 vol.Optional(
                     CONF_WIKIPEDIA_ENABLED,
-                    default=defaults.get(CONF_WIKIPEDIA_ENABLED, False),
+                    default=self.config_data.get(CONF_WIKIPEDIA_ENABLED, False),
                 ): bool,
             }
             schema = vol.Schema(schema_dict)
@@ -374,7 +370,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if next_step:
             step_id, schema_func = next_step
             schema = schema_func(self.hass)
-            schema = self.add_suggested_values_to_schema(schema, defaults)
+            schema = self.add_suggested_values_to_schema(schema, self.config_data)
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
