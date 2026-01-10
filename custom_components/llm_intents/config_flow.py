@@ -314,7 +314,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         super().__init__()
         self._config_entry = config_entry
         self.user_selections: dict[str, Any] = {}
-        self.config_data = {**self.config_entry.data, **(self.config_entry.options or {})}
+        self.config_data = {
+            **self.config_entry.data,
+            **(self.config_entry.options or {}),
+        }
 
     @property
     def config_entry(self) -> ConfigEntry:
@@ -342,7 +345,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is None:
             schema_dict = {
                 vol.Optional(
-                    CONF_BRAVE_ENABLED, default=self.config_data.get(CONF_BRAVE_ENABLED, False)
+                    CONF_BRAVE_ENABLED,
+                    default=self.config_data.get(CONF_BRAVE_ENABLED, False),
                 ): bool,
                 vol.Optional(
                     CONF_GOOGLE_PLACES_ENABLED,
