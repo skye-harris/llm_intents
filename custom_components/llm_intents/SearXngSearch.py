@@ -23,7 +23,6 @@ class SearXngSearchTool(SearchWebTool):
         if not url:
             raise RuntimeError("SearXNG server url not configured")
 
-        # return [url]
         session = async_get_clientsession(self.hass)
         headers = {
             "Accept": "application/json",
