@@ -33,6 +33,11 @@ CONF_SEARCH_PROVIDERS = {
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
 }
 
+# SearXNG-specific constants
+
+CONF_SEARXNG_URL = "searxng_server_url"
+CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
+
 # Brave-specific constants
 
 CONF_BRAVE_ENABLED = "brave_search_enabled"
@@ -116,6 +121,8 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_TIMEZONE: "",
     CONF_BRAVE_COUNTRY_CODE: "",
     CONF_BRAVE_POST_CODE: "",
+    CONF_SEARXNG_URL: "",
+    CONF_SEARXNG_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_API_KEY: "",
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",

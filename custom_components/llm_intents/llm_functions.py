@@ -8,9 +8,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
 from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
-from .BraveSearch import SearchWebTool
+from .BraveSearch import BraveSearchTool
 from .const import (
     CONF_GOOGLE_PLACES_ENABLED,
+    CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     DOMAIN,
@@ -20,6 +21,7 @@ from .const import (
     WEATHER_SERVICES_PROMPT,
 )
 from .GooglePlaces import FindPlacesTool
+from .SearXngSearch import SearXngSearchTool
 from .Weather import WeatherForecastTool
 from .Wikipedia import SearchWikipediaTool
 
@@ -28,7 +30,11 @@ _LOGGER = logging.getLogger(__name__)
 SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
-        SearchWebTool,
+        BraveSearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
+        SearXngSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),

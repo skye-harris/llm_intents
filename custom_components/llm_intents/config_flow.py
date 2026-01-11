@@ -42,7 +42,10 @@ from .const import (
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_NONE,
+    CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDERS,
+    CONF_SEARXNG_NUM_RESULTS,
+    CONF_SEARXNG_URL,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -57,6 +60,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 STEP_USER = "user"
 STEP_BRAVE = "brave"
+STEP_SEARXNG = "searxng"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
@@ -118,6 +122,20 @@ def get_brave_schema(hass) -> vol.Schema:
             vol.Optional(
                 CONF_BRAVE_POST_CODE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE)
             ): str,
+        }
+    )
+
+
+def get_searxng_schema(hass) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_SEARXNG_URL, default=SERVICE_DEFAULTS.get(CONF_SEARXNG_URL)
+            ): str,
+            vol.Required(
+                CONF_SEARXNG_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_SEARXNG_NUM_RESULTS),
+            ): vol.All(int, vol.Range(min=1, max=20)),
         }
     )
 
@@ -195,6 +213,10 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
         get_brave_schema,
     ],
+    STEP_SEARXNG: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
+        get_searxng_schema,
+    ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
@@ -224,9 +246,11 @@ def get_next_step(
     for key in keys[start:]:
         config_key, schema_func = step_order[key]
 
-        if config_key is None or (
-            isinstance(config_key, str) and config_data.get(config_key)
-        ) or (isinstance(config_key, types.FunctionType) and config_key(config_data)):
+        if (
+            config_key is None
+            or (isinstance(config_key, str) and config_data.get(config_key))
+            or (isinstance(config_key, types.FunctionType) and config_key(config_data))
+        ):
             return key, schema_func
 
     return None
@@ -487,6 +511,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step in options flow."""
         return await self.handle_step(STEP_BRAVE, user_input)
+
+    async def async_step_searxng(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle SearXNG configuration step in options flow."""
+        return await self.handle_step(STEP_SEARXNG, user_input)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None

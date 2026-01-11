@@ -16,7 +16,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class SearchWebTool(SearchWebTool):
+class BraveSearchTool(SearchWebTool):
     async def async_search(
         self,
         query: str,
@@ -33,7 +33,7 @@ class SearchWebTool(SearchWebTool):
         post_code = self.config.get(CONF_BRAVE_POST_CODE)
 
         if not api_key:
-            return {"error": "Brave API key not configured"}
+            raise RuntimeError("Brave API key not configured")
 
         session = async_get_clientsession(self.hass)
         headers = {
@@ -77,21 +77,20 @@ class SearchWebTool(SearchWebTool):
                 results = []
                 for result in data.get("web", {}).get("results", []):
                     title = result.get("title", "")
-                    description = result.get("description", "")
+                    content = result.get("description", "")
 
                     # just use the first 2 snippets
                     extra_snippets = result.get("extra_snippets", [])[0:2]
 
                     if use_extra_snippets and extra_snippets:
-                        # TODO: would love to filter/sort by relevance
                         result_content = [
                             await self.cleanup_text(snippet)
                             for snippet in extra_snippets
                         ]
                     else:
-                        result_content = await self.cleanup_text(description)
+                        result_content = await self.cleanup_text(content)
 
-                    result = {"title": title, "description": result_content}
+                    result = {"title": title, "content": result_content}
 
                     results.append(result)
 

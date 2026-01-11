@@ -145,7 +145,7 @@ class TestSchemaFunctions:
 
     def test_get_wikipedia_schema_validation(self):
         """Test Wikipedia schema validation rules."""
-        schema = get_wikipedia_schema({})
+        schema = get_wikipedia_schema()
 
         # Test minimum value validation
 

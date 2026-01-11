@@ -95,6 +95,14 @@
           "brave_post_code": "Post Code (optional)"
         }
       },
+      "searxng": {
+        "title": "Configure SearXNG Web Search",
+        "description": "Configure SearXNG Web Search API settings.",
+        "data": {
+          "searxng_server_url": "Server URL",
+          "searxng_num_results": "Number of Results"
+        }
+      },
       "google_places": {
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
