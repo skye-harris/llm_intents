@@ -1,14 +1,15 @@
 """LLM function implementations for search services."""
 
 import logging
+import types
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
+from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
 from .BraveSearch import SearchWebTool
 from .const import (
-    CONF_BRAVE_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -25,7 +26,10 @@ from .Wikipedia import SearchWikipediaTool
 _LOGGER = logging.getLogger(__name__)
 
 SEARCH_CONF_ENABLED_MAP = [
-    (CONF_BRAVE_ENABLED, SearchWebTool),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
+        SearchWebTool,
+    ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),
 ]
@@ -36,7 +40,7 @@ WEATHER_CONF_ENABLED_MAP = [
 
 
 class BaseAPI(llm.API):
-    _TOOLS_CONF_MAP = ""
+    _TOOLS_CONF_MAP = []
     _API_PROMPT = ""
 
     def __init__(self, hass: HomeAssistant, name: str, id: str | None = None) -> None:
@@ -52,9 +56,16 @@ class BaseAPI(llm.API):
         tools = []
 
         for key, tool_class in self._TOOLS_CONF_MAP:
-            tool_enabled = config_data.get(key)
+            tool_enabled = False
+
+            if isinstance(key, str):
+                tool_enabled = config_data.get(key)
+
+            elif isinstance(key, types.FunctionType):
+                tool_enabled = key(config_data)
+
             if tool_enabled:
-                tools = tools + [tool_class()]
+                tools = tools + [tool_class(config_data, self.hass)]
 
         return tools
 

@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
 
+from .BaseTool import BaseTool
 from .const import (
     CONF_DAILY_WEATHER_ENTITY,
     CONF_HOURLY_WEATHER_ENTITY,
@@ -58,7 +59,7 @@ def _build_attributes(
     return output
 
 
-class WeatherForecastTool(llm.Tool):
+class WeatherForecastTool(BaseTool):
     """Tool for weather forecast data."""
 
     name = "GetWeatherForecast"

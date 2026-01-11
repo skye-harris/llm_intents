@@ -17,9 +17,21 @@ CONF_CACHE_MAX_AGE = "cache_max_age"
 
 SEARCH_SERVICES_PROMPT = "You may utilise the Search Services tools to lookup up-to-date information from the internet."
 
-WEATHER_SERVICES_PROMPT = f"""
+WEATHER_SERVICES_PROMPT = """
 Use the Weather Services tools to access current weather and forecast data.
 """
+
+# Search Providers
+CONF_SEARCH_PROVIDER = "search_provider"
+CONF_SEARCH_PROVIDER_NONE = ""
+CONF_SEARCH_PROVIDER_BRAVE = "Brave"
+CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
+
+CONF_SEARCH_PROVIDERS = {
+    "": CONF_SEARCH_PROVIDER_NONE,
+    "Brave": CONF_SEARCH_PROVIDER_BRAVE,
+    "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
+}
 
 # Brave-specific constants
 
@@ -31,6 +43,47 @@ CONF_BRAVE_LATITUDE = "brave_latitude"
 CONF_BRAVE_LONGITUDE = "brave_longitude"
 CONF_BRAVE_TIMEZONE = "brave_timezone"
 CONF_BRAVE_POST_CODE = "brave_post_code"
+
+CONF_BRAVE_COUNTRY_CODES = {
+    "": "",
+    "AR": "Argentina",
+    "AU": "Australia",
+    "AT": "Austria",
+    "BE": "Belgium",
+    "BR": "Brazil",
+    "CA": "Canada",
+    "CL": "Chile",
+    "DK": "Denmark",
+    "FI": "Finland",
+    "FR": "France",
+    "DE": "Germany",
+    "GR": "Greece",
+    "HK": "Hong Kong",
+    "IN": "India",
+    "ID": "Indonesia",
+    "IT": "Italy",
+    "JP": "Japan",
+    "KR": "South Korea",
+    "MY": "Malaysia",
+    "MX": "Mexico",
+    "NL": "Netherlands",
+    "NZ": "New Zealand",
+    "NO": "Norway",
+    "CN": "China",
+    "PL": "Poland",
+    "PT": "Portugal",
+    "PH": "Philippines",
+    "RU": "Russia",
+    "SA": "Saudi Arabia",
+    "ZA": "South Africa",
+    "ES": "Spain",
+    "SE": "Sweden",
+    "CH": "Switzerland",
+    "TW": "Taiwan",
+    "TR": "Turkey",
+    "GB": "United Kingdom",
+    "US": "United States",
+}
 
 # Google Places-specific constants
 

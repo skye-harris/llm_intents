@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import types
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -10,6 +11,12 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +24,7 @@ from .const import (
     ADDON_NAME,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
-    CONF_BRAVE_ENABLED,
+    CONF_BRAVE_COUNTRY_CODES,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
     CONF_BRAVE_NUM_RESULTS,
@@ -32,6 +39,10 @@ from .const import (
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
     CONF_HOURLY_WEATHER_ENTITY,
+    CONF_SEARCH_PROVIDER,
+    CONF_SEARCH_PROVIDER_BRAVE,
+    CONF_SEARCH_PROVIDER_NONE,
+    CONF_SEARCH_PROVIDERS,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -57,12 +68,22 @@ STEP_CONFIGURE_WEATHER = "configure_weather"
 def get_step_user_data_schema(hass) -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
-        vol.Optional(CONF_BRAVE_ENABLED, default=False): bool,
+        vol.Optional(
+            CONF_SEARCH_PROVIDER, default=CONF_SEARCH_PROVIDER_NONE
+        ): SelectSelector(
+            SelectSelectorConfig(
+                mode=SelectSelectorMode.DROPDOWN, options=CONF_SEARCH_PROVIDERS
+            )
+        ),
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
+
+
+def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
+    return [SelectOptionDict(value=key, label=opts[key]) for key in opts]
 
 
 def get_brave_schema(hass) -> vol.Schema:
@@ -79,7 +100,12 @@ def get_brave_schema(hass) -> vol.Schema:
             vol.Optional(
                 CONF_BRAVE_COUNTRY_CODE,
                 default=SERVICE_DEFAULTS.get(CONF_BRAVE_COUNTRY_CODE),
-            ): str,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=options_to_selections_dict(CONF_BRAVE_COUNTRY_CODES),
+                )
+            ),
             vol.Optional(
                 CONF_BRAVE_LATITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE)
             ): str,
@@ -165,7 +191,10 @@ def get_weather_schema(hass) -> vol.Schema:
 
 SEARCH_STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
-    STEP_BRAVE: [CONF_BRAVE_ENABLED, get_brave_schema],
+    STEP_BRAVE: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
+        get_brave_schema,
+    ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
@@ -185,6 +214,7 @@ INITIAL_CONFIG_STEP_ORDER = {
 def get_next_step(
     current_step: str, config_data: dict, step_order: dict
 ) -> tuple[str, Callable] | None:
+    """Determine the next configuration step"""
     keys = list(step_order.keys())
     try:
         start = keys.index(current_step) + 1
@@ -193,7 +223,10 @@ def get_next_step(
 
     for key in keys[start:]:
         config_key, schema_func = step_order[key]
-        if config_key is None or config_data.get(config_key):
+
+        if config_key is None or (
+            isinstance(config_key, str) and config_data.get(config_key)
+        ) or (isinstance(config_key, types.FunctionType) and config_key(config_data)):
             return key, schema_func
 
     return None
@@ -202,7 +235,7 @@ def get_next_step(
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Tools for Assist integration."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -210,6 +243,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.config_data: dict[str, Any] = {}
 
     async def handle_step(self, current_step: str, user_input: dict[str, Any] | None):
+        """Handle a configuration step"""
         if user_input is None:
             return self.async_show_form(step_id=current_step)
 
@@ -332,9 +366,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             return self.async_show_menu(
                 step_id=STEP_INIT,
                 menu_options=[STEP_CONFIGURE_SEARCH, "configure_weather"],
-                description_placeholders={
-                    "current_services": self._get_current_services_description()
-                },
             )
         return None
 
@@ -345,25 +376,28 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is None:
             schema_dict = {
                 vol.Optional(
-                    CONF_BRAVE_ENABLED,
-                    default=self.config_data.get(CONF_BRAVE_ENABLED, False),
-                ): bool,
+                    CONF_SEARCH_PROVIDER, default=CONF_SEARCH_PROVIDER_NONE
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        mode=SelectSelectorMode.DROPDOWN,
+                        options=options_to_selections_dict(CONF_SEARCH_PROVIDERS),
+                    )
+                ),
                 vol.Optional(
                     CONF_GOOGLE_PLACES_ENABLED,
-                    default=self.config_data.get(CONF_GOOGLE_PLACES_ENABLED, False),
+                    default=False,
                 ): bool,
                 vol.Optional(
                     CONF_WIKIPEDIA_ENABLED,
-                    default=self.config_data.get(CONF_WIKIPEDIA_ENABLED, False),
+                    default=False,
                 ): bool,
             }
             schema = vol.Schema(schema_dict)
+
+            schema = self.add_suggested_values_to_schema(schema, self.config_data)
             return self.async_show_form(
                 step_id=STEP_CONFIGURE_SEARCH,
                 data_schema=schema,
-                description_placeholders={
-                    "current_services": self._get_current_services_description()
-                },
             )
 
         # Store user selections and existing data
@@ -402,9 +436,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             return self.async_show_form(
                 step_id=STEP_CONFIGURE_WEATHER,
                 data_schema=schema,
-                description_placeholders={
-                    "current_services": self._get_current_services_description()
-                },
             )
 
         # Store user selections and existing data
@@ -425,24 +456,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
 
         # No services selected, just update with current selections
         return self.async_create_entry(data=self.config_data)
-
-    def _get_current_services_description(self) -> str:
-        """Get a description of currently configured services."""
-        services = []
-        data = {**self.config_entry.data, **(self.config_entry.options or {})}
-
-        if data.get(CONF_BRAVE_ENABLED):
-            services.append("Brave Search")
-        if data.get(CONF_GOOGLE_PLACES_ENABLED):
-            services.append("Google Places")
-        if data.get(CONF_WIKIPEDIA_ENABLED):
-            services.append("Wikipedia")
-        if data.get(CONF_WEATHER_ENABLED):
-            services.append("Weather")
-
-        if services:
-            return f"Currently configured: {', '.join(services)}"
-        return "No services currently configured"
 
     async def handle_step(
         self, current_step: str, user_input: dict[str, Any] | None = None

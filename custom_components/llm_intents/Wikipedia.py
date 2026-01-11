@@ -8,6 +8,7 @@ from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
+from .BaseTool import BaseTool
 from .cache import SQLiteCache
 from .const import (
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -17,7 +18,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class SearchWikipediaTool(llm.Tool):
+class SearchWikipediaTool(BaseTool):
     """Tool for searching Wikipedia."""
 
     name = "search_wikipedia"

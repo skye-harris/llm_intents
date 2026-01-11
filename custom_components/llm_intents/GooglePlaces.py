@@ -8,6 +8,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt
 from homeassistant.util.json import JsonObjectType
 
+from .BaseTool import BaseTool
 from .cache import SQLiteCache
 from .const import (
     CONF_GOOGLE_PLACES_API_KEY,
@@ -23,7 +24,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class FindPlacesTool(llm.Tool):
+class FindPlacesTool(BaseTool):
     """Tool for finding places."""
 
     name = "find_places"

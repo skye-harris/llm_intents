@@ -5,7 +5,7 @@
         "title": "Configure Tools for Assist",
         "description": "Select the services you want to enable for Tools for Assist.",
         "data": {
-          "brave_search_enabled": "Enable Brave Web Search",
+          "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast"
@@ -60,7 +60,7 @@
     "step": {
       "init": {
         "title": "Tools for Assist Options",
-        "description": "{current_services}\n\nChoose what you want to do:",
+        "description": "Choose what you want to do:",
         "menu_options": {
           "configure": "Configure Search Services",
           "configure_weather": "Configure Weather Forecast"
@@ -68,16 +68,16 @@
       },
       "configure": {
         "title": "Configure Search Services",
-        "description": "Select which services to enable or disable.\n\n{current_services}",
+        "description": "Select which services to you would like to use.",
         "data": {
-          "brave_search_enabled": "Enable Brave Web Search",
+          "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
           "wikipedia_enabled": "Enable Wikipedia Search"
         }
       },
       "configure_weather": {
         "title": "Configure Weather Forecast",
-        "description": "Select which services to enable or disable.\n\n{current_services}",
+        "description": "Select which services to you would like to use.",
         "data": {
           "weather_enabled": "Enable Weather Forecast"
         }
