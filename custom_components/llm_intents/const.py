@@ -110,6 +110,9 @@ CONF_WIKIPEDIA_NUM_RESULTS = "wikipedia_num_results"
 CONF_WEATHER_ENABLED = "weather_enabled"
 CONF_DAILY_WEATHER_ENTITY = "weather_daily_entity"
 CONF_HOURLY_WEATHER_ENTITY = "weather_hourly_entity"
+CONF_WEATHER_DATA_INCLUDED = "weather_data_included"
+CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
+CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 
 # Service defaults
 

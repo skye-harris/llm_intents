@@ -56,6 +56,7 @@ class BaseAPI(llm.API):
         )
 
     def get_enabled_tools(self) -> list:
+        """Get all enabled tools for this service"""
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}

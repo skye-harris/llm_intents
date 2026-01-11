@@ -193,7 +193,10 @@ def get_weather_schema(hass) -> vol.Schema:
         entity_id = state.entity_id
         features = state.attributes.get("supported_features", 0)
 
-        if features & WeatherEntityFeature.FORECAST_DAILY:
+        if (
+            features & WeatherEntityFeature.FORECAST_DAILY
+            or features & WeatherEntityFeature.FORECAST_TWICE_DAILY
+        ):
             daily_entities.append(entity_id)
 
         if features & WeatherEntityFeature.FORECAST_HOURLY:

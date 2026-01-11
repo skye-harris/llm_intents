@@ -14,12 +14,14 @@ class SQLiteCache:
     DEFAULT_MAX_AGE = 7200  # 2 hour
 
     def __new__(cls):
+        """Singleton"""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._init_db()
         return cls._instance
 
     def _init_db(self):
+        """Init the DB for our cache"""
         base_dir = os.path.dirname(os.path.abspath(__file__))  # this file’s directory
         db_path = os.path.join(base_dir, "cache.db")
         os.makedirs(base_dir, exist_ok=True)  # ensure folder exists
@@ -40,6 +42,7 @@ class SQLiteCache:
         self._conn.commit()
 
     def _make_key(self, tool: str, params: dict | None) -> str:
+        """Build our cache key from the input"""
         params_str = (
             ""
             if params is None
@@ -49,6 +52,7 @@ class SQLiteCache:
         return hashlib.md5(combined.encode()).hexdigest()
 
     def _cleanup(self):
+        """Remove old cached values that have expired"""
         now = int(time.time())
         cutoff = now - self.DEFAULT_MAX_AGE
         deleted = self._conn.execute(
@@ -59,6 +63,7 @@ class SQLiteCache:
             logger.debug(f"Cache cleanup ran, deleted {deleted} expired entries")
 
     def get(self, tool: str, params: dict | None) -> Any | None:
+        """Get a value from the cache"""
         self._cleanup()
         key = self._make_key(tool, params)
         cursor = self._conn.execute("SELECT data FROM cache WHERE key = ?", (key,))
@@ -77,6 +82,7 @@ class SQLiteCache:
             return None
 
     def set(self, tool: str, params: dict | None, data: dict):
+        """Set a value into the cache"""
         key = self._make_key(tool, params)
         created_at = int(time.time())
         data_json = json.dumps(data)

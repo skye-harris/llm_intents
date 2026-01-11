@@ -39,10 +39,12 @@ class SearchWebTool(BaseTool):
     )
 
     def with_instructions(self, response: dict) -> dict:
+        """Wrap our response with instructions"""
         response["instruction"] = self.response_instruction
         return response
 
     async def cleanup_text(self, text: str) -> str:
+        """Clean up our text a little before sending to the LLM"""
         text = html.unescape(text)
         text = re.sub(r"<[^>]+>", "", text)
         text = re.sub(r"\s+", " ", text).strip()
@@ -50,7 +52,7 @@ class SearchWebTool(BaseTool):
         return text
 
     async def async_search(self, query: str) -> list:
-        pass
+        """Perform a search in our subclasses"""
 
     async def async_call(
         self,

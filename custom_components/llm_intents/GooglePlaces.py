@@ -62,6 +62,7 @@ class FindPlacesTool(BaseTool):
     )
 
     def wrap_response(self, response: dict) -> dict:
+        """Wrap the response with our instructions"""
         response["instruction"] = self.response_instruction
         return response
 
