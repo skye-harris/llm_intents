@@ -33,6 +33,7 @@ from .const import (
     CONF_GOOGLE_PLACES_RANKING,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_WEATHER_ENABLED,
+    CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
@@ -144,6 +145,7 @@ def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = ["None"]
+    temperature_sensors = ["None"]
 
     for state in hass.states.async_all("weather"):
         entity_id = state.entity_id
@@ -155,10 +157,17 @@ def get_weather_schema(hass) -> vol.Schema:
         if features & WeatherEntityFeature.FORECAST_HOURLY:
             hourly_entities.append(entity_id)
 
+    # Get all sensor entities with temperature device class
+    for state in hass.states.async_all("sensor"):
+        device_class = state.attributes.get("device_class")
+        if device_class == "temperature":
+            temperature_sensors.append(state.entity_id)
+
     return vol.Schema(
         {
             vol.Required(CONF_DAILY_WEATHER_ENTITY): vol.In(daily_entities),
             vol.Required(CONF_HOURLY_WEATHER_ENTITY): vol.In(hourly_entities),
+            vol.Required(CONF_WEATHER_TEMPERATURE_SENSOR): vol.In(temperature_sensors),
         }
     )
 
