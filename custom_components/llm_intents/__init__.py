@@ -5,7 +5,6 @@ from .const import (
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
-    CONF_SEARCH_PROVIDER_NONE,
     DOMAIN,
 )
 
@@ -57,7 +56,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_data[CONF_SEARCH_PROVIDER] = (
             CONF_SEARCH_PROVIDER_BRAVE
             if entry_data.get(CONF_BRAVE_ENABLED, False)
-            else CONF_SEARCH_PROVIDER_NONE
+            else None
         )
 
         if entry_data[CONF_HOURLY_WEATHER_ENTITY] == "None":

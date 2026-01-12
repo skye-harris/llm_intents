@@ -23,12 +23,10 @@ Use the Weather Services tools to access current weather and forecast data.
 
 # Search Providers
 CONF_SEARCH_PROVIDER = "search_provider"
-CONF_SEARCH_PROVIDER_NONE = ""
 CONF_SEARCH_PROVIDER_BRAVE = "Brave"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
 
 CONF_SEARCH_PROVIDERS = {
-    "": CONF_SEARCH_PROVIDER_NONE,
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
 }

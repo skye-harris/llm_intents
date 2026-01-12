@@ -44,7 +44,6 @@ from .const import (
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
-    CONF_SEARCH_PROVIDER_NONE,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
@@ -77,10 +76,11 @@ def get_step_user_data_schema(hass) -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
         vol.Optional(
-            CONF_SEARCH_PROVIDER, default=CONF_SEARCH_PROVIDER_NONE
+            CONF_SEARCH_PROVIDER,
         ): SelectSelector(
             SelectSelectorConfig(
-                mode=SelectSelectorMode.DROPDOWN, options=CONF_SEARCH_PROVIDERS
+                mode=SelectSelectorMode.DROPDOWN,
+                options=options_to_selections_dict(CONF_SEARCH_PROVIDERS),
             )
         ),
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
@@ -462,7 +462,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is None:
             schema_dict = {
                 vol.Optional(
-                    CONF_SEARCH_PROVIDER, default=CONF_SEARCH_PROVIDER_NONE
+                    CONF_SEARCH_PROVIDER,
                 ): SelectSelector(
                     SelectSelectorConfig(
                         mode=SelectSelectorMode.DROPDOWN,
