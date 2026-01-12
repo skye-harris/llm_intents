@@ -67,15 +67,33 @@ class WeatherForecastTool(BaseTool):
     """Tool for weather forecast data."""
 
     name = "GetWeatherForecast"
-    description = "Use this tool to retrieve weather forecasts for a particular period. Defaults to the weeks weather if `range` is not specified."
+    description = "\n".join(
+        [
+            "Use this tool to retrieve weather forecasts for a particular period",
+            "If the user requests data for `tonight`, use the `today` argument",
+        ]
+    )
     prompt_description = None
 
     parameters = vol.Schema(
         {
-            vol.Optional(
+            vol.Required(
                 "range",
-                description="One of 'week', 'today', 'tomorrow', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'.",
-            ): str,
+                description="Specify whether to receive data for the week ahead, or for a particular upcoming day",
+            ): vol.In(
+                [
+                    "week",
+                    "today",
+                    "tomorrow",
+                    "monday",
+                    "tuesday",
+                    "wednesday",
+                    "thursday",
+                    "friday",
+                    "saturday",
+                    "sunday",
+                ]
+            ),
         }
     )
 
@@ -144,16 +162,11 @@ class WeatherForecastTool(BaseTool):
 
     def has_twice_daily_data(self, entity_id: str) -> bool:
         """Does our daily entity data provide twice-daily data?"""
-        # TODO: lookup single entity without this loop - adapting existing code for this as its sunday night....
-        for state in self.hass.states.async_all("weather"):
-            if state.entity_id != entity_id:
-                continue
-
-            features = state.attributes.get("supported_features", 0)
-            if features & WeatherEntityFeature.FORECAST_TWICE_DAILY:
-                return True
-            break
-        return False
+        entity = self.hass.states.get(entity_id)
+        if entity is None:
+            raise Exception(f"Weather entity {entity_id} not found.")
+        features = entity.attributes.get("supported_features", 0)
+        return features & WeatherEntityFeature.FORECAST_TWICE_DAILY
 
     async def _get_daily_forecast(
         self, hass: HomeAssistant, entity_id: str, date
@@ -233,7 +246,6 @@ class WeatherForecastTool(BaseTool):
         for day in forecast:
             dt = datetime.fromisoformat(day["datetime"]).astimezone()
             date = dt.date()
-            _LOGGER.warning(day)
             day_night = "day" if day.get("is_daytime", True) else "night"
             date_str = date.strftime("%A %-d %B")
 
@@ -321,13 +333,13 @@ class WeatherForecastTool(BaseTool):
         _LOGGER.info(f"Weather forecast for the period: {date_range}")
 
         try:
-            hourly_entity_id = config_data.get(CONF_HOURLY_WEATHER_ENTITY, "None")
+            hourly_entity_id = config_data.get(CONF_HOURLY_WEATHER_ENTITY)
             daily_entity_id = config_data.get(CONF_DAILY_WEATHER_ENTITY)
 
             forecast = None
             target_date = None
 
-            if date_range != "week" and hourly_entity_id != "None":
+            if date_range != "week" and hourly_entity_id:
                 target_date = self._find_target_date(date_range)
                 forecast = await self._get_hourly_forecast(
                     hass, hourly_entity_id, target_date

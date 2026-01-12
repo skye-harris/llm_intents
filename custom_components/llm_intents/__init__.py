@@ -1,8 +1,8 @@
-from virtualenv.seed.embed.pip_invoke import LOGGER
-
 from .config_flow import LlmIntentsConfigFlow
 from .const import (
     CONF_BRAVE_ENABLED,
+    CONF_DAILY_WEATHER_ENTITY,
+    CONF_HOURLY_WEATHER_ENTITY,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_NONE,
@@ -60,7 +60,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             else CONF_SEARCH_PROVIDER_NONE
         )
 
-    # TODO: bump the version we save as once we are all done here
-    hass.config_entries.async_update_entry(entry, version=1, data=entry_data)
+        if entry_data[CONF_HOURLY_WEATHER_ENTITY] == "None":
+            entry_data[CONF_HOURLY_WEATHER_ENTITY] = None
+
+        del entry_data[CONF_BRAVE_ENABLED]
+
+    hass.config_entries.async_update_entry(entry, version=2, data=entry_data)
 
     return True

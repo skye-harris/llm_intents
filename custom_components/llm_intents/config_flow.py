@@ -12,13 +12,16 @@ from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     ADDON_NAME,
@@ -53,18 +56,19 @@ from .const import (
     SERVICE_DEFAULTS,
 )
 
+_LOGGER = logging.getLogger(__name__)
+
 if TYPE_CHECKING:  # pragma: no cover
     from homeassistant.config_entries import ConfigEntry, OptionsFlow
-# Home Assistant best practice: Use constants for step ids
 
-
+# Individual steps
+STEP_INIT = "init"
 STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_SEARXNG = "searxng"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
-STEP_INIT = "init"
 STEP_CONFIGURE_SEARCH = "configure"
 STEP_CONFIGURE_WEATHER = "configure_weather"
 
@@ -100,7 +104,15 @@ def get_brave_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_BRAVE_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_BRAVE_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1, max=20)),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                )
+            ),
             vol.Optional(
                 CONF_BRAVE_COUNTRY_CODE,
                 default=SERVICE_DEFAULTS.get(CONF_BRAVE_COUNTRY_CODE),
@@ -135,7 +147,15 @@ def get_searxng_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_SEARXNG_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_SEARXNG_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1, max=20)),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                )
+            ),
         }
     )
 
@@ -151,7 +171,15 @@ def get_google_places_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1, max=20)),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                )
+            ),
             vol.Optional(
                 CONF_GOOGLE_PLACES_LATITUDE,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LATITUDE),
@@ -160,14 +188,27 @@ def get_google_places_schema(hass) -> vol.Schema:
                 CONF_GOOGLE_PLACES_LONGITUDE,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LONGITUDE),
             ): str,
-            vol.Optional(
+            vol.Required(
                 CONF_GOOGLE_PLACES_RADIUS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
-            ): vol.All(int, vol.Range(min=1, max=50)),
-            vol.Optional(
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=50,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="km",
+                )
+            ),
+            vol.Required(
                 CONF_GOOGLE_PLACES_RANKING,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RANKING),
-            ): vol.In(["None", "Distance", "Relevance"]),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=["None", "Distance", "Relevance"],
+                )
+            ),
         }
     )
 
@@ -179,7 +220,15 @@ def get_wikipedia_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_WIKIPEDIA_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_WIKIPEDIA_NUM_RESULTS),
-            ): vol.All(int, vol.Range(min=1, max=20)),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                )
+            ),
         }
     )
 
@@ -187,7 +236,7 @@ def get_wikipedia_schema(hass) -> vol.Schema:
 def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
-    hourly_entities = ["None"]
+    hourly_entities = []
 
     for state in hass.states.async_all("weather"):
         entity_id = state.entity_id
@@ -204,8 +253,18 @@ def get_weather_schema(hass) -> vol.Schema:
 
     return vol.Schema(
         {
-            vol.Required(CONF_DAILY_WEATHER_ENTITY): vol.In(daily_entities),
-            vol.Required(CONF_HOURLY_WEATHER_ENTITY): vol.In(hourly_entities),
+            vol.Required(CONF_DAILY_WEATHER_ENTITY): EntitySelector(
+                EntitySelectorConfig(
+                    domain="weather",
+                    include_entities=daily_entities,
+                )
+            ),
+            vol.Optional(CONF_HOURLY_WEATHER_ENTITY): EntitySelector(
+                EntitySelectorConfig(
+                    domain="weather",
+                    include_entities=hourly_entities,
+                )
+            ),
         }
     )
 
@@ -504,9 +563,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
 
         self.hass.config_entries.async_update_entry(self.config_entry, options=opts)
 
-        # Manual reload to match OptionsFlowWithReload behavior as we cant seem to import that successfully
-        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
         return self.async_create_entry(data=self.config_data)
 
     async def async_step_brave(
@@ -537,4 +593,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Weather configuration step in options flow."""
+        if user_input and CONF_HOURLY_WEATHER_ENTITY in self.config_data:
+            # The config dict .update wont remove values where they arent present in the update data
+            # Without a selection our dict will not contain a value for this, so lets just clear it here and itll be updated in .handle_step by existing logic if a value exists
+            self.config_data[CONF_HOURLY_WEATHER_ENTITY] = None
+
         return await self.handle_step(STEP_WEATHER, user_input)
