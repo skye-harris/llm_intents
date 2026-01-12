@@ -2,8 +2,8 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Brave Web Search**
-* **Google Places**
+* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Location Search** powered by Google Places
 * **Wikipedia**
 * **Weather Forecast**
 
@@ -67,7 +67,7 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 #### Configuration Steps
 
-1. Select "Brave Search" during setup.
+1. Select "Brave" as the search provider during setup.
 2. Enter your [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
 3. Configure optional settings like number of results, location preferences.
 
@@ -76,12 +76,33 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 | Setting             | Required | Default | Description                                                 |
 |---------------------|----------|---------|-------------------------------------------------------------|
 | `API Key`           | ✅        | —       | Brave Search API key                                        |
-| `Number of Results` | ✅        | `2`     | Number of results to return                                 |
+| `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM                     |
 | `Country Code`      | ❌        | —       | ISO country code to bias results                            |
 | `Latitude`          | ❌        | —       | Optional latitude for local result relevance (recommended)  |
 | `Longitude`         | ❌        | —       | Optional longitude for local result relevance (recommended) |
 | `Timezone`          | ❌        | —       | Optional TZ timezone identifier for local result relevance  |
 | `Post Code`         | ❌        | —       | Optional post code for local result relevance               |
+
+---
+
+### 🔍 SearXNG Web Search
+
+Uses a self-hosted SearXNG search service to return summarized results.
+
+##### Requirements
+
+* Requires a SearXNG server instance, with JSON responses enabled (https://github.com/searxng/searxng-docker).
+
+#### Configuration Steps
+
+1. Select "SearXNG" as the search provider during setup.
+2. Configure your server URL and maximum search results to provide to the LLM.
+
+#### Options
+
+| Setting             | Required | Default | Description                             |
+|---------------------|----------|---------|-----------------------------------------|
+| `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM |
 
 ---
 
@@ -141,7 +162,7 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 Rather than accessing the internet directly for weather information, this tool utilises your existing Home Assistant weather integration and makes the forecast data accessible to your LLM in an intelligent manner.
 
-At a minimum, this tool requires a weather entity that provides daily forecast data.
+At a minimum, this tool requires a weather entity that provides either daily or twice-daily forecast data.
 It is recommended, though optional, to also specify a weather entity that provides hourly weather data.
 
 For cases where a specific days weather is requested (eg: `today`, `tomorrow`, `wednesday`), the hourly data will be provided if available.
