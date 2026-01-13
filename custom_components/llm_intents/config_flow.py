@@ -115,7 +115,6 @@ def get_brave_schema(hass) -> vol.Schema:
             ),
             vol.Optional(
                 CONF_BRAVE_COUNTRY_CODE,
-                default=SERVICE_DEFAULTS.get(CONF_BRAVE_COUNTRY_CODE),
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
@@ -569,6 +568,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step in options flow."""
+        if user_input is not None:
+            self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
         return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_searxng(

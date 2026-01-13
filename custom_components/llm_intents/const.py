@@ -48,7 +48,6 @@ CONF_BRAVE_TIMEZONE = "brave_timezone"
 CONF_BRAVE_POST_CODE = "brave_post_code"
 
 CONF_BRAVE_COUNTRY_CODES = {
-    "": "",
     "AR": "Argentina",
     "AU": "Australia",
     "AT": "Austria",
