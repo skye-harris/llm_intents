@@ -2,7 +2,7 @@ import logging
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .base_web_search import SearchWebTool
+from .BaseWebSearch import SearchWebTool
 from .const import (
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
