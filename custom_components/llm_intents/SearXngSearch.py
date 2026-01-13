@@ -18,7 +18,7 @@ class SearXngSearchTool(SearchWebTool):
     ) -> list:
         """Call the tool."""
         url = self.config.get(CONF_SEARXNG_URL)
-        num_results = self.config.get(CONF_SEARXNG_NUM_RESULTS)
+        num_results = int(self.config.get(CONF_SEARXNG_NUM_RESULTS, 2))
 
         if not url:
             raise RuntimeError("SearXNG server url not configured")
@@ -35,7 +35,7 @@ class SearXngSearchTool(SearchWebTool):
             if resp.status == 200:
                 data = await resp.json()
                 results = []
-                for result in data.get("results", [])[:num_results]:
+                for result in data.get("results", [])[0:num_results]:
                     title = result.get("title", "")
                     content = await self.cleanup_text(result.get("content", ""))
 
