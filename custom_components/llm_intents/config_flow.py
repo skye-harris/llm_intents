@@ -400,6 +400,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Brave configuration step."""
         return await self.handle_step(STEP_BRAVE, user_input)
 
+    async def async_step_searxng(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle SearXNG configuration step."""
+        return await self.handle_step(STEP_SEARXNG, user_input)
+
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
