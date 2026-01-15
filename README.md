@@ -177,13 +177,15 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 1. Select "Weather Forecast" during setup.
 2. Select the weather entity that provides daily forecast information.
 3. Optionally, select the weather entity that provides hourly forecast information.
+4. Optionally, select a temperature sensor entity to display current temperature for today's hourly forecast.
 
 ### Options
 
-| Setting                 | Required | Description                                                |
-|-------------------------|----------|------------------------------------------------------------|
-| `Daily Weather Entity`  | ✅        | The weather entity to use for daily weather forecast data  |
-| `Hourly Weather Entity` | ❌        | The weather entity to use for hourly weather forecast data |
+| Setting                      | Required | Description                                                                                            |
+|------------------------------|----------|--------------------------------------------------------------------------------------------------------|
+| `Daily Weather Entity`       | ✅        | The weather entity to use for daily weather forecast data                                             |
+| `Hourly Weather Entity`      | ❌        | The weather entity to use for hourly weather forecast data                                            |
+| `Current Temperature Sensor` | ❌        | Optional sensor entity to provide current temperature when requesting today's hourly weather forecast |
 
 ## Acknowledgements
 

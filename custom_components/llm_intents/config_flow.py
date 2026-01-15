@@ -49,6 +49,7 @@ from .const import (
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
     CONF_WEATHER_ENABLED,
+    CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
@@ -236,6 +237,7 @@ def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = []
+    temperature_sensors = []
 
     for state in hass.states.async_all("weather"):
         entity_id = state.entity_id
@@ -250,6 +252,12 @@ def get_weather_schema(hass) -> vol.Schema:
         if features & WeatherEntityFeature.FORECAST_HOURLY:
             hourly_entities.append(entity_id)
 
+    # Get all sensor entities with temperature device class
+    for state in hass.states.async_all("sensor"):
+        device_class = state.attributes.get("device_class")
+        if device_class == "temperature":
+            temperature_sensors.append(state.entity_id)
+
     return vol.Schema(
         {
             vol.Required(CONF_DAILY_WEATHER_ENTITY): EntitySelector(
@@ -262,6 +270,12 @@ def get_weather_schema(hass) -> vol.Schema:
                 EntitySelectorConfig(
                     domain="weather",
                     include_entities=hourly_entities,
+                )
+            ),
+            vol.Optional(CONF_WEATHER_TEMPERATURE_SENSOR): EntitySelector(
+                EntitySelectorConfig(
+                    domain="sensor",
+                    include_entities=temperature_sensors,
                 )
             ),
         }
