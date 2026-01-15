@@ -147,7 +147,8 @@ class WeatherForecastTool(BaseTool):
         """Format our time nicely for the LLM"""
         dt = datetime.fromisoformat(iso_str).astimezone()
         next_hour = dt + timedelta(hours=1)
-        return f"{dt.strftime('%-I%p').lower()}-{next_hour.strftime('%-I%p').lower()}"
+        #return f"{dt.strftime('%-I%p').lower()}-{next_hour.strftime('%-I%p').lower()}"
+        return next_hour.strftime('%-I%p').lower()
 
     @staticmethod
     def _format_date(iso_str: str) -> str:
@@ -280,7 +281,7 @@ class WeatherForecastTool(BaseTool):
         return "\n".join(output)
 
     async def _get_hourly_forecast(
-        self, hass: HomeAssistant, entity_id: str, date, sensor_entity_id: str = None
+        self, hass: HomeAssistant, entity_id: str, date
     ) -> str:
         """Build the hourly forecast data"""
         forecast = await hass.services.async_call(
@@ -306,24 +307,6 @@ class WeatherForecastTool(BaseTool):
         ]
 
         output = []
-        
-        # Add current temperature from sensor if provided and this is today's forecast
-        if sensor_entity_id and sensor_entity_id != "None" and date == datetime.now().date():
-            sensor_state = hass.states.get(sensor_entity_id)
-            if sensor_state and sensor_state.state not in ("unknown", "unavailable"):
-                try:
-                    current_temp = round(float(sensor_state.state))
-                    output.append(
-                        "\n".join(
-                            [
-                                f"- Time: current",
-                                f"  Temperature: {current_temp}",
-                            ]
-                        )
-                    )
-                except (ValueError, TypeError):
-                    _LOGGER.warning(f"Could not parse temperature sensor value: {sensor_state.state}")
-        
         for hour in forecast:
             output.append(
                 "\n".join(
@@ -335,6 +318,32 @@ class WeatherForecastTool(BaseTool):
                 )
             )
 
+        return "\n".join(output)
+
+    @staticmethod
+    def _get_current_temperature_sensor_data(
+        hass: HomeAssistant, temperature_entity_id: str
+    ) -> str | None:
+        output = []
+        # Add current temperature from sensor if provided and this is today's forecast
+        sensor_state = hass.states.get(temperature_entity_id)
+        if sensor_state:
+            if sensor_state.state not in ("unknown", "unavailable"):
+                try:
+                    current_temp = round(float(sensor_state.state))
+                    output.append(
+                        "\n".join(
+                            [
+                                f"- Time: current",
+                                f"  Temperature: {current_temp}",
+                            ]
+                        )
+                    )
+                except (ValueError, TypeError):
+                    _LOGGER.warning(
+                        f"Could not parse temperature sensor value: {sensor_state.state}"
+                    )
+                    return None
         return "\n".join(output)
 
     async def async_call(
@@ -354,15 +363,16 @@ class WeatherForecastTool(BaseTool):
         try:
             hourly_entity_id = config_data.get(CONF_HOURLY_WEATHER_ENTITY)
             daily_entity_id = config_data.get(CONF_DAILY_WEATHER_ENTITY)
-            sensor_entity_id = config_data.get(CONF_WEATHER_TEMPERATURE_SENSOR, "None")
+            current_temperature_entity_id = config_data.get(
+                CONF_WEATHER_TEMPERATURE_SENSOR
+            )
 
             forecast = None
-            target_date = None
+            target_date = self._find_target_date(date_range)
 
             if date_range != "week" and hourly_entity_id:
-                target_date = self._find_target_date(date_range)
                 forecast = await self._get_hourly_forecast(
-                    hass, hourly_entity_id, target_date, sensor_entity_id
+                    hass, hourly_entity_id, target_date
                 )
 
             if not forecast and daily_entity_id:
@@ -376,6 +386,17 @@ class WeatherForecastTool(BaseTool):
                     forecast = await self._get_daily_forecast(
                         hass, daily_entity_id, target_date
                     )
+
+            if (
+                forecast
+                and current_temperature_entity_id
+                and target_date == datetime.today().date()
+            ):
+                current_temperature_data = self._get_current_temperature_sensor_data(
+                    hass, current_temperature_entity_id
+                )
+                if current_temperature_data:
+                    forecast = current_temperature_data + "\n" + forecast
 
             if not forecast:
                 forecast = "No weather forecast available for the selected range"

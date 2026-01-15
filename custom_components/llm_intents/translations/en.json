@@ -49,7 +49,12 @@
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
           "weather_hourly_entity": "Hourly Weather Entity",
-          "weather_temperature_sensor": "Current Temperature Sensor (optional)"
+          "current_temperature_entity": "Current Temperature Sensor"
+        },
+        "data_description": {
+          "weather_daily_entity": "Weather entity to pull daily forecast data from",
+          "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
+          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
         }
       }
     },
@@ -129,7 +134,12 @@
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
           "weather_hourly_entity": "Hourly Weather Entity",
-          "weather_temperature_sensor": "Current Temperature Sensor (optional)"
+          "current_temperature_entity": "Current Temperature Sensor"
+        },
+        "data_description": {
+          "weather_daily_entity": "Weather entity to pull daily forecast data from",
+          "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
+          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
         }
       }
     }

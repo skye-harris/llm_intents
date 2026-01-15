@@ -614,9 +614,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Weather configuration step in options flow."""
-        if user_input and CONF_HOURLY_WEATHER_ENTITY in self.config_data:
+        if user_input:
             # The config dict .update wont remove values where they arent present in the update data
             # Without a selection our dict will not contain a value for this, so lets just clear it here and itll be updated in .handle_step by existing logic if a value exists
             self.config_data[CONF_HOURLY_WEATHER_ENTITY] = None
-
+            self.config_data[CONF_WEATHER_TEMPERATURE_SENSOR] = None
         return await self.handle_step(STEP_WEATHER, user_input)
