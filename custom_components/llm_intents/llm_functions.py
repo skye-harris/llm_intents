@@ -46,6 +46,8 @@ WEATHER_CONF_ENABLED_MAP = [
 
 
 class BaseAPI(llm.API):
+    """Base class for API implementations."""
+
     _TOOLS_CONF_MAP = []
     _API_PROMPT = ""
 
@@ -56,7 +58,7 @@ class BaseAPI(llm.API):
         )
 
     def get_enabled_tools(self) -> list:
-        """Get all enabled tools for this service"""
+        """Get all enabled tools for this service."""
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}
@@ -104,7 +106,7 @@ class SearchAPI(BaseAPI):
     _API_PROMPT = SEARCH_SERVICES_PROMPT
 
     def __init__(self, hass: HomeAssistant, name: str) -> None:
-        # Maintain compatibility with prior version
+        """Initialise the API."""
         super().__init__(hass=hass, id=DOMAIN, name=name)
 
 

@@ -147,8 +147,7 @@ class WeatherForecastTool(BaseTool):
         """Format our time nicely for the LLM"""
         dt = datetime.fromisoformat(iso_str).astimezone()
         next_hour = dt + timedelta(hours=1)
-        #return f"{dt.strftime('%-I%p').lower()}-{next_hour.strftime('%-I%p').lower()}"
-        return next_hour.strftime('%-I%p').lower()
+        return next_hour.strftime("%-I%p").lower()
 
     @staticmethod
     def _format_date(iso_str: str) -> str:
@@ -334,7 +333,7 @@ class WeatherForecastTool(BaseTool):
                     output.append(
                         "\n".join(
                             [
-                                f"- Time: current",
+                                "- Time: current",
                                 f"  Temperature: {current_temp}",
                             ]
                         )

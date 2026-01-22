@@ -311,7 +311,7 @@ INITIAL_CONFIG_STEP_ORDER = {
 def get_next_step(
     current_step: str, config_data: dict, step_order: dict
 ) -> tuple[str, Callable] | None:
-    """Determine the next configuration step"""
+    """Determine the next configuration step."""
     keys = list(step_order.keys())
     try:
         start = keys.index(current_step) + 1
@@ -342,7 +342,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.config_data: dict[str, Any] = {}
 
     async def handle_step(self, current_step: str, user_input: dict[str, Any] | None):
-        """Handle a configuration step"""
+        """Handle a configuration step."""
         if user_input is None:
             return self.async_show_form(step_id=current_step)
 
@@ -565,6 +565,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     async def handle_step(
         self, current_step: str, user_input: dict[str, Any] | None = None
     ):
+        """Handle the current configuration step"""
         if user_input is None:
             return self.async_show_form(step_id=current_step)
         self.config_data.update(user_input)
