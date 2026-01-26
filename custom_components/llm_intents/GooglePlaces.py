@@ -80,9 +80,11 @@ class FindPlacesTool(BaseTool):
         query = tool_input.tool_args["query"]
 
         api_key = config_data.get(CONF_GOOGLE_PLACES_API_KEY)
-        num_results = config_data.get(
-            CONF_GOOGLE_PLACES_NUM_RESULTS,
-            SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
+        num_results = int(
+            config_data.get(
+                CONF_GOOGLE_PLACES_NUM_RESULTS,
+                SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
+            )
         )
         latitude = config_data.get(CONF_GOOGLE_PLACES_LATITUDE)
         longitude = config_data.get(CONF_GOOGLE_PLACES_LONGITUDE)

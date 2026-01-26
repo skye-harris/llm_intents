@@ -25,7 +25,7 @@ class BraveSearchTool(SearchWebTool):
         use_extra_snippets = True
 
         api_key = self.config.get(CONF_BRAVE_API_KEY)
-        num_results = self.config.get(CONF_BRAVE_NUM_RESULTS, 2)
+        num_results = int(self.config.get(CONF_BRAVE_NUM_RESULTS, 2))
         latitude = self.config.get(CONF_BRAVE_LATITUDE)
         longitude = self.config.get(CONF_BRAVE_LONGITUDE)
         timezone = self.config.get(CONF_BRAVE_TIMEZONE)

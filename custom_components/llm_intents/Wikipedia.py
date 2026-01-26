@@ -47,7 +47,7 @@ class SearchWikipediaTool(BaseTool):
         query = tool_input.tool_args["query"]
         _LOGGER.info("Wikipedia search requested for: %s", query)
 
-        num_results = config_data.get(CONF_WIKIPEDIA_NUM_RESULTS, 1)
+        num_results = int(config_data.get(CONF_WIKIPEDIA_NUM_RESULTS, 1))
 
         try:
             session = async_get_clientsession(hass)
