@@ -34,6 +34,7 @@ from .const import (
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
     CONF_DAILY_WEATHER_ENTITY,
+    CONF_GOOGLE_API_KEY,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_LATITUDE,
@@ -42,6 +43,7 @@ from .const import (
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
     CONF_HOURLY_WEATHER_ENTITY,
+    CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_SEARXNG,
@@ -53,7 +55,10 @@ from .const import (
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
+    PROVIDER_BRAVE,
+    PROVIDER_GOOGLE,
     SERVICE_DEFAULTS,
+    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,6 +98,30 @@ def get_step_user_data_schema(hass) -> vol.Schema:
 
 def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
     return [SelectOptionDict(value=key, label=opts[key]) for key in opts]
+
+
+def expand_config_for_schema(config: dict) -> dict:
+    """Add form field values for provider API keys so schemas get correct defaults."""
+    result = dict(config)
+    result[CONF_GOOGLE_API_KEY] = get_provider_api_key(config, PROVIDER_GOOGLE)
+    result[CONF_BRAVE_API_KEY] = get_provider_api_key(config, PROVIDER_BRAVE)
+    return result
+
+
+def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> None:
+    """Merge provider API keys from form input into config_data in-place."""
+    provider_keys = dict(config_data.get(CONF_PROVIDER_API_KEYS) or {})
+
+    if CONF_BRAVE_API_KEY in user_input:
+        provider_keys[PROVIDER_BRAVE] = user_input[CONF_BRAVE_API_KEY]
+    if CONF_GOOGLE_API_KEY in user_input:
+        provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
+
+    config_data[CONF_PROVIDER_API_KEYS] = provider_keys
+    # Remove form/legacy keys - store only in provider_api_keys
+    config_data.pop(CONF_BRAVE_API_KEY, None)
+    config_data.pop(CONF_GOOGLE_API_KEY, None)
+    config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
 
 
 def get_brave_schema(hass) -> vol.Schema:
@@ -165,8 +194,8 @@ def get_google_places_schema(hass) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
-                CONF_GOOGLE_PLACES_API_KEY,
-                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_API_KEY),
+                CONF_GOOGLE_API_KEY,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
             ): str,
             vol.Required(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
@@ -347,6 +376,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id=current_step)
 
         self.config_data.update(user_input)
+        merge_provider_api_keys_from_input(self.config_data, user_input)
 
         # Check if we need to configure other services
 
@@ -508,12 +538,15 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         # Store user selections and existing data
         self.user_selections = user_input.copy()
         self.config_data.update(user_input)
+        merge_provider_api_keys_from_input(self.config_data, user_input)
 
         next_step = get_next_step(STEP_USER, user_input, SEARCH_STEP_ORDER)
         if next_step:
             step_id, schema_func = next_step
             schema = schema_func(self.hass)
-            schema = self.add_suggested_values_to_schema(schema, self.config_data)
+            schema = self.add_suggested_values_to_schema(
+                schema, expand_config_for_schema(self.config_data)
+            )
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
@@ -569,19 +602,20 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is None:
             return self.async_show_form(step_id=current_step)
         self.config_data.update(user_input)
+        merge_provider_api_keys_from_input(self.config_data, user_input)
 
         next_step = get_next_step(current_step, self.user_selections, SEARCH_STEP_ORDER)
         opts = {**self.config_entry.data, **(self.config_entry.options or {})}
         if next_step:
             step_id, schema_func = next_step
             schema = schema_func(self.hass)
-            schema = self.add_suggested_values_to_schema(schema, opts)
+            schema = self.add_suggested_values_to_schema(
+                schema, expand_config_for_schema(opts)
+            )
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
             )
-
-        self.hass.config_entries.async_update_entry(self.config_entry, options=opts)
 
         return self.async_create_entry(data=self.config_data)
 

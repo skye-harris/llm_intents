@@ -4,13 +4,14 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .BaseWebSearch import SearchWebTool
 from .const import (
-    CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
+    PROVIDER_BRAVE,
+    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class BraveSearchTool(SearchWebTool):
         """Call the tool."""
         use_extra_snippets = True
 
-        api_key = self.config.get(CONF_BRAVE_API_KEY)
+        api_key = get_provider_api_key(self.config, PROVIDER_BRAVE)
         num_results = int(self.config.get(CONF_BRAVE_NUM_RESULTS, 2))
         latitude = self.config.get(CONF_BRAVE_LATITUDE)
         longitude = self.config.get(CONF_BRAVE_LONGITUDE)

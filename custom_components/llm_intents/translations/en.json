@@ -28,7 +28,7 @@
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
         "data": {
-          "google_places_api_key": "API Key",
+          "google_api_key": "Google API Key",
           "google_places_rank_preference": "Rank Preference",
           "google_places_num_results": "Number of Results",
           "google_places_latitude": "Location Bias Latitude (optional)",
@@ -113,7 +113,7 @@
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
         "data": {
-          "google_places_api_key": "API Key",
+          "google_api_key": "Google API Key",
           "google_places_rank_preference": "Rank Preference",
           "google_places_num_results": "Number of Results",
           "google_places_latitude": "Location Bias Latitude (optional)",

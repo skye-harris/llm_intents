@@ -11,14 +11,15 @@ from homeassistant.util.json import JsonObjectType
 from .BaseTool import BaseTool
 from .cache import SQLiteCache
 from .const import (
-    CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_LATITUDE,
     CONF_GOOGLE_PLACES_LONGITUDE,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
     DOMAIN,
+    PROVIDER_GOOGLE,
     SERVICE_DEFAULTS,
+    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ class FindPlacesTool(BaseTool):
 
         query = tool_input.tool_args["query"]
 
-        api_key = config_data.get(CONF_GOOGLE_PLACES_API_KEY)
+        api_key = get_provider_api_key(config_data, PROVIDER_GOOGLE)
         num_results = int(
             config_data.get(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,

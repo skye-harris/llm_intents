@@ -36,10 +36,20 @@ CONF_SEARCH_PROVIDERS = {
 CONF_SEARXNG_URL = "searxng_server_url"
 CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
 
+# Provider API keys - shared across tools using the same backend
+
+CONF_PROVIDER_API_KEYS = "provider_api_keys"
+PROVIDER_GOOGLE = "google"
+PROVIDER_BRAVE = "brave"
+
+# Form field keys for provider API keys
+
+CONF_GOOGLE_API_KEY = "google_api_key"
+CONF_BRAVE_API_KEY = "brave_api_key"
+
 # Brave-specific constants
 
 CONF_BRAVE_ENABLED = "brave_search_enabled"
-CONF_BRAVE_API_KEY = "brave_api_key"
 CONF_BRAVE_NUM_RESULTS = "brave_num_results"
 CONF_BRAVE_COUNTRY_CODE = "brave_country_code"
 CONF_BRAVE_LATITUDE = "brave_latitude"
@@ -112,9 +122,27 @@ CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
+def get_provider_api_key(config: dict, provider: str) -> str:
+    """Get API key for a provider from config. Handles legacy flat keys."""
+    provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
+    key = provider_keys.get(provider, "")
+
+    if key:
+        return key
+
+    # fall back to tool-specific keys
+    if provider == PROVIDER_GOOGLE:
+        return config.get(CONF_GOOGLE_PLACES_API_KEY, "")
+    if provider == PROVIDER_BRAVE:
+        return config.get(CONF_BRAVE_API_KEY, "")
+
+    return ""
+
+
 # Service defaults
 
 SERVICE_DEFAULTS = {
+    CONF_GOOGLE_API_KEY: "",
     CONF_BRAVE_API_KEY: "",
     CONF_BRAVE_NUM_RESULTS: 2,
     CONF_BRAVE_LATITUDE: "",
@@ -124,7 +152,6 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_POST_CODE: "",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
-    CONF_GOOGLE_PLACES_API_KEY: "",
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",
     CONF_GOOGLE_PLACES_LONGITUDE: "",
