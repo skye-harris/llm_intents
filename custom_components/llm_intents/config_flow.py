@@ -120,6 +120,12 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     if CONF_GOOGLE_API_KEY in user_input:
         provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
 
+    if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
+        provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
+
+    if PROVIDER_GOOGLE not in provider_keys and config_data.get(CONF_GOOGLE_PLACES_API_KEY):
+        provider_keys[PROVIDER_GOOGLE] = config_data[CONF_GOOGLE_PLACES_API_KEY]
+
     config_data[CONF_PROVIDER_API_KEYS] = provider_keys
     # Remove form/legacy keys - store only in provider_api_keys
     config_data.pop(CONF_BRAVE_API_KEY, None)
@@ -626,7 +632,17 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ):
         """Handle the current configuration step"""
         if user_input is None:
-            return self.async_show_form(step_id=current_step)
+            opts = {**self.config_entry.data, **(self.config_entry.options or {})}
+            _, schema_func = SEARCH_STEP_ORDER[current_step]
+            schema = schema_func(self.hass)
+            schema = self.add_suggested_values_to_schema(
+                schema, expand_config_for_schema(opts)
+            )
+            return self.async_show_form(
+                step_id=current_step,
+                data_schema=schema,
+            )
+
         self.config_data.update(user_input)
         merge_provider_api_keys_from_input(self.config_data, user_input)
 
