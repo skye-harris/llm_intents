@@ -7,6 +7,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast"
         }
@@ -34,6 +35,13 @@
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "youtube": {
+        "title": "Configure YouTube Search",
+        "description": "Configure YouTube search settings. Uses the same Google API key as Google Places.",
+        "data": {
+          "google_api_key": "Google API Key"
         }
       },
       "wikipedia": {
@@ -78,6 +86,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search"
         }
       },
@@ -119,6 +128,13 @@
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "youtube": {
+        "title": "Configure YouTube Search",
+        "description": "Configure YouTube search settings. Uses the same Google API key as Google Places.",
+        "data": {
+          "google_api_key": "Google API Key"
         }
       },
       "wikipedia": {

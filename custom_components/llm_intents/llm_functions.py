@@ -14,6 +14,7 @@ from .const import (
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
+    CONF_YOUTUBE_ENABLED,
     DOMAIN,
     SEARCH_API_NAME,
     SEARCH_SERVICES_PROMPT,
@@ -22,6 +23,7 @@ from .const import (
 )
 from .GooglePlaces import FindPlacesTool
 from .SearXngSearch import SearXngSearchTool
+from .YouTube import SearchYouTubeTool
 from .Weather import WeatherForecastTool
 from .Wikipedia import SearchWikipediaTool
 
@@ -37,6 +39,7 @@ SEARCH_CONF_ENABLED_MAP = [
         SearXngSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
+    (CONF_YOUTUBE_ENABLED, SearchYouTubeTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),
 ]
 

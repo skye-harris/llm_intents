@@ -107,6 +107,10 @@ CONF_GOOGLE_PLACES_LONGITUDE = "google_places_longitude"
 CONF_GOOGLE_PLACES_RADIUS = "google_places_radius"
 CONF_GOOGLE_PLACES_RANKING = "google_places_rank_preference"
 
+# YouTube-specific constants
+
+CONF_YOUTUBE_ENABLED = "youtube_enabled"
+
 # Wikipedia-specific constants
 
 CONF_WIKIPEDIA_ENABLED = "wikipedia_enabled"

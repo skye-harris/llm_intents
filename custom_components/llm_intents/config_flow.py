@@ -53,6 +53,7 @@ from .const import (
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
+    CONF_YOUTUBE_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     DOMAIN,
     PROVIDER_BRAVE,
@@ -72,6 +73,7 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_SEARXNG = "searxng"
 STEP_GOOGLE_PLACES = "google_places"
+STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
 STEP_CONFIGURE_SEARCH = "configure"
@@ -90,6 +92,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
             )
         ),
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
+        vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
     }
@@ -242,6 +245,18 @@ def get_google_places_schema(hass) -> vol.Schema:
     )
 
 
+def get_youtube_schema(hass) -> vol.Schema:
+    """Return the static schema for YouTube service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_GOOGLE_API_KEY,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
+            ): str,
+        }
+    )
+
+
 def get_wikipedia_schema(hass) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
@@ -322,6 +337,7 @@ SEARCH_STEP_ORDER = {
         get_searxng_schema,
     ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
+    STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
 
@@ -456,6 +472,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Google Places configuration step."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
+    async def async_step_youtube(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle YouTube configuration step."""
+        return await self.handle_step(STEP_YOUTUBE, user_input)
+
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
@@ -520,6 +542,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 ),
                 vol.Optional(
                     CONF_GOOGLE_PLACES_ENABLED,
+                    default=False,
+                ): bool,
+                vol.Optional(
+                    CONF_YOUTUBE_ENABLED,
                     default=False,
                 ): bool,
                 vol.Optional(
@@ -638,6 +664,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle Google Places configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
+
+    async def async_step_youtube(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle YouTube configuration step in options flow."""
+        return await self.handle_step(STEP_YOUTUBE, user_input)
 
     async def async_step_wikipedia(
         self, user_input: dict[str, Any] | None = None
