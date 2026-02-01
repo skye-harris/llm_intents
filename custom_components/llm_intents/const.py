@@ -126,6 +126,7 @@ CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
+
 def get_provider_api_key(config: dict, provider: str) -> str:
     """Get API key for a provider from config. Handles legacy flat keys."""
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}

@@ -123,7 +123,9 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
         provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
 
-    if PROVIDER_GOOGLE not in provider_keys and config_data.get(CONF_GOOGLE_PLACES_API_KEY):
+    if PROVIDER_GOOGLE not in provider_keys and config_data.get(
+        CONF_GOOGLE_PLACES_API_KEY
+    ):
         provider_keys[PROVIDER_GOOGLE] = config_data[CONF_GOOGLE_PLACES_API_KEY]
 
     config_data[CONF_PROVIDER_API_KEYS] = provider_keys

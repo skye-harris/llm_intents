@@ -94,7 +94,9 @@ class SearchYouTubeTool(BaseTool):
                 return cached_response
 
             session = async_get_clientsession(hass)
-            async with session.get(YOUTUBE_API_BASE_URL, params=params, timeout=10) as resp:
+            async with session.get(
+                YOUTUBE_API_BASE_URL, params=params, timeout=10
+            ) as resp:
                 if resp.status != 200:
                     error_text = await resp.text()
                     _LOGGER.error("YouTube API error %s: %s", resp.status, error_text)
@@ -125,8 +127,12 @@ class SearchYouTubeTool(BaseTool):
                     "channelTitle": snippet.get("channelTitle"),
                     "publishedAt": snippet.get("publishedAt"),
                     "description": snippet.get("description"),
-                    "thumbnail": thumbnails.get("default", {}).get("url") if thumbnails else None,
-                    "url": f"https://www.youtube.com/watch?v={video_id}" if video_id else None,
+                    "thumbnail": thumbnails.get("default", {}).get("url")
+                    if thumbnails
+                    else None,
+                    "url": f"https://www.youtube.com/watch?v={video_id}"
+                    if video_id
+                    else None,
                 }
             )
 
