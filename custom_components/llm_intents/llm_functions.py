@@ -16,16 +16,19 @@ from .const import (
     CONF_WIKIPEDIA_ENABLED,
     CONF_YOUTUBE_ENABLED,
     DOMAIN,
+    MEDIA_API_NAME,
+    MEDIA_SERVICES_PROMPT,
     SEARCH_API_NAME,
     SEARCH_SERVICES_PROMPT,
     WEATHER_API_NAME,
     WEATHER_SERVICES_PROMPT,
 )
 from .GooglePlaces import FindPlacesTool
+from .PlayMedia import PlayVideoTool
 from .SearXngSearch import SearXngSearchTool
-from .YouTube import SearchYouTubeTool
 from .Weather import WeatherForecastTool
 from .Wikipedia import SearchWikipediaTool
+from .YouTube import SearchYouTubeTool
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +48,11 @@ SEARCH_CONF_ENABLED_MAP = [
 
 WEATHER_CONF_ENABLED_MAP = [
     (CONF_WEATHER_ENABLED, WeatherForecastTool),
+]
+
+# Media tools are enabled when YouTube is enabled
+MEDIA_CONF_ENABLED_MAP = [
+    (CONF_YOUTUBE_ENABLED, PlayVideoTool),
 ]
 
 
@@ -120,6 +128,13 @@ class WeatherAPI(BaseAPI):
     _API_PROMPT = WEATHER_SERVICES_PROMPT
 
 
+class MediaAPI(BaseAPI):
+    """Media services API for LLM integration."""
+
+    _TOOLS_CONF_MAP = MEDIA_CONF_ENABLED_MAP
+    _API_PROMPT = MEDIA_SERVICES_PROMPT
+
+
 async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) -> None:
     """Set up LLM functions for search services."""
     # Check if already set up with same config to avoid unnecessary work
@@ -138,9 +153,11 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
     hass.data.setdefault(DOMAIN, {})
     search_api = SearchAPI(hass, SEARCH_API_NAME)
     weather_api = WeatherAPI(hass, WEATHER_API_NAME)
+    media_api = MediaAPI(hass, MEDIA_API_NAME)
 
     hass.data[DOMAIN]["api"] = search_api
     hass.data[DOMAIN]["weather_api"] = weather_api
+    hass.data[DOMAIN]["media_api"] = media_api
     hass.data[DOMAIN]["config"] = config_data.copy()
     hass.data[DOMAIN]["unregister_api"] = []
 
@@ -154,6 +171,11 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
         if weather_api.get_enabled_tools():
             hass.data[DOMAIN]["unregister_api"].append(
                 llm.async_register_api(hass, weather_api)
+            )
+
+        if media_api.get_enabled_tools():
+            hass.data[DOMAIN]["unregister_api"].append(
+                llm.async_register_api(hass, media_api)
             )
     except Exception as e:
         _LOGGER.error("Failed to register LLM API: %s", e)

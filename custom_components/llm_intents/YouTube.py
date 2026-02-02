@@ -1,5 +1,4 @@
-"""YouTube search tool for Tools for Assist."""
-
+"""YouTube search tool for Home Assistant LLM integration."""
 import logging
 
 import voluptuous as vol
@@ -18,8 +17,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3/search"
-
 
 class SearchYouTubeTool(BaseTool):
     """Tool for searching YouTube videos."""
@@ -29,22 +26,24 @@ class SearchYouTubeTool(BaseTool):
     description = "\n".join(
         [
             "Use this tool to search YouTube when the user requests or infers they want to:",
-            "- Find video(s) on a topic",
-            "- Get a YouTube video URL for something",
+            "- Find a video to watch",
+            "- Search for music, tutorials, or other video content",
+            "- Play something on a TV or media player",
         ]
     )
 
     prompt_description = "\n".join(
         [
             "Use the `search_youtube` tool to find videos on YouTube:",
-            "- Returns video title, channel, URL, and thumbnail.",
+            "- Returns video titles, URLs, channel names, and descriptions.",
+            "- Use this when the user wants to watch or play video content.",
         ]
     )
 
     response_directive = "\n".join(
         [
             "Use the search results to answer the user's query.",
-            "Include the video URL when relevant so the user can watch.",
+            "If the user wants to play a video, use the play_video tool with the video URL.",
         ]
     )
 
@@ -56,8 +55,8 @@ class SearchYouTubeTool(BaseTool):
             vol.Optional(
                 "num_results",
                 default=1,
-                description="Number of videos to return (1-4). Use more when the user wants multiple options.",
-            ): vol.All(int, vol.Range(min=1, max=4)),
+                description="Number of videos to return (1-25). Use more when the user wants multiple options.",
+            ): vol.All(int, vol.Range(min=1, max=25)),
         }
     )
 
@@ -74,73 +73,75 @@ class SearchYouTubeTool(BaseTool):
 
         query = tool_input.tool_args["query"]
         num_results = tool_input.tool_args.get("num_results", 1)
+
         api_key = get_provider_api_key(config_data, PROVIDER_GOOGLE)
 
         if not api_key:
-            return {"error": "Google API key not configured for YouTube search"}
-
-        params = {
-            "part": "snippet",
-            "q": query,
-            "type": "video",
-            "maxResults": num_results,
-            "key": api_key,
-        }
+            return {"error": "Google API key not configured"}
 
         try:
+            session = async_get_clientsession(hass)
+
             cache = SQLiteCache()
-            cached_response = cache.get(__name__, params)
+            cache_params = {"query": query, "maxResults": num_results}
+            cached_response = cache.get(__name__, cache_params)
             if cached_response:
                 return cached_response
 
-            session = async_get_clientsession(hass)
+            params = {
+                "part": "snippet",
+                "q": query,
+                "type": "video",
+                "maxResults": num_results,
+                "key": api_key,
+            }
+
             async with session.get(
-                YOUTUBE_API_BASE_URL, params=params, timeout=10
+                "https://www.googleapis.com/youtube/v3/search",
+                params=params,
             ) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    _LOGGER.error("YouTube API error %s: %s", resp.status, error_text)
-                    return {
-                        "error": "Failed to search YouTube. Check API key and ensure YouTube Data API v3 is enabled."
-                    }
+                if resp.status == 200:
+                    data = await resp.json()
+                    results = []
 
-                data = await resp.json()
+                    for item in data.get("items", []):
+                        video_id = item.get("id", {}).get("videoId")
+                        snippet = item.get("snippet", {})
 
-        except Exception as e:
-            _LOGGER.error("YouTube search error: %s", e)
-            return {"error": "Failed to search YouTube. Please try again later."}
+                        if video_id:
+                            results.append(
+                                {
+                                    "title": snippet.get("title"),
+                                    "url": f"https://www.youtube.com/watch?v={video_id}",
+                                    "channel": snippet.get("channelTitle"),
+                                    "description": snippet.get("description"),
+                                    "published_at": snippet.get("publishedAt"),
+                                }
+                            )
 
-        items = data.get("items", [])
-        if not items:
-            return {"result": "No videos found for the given query"}
+                    if results:
+                        cache.set(
+                            __name__,
+                            cache_params,
+                            {
+                                "results": results,
+                                "instruction": self.response_directive,
+                            },
+                        )
 
-        results = []
-        for item in items:
-            video_id = item.get("id", {}).get("videoId")
-            snippet = item.get("snippet", {})
-            thumbnails = snippet.get("thumbnails", {})
+                    return (
+                        {"results": results, "instruction": self.response_directive}
+                        if results
+                        else {"result": "No videos found"}
+                    )
 
-            results.append(
-                {
-                    "videoId": video_id,
-                    "title": snippet.get("title"),
-                    "channelTitle": snippet.get("channelTitle"),
-                    "publishedAt": snippet.get("publishedAt"),
-                    "description": snippet.get("description"),
-                    "thumbnail": thumbnails.get("default", {}).get("url")
-                    if thumbnails
-                    else None,
-                    "url": f"https://www.youtube.com/watch?v={video_id}"
-                    if video_id
-                    else None,
-                }
-            )
+                _LOGGER.error(
+                    "YouTube search received HTTP %s error: %s",
+                    resp.status,
+                    await resp.text(),
+                )
+                return {"error": f"YouTube search error: {resp.status}"}
 
-        if results:
-            cache.set(
-                __name__,
-                params,
-                {"results": results, "instruction": self.response_directive},
-            )
-
-        return {"results": results, "instruction": self.response_directive}
+        except Exception:
+            _LOGGER.exception("YouTube search error")
+            return {"error": "Error searching YouTube"}

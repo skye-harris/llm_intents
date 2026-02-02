@@ -10,6 +10,7 @@ ADDON_NAME = "Tools for Assist"
 
 SEARCH_API_NAME = "Search Services"
 WEATHER_API_NAME = "Weather Forecast"
+MEDIA_API_NAME = "Media Services"
 
 # SQLite Cache
 
@@ -19,6 +20,10 @@ SEARCH_SERVICES_PROMPT = "You may utilise the Search Services tools to lookup up
 
 WEATHER_SERVICES_PROMPT = """
 Use the Weather Services tools to access current weather and forecast data.
+"""
+
+MEDIA_SERVICES_PROMPT = """
+Use the Media Services tools to play video content on media player devices.
 """
 
 # Search Providers
