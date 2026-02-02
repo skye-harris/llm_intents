@@ -134,7 +134,7 @@ class PlayVideoTool(BaseTool):
         target_desc = entity_id or area_input or device_id
         service_data = {
             "media_content_id": video_url,
-            "media_content_type": "video",
+            "media_content_type": "url",
         }
 
         _LOGGER.debug(
