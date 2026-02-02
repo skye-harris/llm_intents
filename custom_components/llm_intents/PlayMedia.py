@@ -5,12 +5,19 @@ import logging
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
 
 from .BaseTool import BaseTool
 
 _LOGGER = logging.getLogger(__name__)
+
+# Official device_class values that support video
+VIDEO_CAPABLE_DEVICE_CLASSES = {"tv", "receiver"}
+# Device classes that are explicitly audio-only
+AUDIO_ONLY_DEVICE_CLASSES = {"speaker"}
 
 
 def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
@@ -42,6 +49,89 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
             return area.id
 
     return None
+
+
+def get_video_capable_media_players_in_area(
+    hass: HomeAssistant, area_id: str
+) -> list[str]:
+    """Find media players in an area that support video playback.
+
+    Uses device_class to determine video capability:
+    - tv, receiver = video capable
+    - speaker = audio only
+    - no device_class = skipped (must be explicitly configured)
+
+    Args:
+        hass: Home Assistant instance
+        area_id: The area ID to search in
+
+    Returns:
+        List of entity_ids for video-capable media players
+    """
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    video_capable_entities = []
+    all_media_players_in_area = []
+
+    for entity in entity_registry.entities.values():
+        if not entity.entity_id.startswith("media_player."):
+            continue
+
+        entity_area_id = entity.area_id
+
+        if not entity_area_id and entity.device_id:
+            device = device_registry.async_get(entity.device_id)
+            if device:
+                entity_area_id = device.area_id
+
+        if entity_area_id != area_id:
+            continue
+
+        all_media_players_in_area.append(entity.entity_id)
+
+        state = hass.states.get(entity.entity_id)
+        if not state:
+            continue
+
+        # Use device_class to determine video capability
+        device_class = state.attributes.get("device_class")
+        if not device_class:
+            _LOGGER.debug(
+                "Entity %s has no device_class set, skipping",
+                entity.entity_id,
+            )
+            continue
+
+        device_class_lower = device_class.lower()
+        if device_class_lower in VIDEO_CAPABLE_DEVICE_CLASSES:
+            _LOGGER.debug(
+                "Entity %s has video-capable device_class: %s",
+                entity.entity_id,
+                device_class,
+            )
+            video_capable_entities.append(entity.entity_id)
+        elif device_class_lower in AUDIO_ONLY_DEVICE_CLASSES:
+            _LOGGER.debug(
+                "Entity %s has audio-only device_class: %s, skipping",
+                entity.entity_id,
+                device_class,
+            )
+        else:
+            _LOGGER.debug(
+                "Entity %s has unknown device_class: %s, skipping",
+                entity.entity_id,
+                device_class,
+            )
+
+    _LOGGER.debug(
+        "Area %s has media players: %s, video-capable: %s",
+        area_id,
+        all_media_players_in_area,
+        video_capable_entities,
+    )
+
+    return video_capable_entities
 
 
 class PlayVideoTool(BaseTool):
@@ -110,15 +200,34 @@ class PlayVideoTool(BaseTool):
         if area_input:
             area_id = resolve_area_id(hass, area_input)
 
-            if area_id:
-                _LOGGER.debug("Resolved area '%s' to area_id '%s'", area_input, area_id)
-                target["area_id"] = area_id
-            else:
+            if not area_id:
                 _LOGGER.warning("Could not resolve area '%s' to a valid area_id", area_input)
                 return {
                     "success": False,
                     "error": f"Could not find area '{area_input}'. Please check the area name.",
                 }
+
+            _LOGGER.debug("Resolved area '%s' to area_id '%s'", area_input, area_id)
+
+            video_players = get_video_capable_media_players_in_area(hass, area_id)
+
+            if not video_players:
+                _LOGGER.warning("No video-capable media players found in area '%s'", area_input)
+                return {
+                    "success": False,
+                    "error": f"No video-capable media players found in area '{area_input}'.",
+                }
+
+            if "entity_id" in target:
+                existing = target["entity_id"]
+                if isinstance(existing, str):
+                    target["entity_id"] = [existing] + video_players
+                else:
+                    target["entity_id"] = list(existing) + video_players
+            else:
+                target["entity_id"] = video_players
+
+            _LOGGER.debug("Targeting video-capable players: %s", video_players)
 
         if device_id:
             target["device_id"] = device_id
