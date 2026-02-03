@@ -21,7 +21,8 @@ AUDIO_ONLY_DEVICE_CLASSES = {"speaker"}
 
 
 def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
-    """Resolve an area name or ID to a valid area ID.
+    """
+    Resolve an area name or ID to a valid area ID.
 
     Args:
         hass: Home Assistant instance
@@ -29,6 +30,7 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
 
     Returns:
         The resolved area_id, or None if not found
+
     """
     area_registry = ar.async_get(hass)
 
@@ -54,7 +56,8 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
 def get_video_capable_media_players_in_area(
     hass: HomeAssistant, area_id: str
 ) -> list[str]:
-    """Find media players in an area that support video playback.
+    """
+    Find media players in an area that support video playback.
 
     Uses device_class to determine video capability:
     - tv, receiver = video capable
@@ -67,6 +70,7 @@ def get_video_capable_media_players_in_area(
 
     Returns:
         List of entity_ids for video-capable media players
+
     """
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
