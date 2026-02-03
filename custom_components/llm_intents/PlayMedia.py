@@ -8,6 +8,7 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import llm
+from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 from homeassistant.util.json import JsonObjectType
 
 from .BaseTool import BaseTool
@@ -21,7 +22,8 @@ AUDIO_ONLY_DEVICE_CLASSES = {"speaker"}
 
 
 def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
-    """Resolve an area name or ID to a valid area ID.
+    """
+    Resolve an area name or ID to a valid area ID.
 
     Args:
         hass: Home Assistant instance
@@ -29,6 +31,7 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
 
     Returns:
         The resolved area_id, or None if not found
+
     """
     area_registry = ar.async_get(hass)
 
@@ -44,17 +47,26 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
             return area.id
 
     for area in area_registry.async_list_areas():
-        if area_input_lower in area.name.lower() or area.name.lower() in area_input_lower:
-            _LOGGER.debug("Fuzzy matched area '%s' to '%s' (id: %s)", area_input, area.name, area.id)
+        if (
+            area_input_lower in area.name.lower()
+            or area.name.lower() in area_input_lower
+        ):
+            _LOGGER.debug(
+                "Fuzzy matched area '%s' to '%s' (id: %s)",
+                area_input,
+                area.name,
+                area.id,
+            )
             return area.id
 
     return None
 
 
-def get_video_capable_media_players_in_area(
-    hass: HomeAssistant, area_id: str
+def get_video_capable_media_players(
+    hass: HomeAssistant, area_id: str | None
 ) -> list[str]:
-    """Find media players in an area that support video playback.
+    """
+    Find media players in an area that support video playback.
 
     Uses device_class to determine video capability:
     - tv, receiver = video capable
@@ -63,10 +75,11 @@ def get_video_capable_media_players_in_area(
 
     Args:
         hass: Home Assistant instance
-        area_id: The area ID to search in
+        area_id: The area ID to search in, or none to return all supported media players
 
     Returns:
         List of entity_ids for video-capable media players
+
     """
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
@@ -78,15 +91,16 @@ def get_video_capable_media_players_in_area(
         if not entity.entity_id.startswith("media_player."):
             continue
 
-        entity_area_id = entity.area_id
+        if area_id:
+            entity_area_id = entity.area_id
 
-        if not entity_area_id and entity.device_id:
-            device = device_registry.async_get(entity.device_id)
-            if device:
-                entity_area_id = device.area_id
+            if not entity_area_id and entity.device_id:
+                device = device_registry.async_get(entity.device_id)
+                if device:
+                    entity_area_id = device.area_id
 
-        if entity_area_id != area_id:
-            continue
+            if entity_area_id != area_id:
+                continue
 
         all_media_players_in_area.append(entity.entity_id)
 
@@ -150,26 +164,40 @@ class PlayVideoTool(BaseTool):
         "- Use this after searching YouTube to play the video on a device."
     )
 
-    parameters = vol.Schema(
-        {
-            vol.Required(
-                "video_url",
-                description="The URL of the video to play (e.g., YouTube URL)",
-            ): str,
-            vol.Optional(
-                "entity_id",
-                description="The entity_id of the media player (e.g., media_player.living_room_tv)",
-            ): str,
-            vol.Optional(
-                "area",
-                description="The area name or ID to target all media players in that area (e.g., 'Living Room' or 'living_room')",
-            ): str,
-            vol.Optional(
-                "device_id",
-                description="The device_id of the media player device",
-            ): str,
-        }
-    )
+    parameters = vol.Schema({})
+
+    @staticmethod
+    def update_args(hass: HomeAssistant) -> None:
+        """
+        Update the tool args with the currently available media players, in case this has changed since we were last called.
+        This is called every time the LLM integration is about to query the model.
+        """
+        video_players = get_video_capable_media_players(hass, None)
+        PlayVideoTool.parameters = vol.Schema(
+            {
+                vol.Required(
+                    "video_url",
+                    description="The URL of the video to play (e.g., YouTube URL)",
+                ): str,
+                vol.Optional(
+                    "entity_id",
+                    description="The entity_id of the media player (e.g., media_player.living_room_tv)",
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=video_players,
+                        multiple=True,
+                    )
+                ),
+                vol.Optional(
+                    "area",
+                    description="The area name or ID to target all media players in that area (e.g., 'Living Room' or 'living_room')",
+                ): str,
+                vol.Optional(
+                    "device_id",
+                    description="The device_id of the media player device",
+                ): str,
+            }
+        )
 
     async def async_call(
         self,
@@ -201,7 +229,9 @@ class PlayVideoTool(BaseTool):
             area_id = resolve_area_id(hass, area_input)
 
             if not area_id:
-                _LOGGER.warning("Could not resolve area '%s' to a valid area_id", area_input)
+                _LOGGER.warning(
+                    "Could not resolve area '%s' to a valid area_id", area_input
+                )
                 return {
                     "success": False,
                     "error": f"Could not find area '{area_input}'. Please check the area name.",
@@ -209,10 +239,12 @@ class PlayVideoTool(BaseTool):
 
             _LOGGER.debug("Resolved area '%s' to area_id '%s'", area_input, area_id)
 
-            video_players = get_video_capable_media_players_in_area(hass, area_id)
+            video_players = get_video_capable_media_players(hass, area_id)
 
             if not video_players:
-                _LOGGER.warning("No video-capable media players found in area '%s'", area_input)
+                _LOGGER.warning(
+                    "No video-capable media players found in area '%s'", area_input
+                )
                 return {
                     "success": False,
                     "error": f"No video-capable media players found in area '{area_input}'.",
@@ -261,7 +293,9 @@ class PlayVideoTool(BaseTool):
                 blocking=True,
             )
 
-            _LOGGER.debug("media_player.play_media completed successfully for %s", target_desc)
+            _LOGGER.debug(
+                "media_player.play_media completed successfully for %s", target_desc
+            )
 
             return {
                 "success": True,
