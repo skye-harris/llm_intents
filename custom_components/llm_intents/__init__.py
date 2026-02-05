@@ -34,7 +34,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Tools for Assist from a config entry."""
     _LOGGER.info(f"Setting up {ADDON_NAME} for entry: %s", entry.entry_id)
-    await setup_llm_functions(hass, entry.data)
+    config = {**entry.data, **(entry.options or {})}
+    await setup_llm_functions(hass, config)
     _LOGGER.info(f"{ADDON_NAME} functions successfully set up")
     return True
 
@@ -59,11 +60,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             else None
         )
 
-        if entry_data[CONF_HOURLY_WEATHER_ENTITY] == "None":
+        if entry_data.get(CONF_HOURLY_WEATHER_ENTITY) == "None":
             entry_data[CONF_HOURLY_WEATHER_ENTITY] = None
 
-        del entry_data[CONF_BRAVE_ENABLED]
-
-    hass.config_entries.async_update_entry(entry, version=2, data=entry_data)
+        entry_data.pop(CONF_BRAVE_ENABLED, None)
+        hass.config_entries.async_update_entry(entry, version=2, data=entry_data)
 
     return True
