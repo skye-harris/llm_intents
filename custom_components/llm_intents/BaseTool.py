@@ -8,3 +8,7 @@ class BaseTool(llm.Tool):
         super().__init__()
         self.config = config
         self.hass = hass
+
+    @staticmethod
+    def update_args(hass: HomeAssistant):
+        pass

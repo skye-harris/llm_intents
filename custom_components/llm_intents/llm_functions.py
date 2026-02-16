@@ -85,6 +85,7 @@ class BaseAPI(llm.API):
                 tool_enabled = key(config_data)
 
             if tool_enabled:
+                tool_class.update_args(self.hass)
                 tools = tools + [tool_class(config_data, self.hass)]
 
         return tools

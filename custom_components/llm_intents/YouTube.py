@@ -1,4 +1,5 @@
 """YouTube search tool for Home Assistant LLM integration."""
+
 import logging
 
 import voluptuous as vol
