@@ -10,8 +10,8 @@ from .const import (
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
+    CONF_PROVIDER_API_KEYS,
     PROVIDER_BRAVE,
-    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,7 +25,8 @@ class BraveSearchTool(SearchWebTool):
         """Call the tool."""
         use_extra_snippets = True
 
-        api_key = get_provider_api_key(self.config, PROVIDER_BRAVE)
+        provider_keys = self.config.get(CONF_PROVIDER_API_KEYS) or {}
+        api_key = provider_keys.get(PROVIDER_BRAVE, "")
         num_results = int(self.config.get(CONF_BRAVE_NUM_RESULTS, 2))
         latitude = self.config.get(CONF_BRAVE_LATITUDE)
         longitude = self.config.get(CONF_BRAVE_LONGITUDE)

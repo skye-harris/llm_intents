@@ -11,9 +11,9 @@ from homeassistant.util.json import JsonObjectType
 from .BaseTool import BaseTool
 from .cache import SQLiteCache
 from .const import (
+    CONF_PROVIDER_API_KEYS,
     DOMAIN,
     PROVIDER_GOOGLE,
-    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,7 +75,8 @@ class SearchYouTubeTool(BaseTool):
         query = tool_input.tool_args["query"]
         num_results = tool_input.tool_args.get("num_results", 1)
 
-        api_key = get_provider_api_key(config_data, PROVIDER_GOOGLE)
+        provider_keys = config_data.get(CONF_PROVIDER_API_KEYS) or {}
+        api_key = provider_keys.get(PROVIDER_GOOGLE, "")
 
         if not api_key:
             return {"error": "Google API key not configured"}

@@ -132,23 +132,6 @@ CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
 
-def get_provider_api_key(config: dict, provider: str) -> str:
-    """Get API key for a provider from config. Handles legacy flat keys."""
-    provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
-    key = provider_keys.get(provider, "")
-
-    if key:
-        return key
-
-    # fall back to tool-specific keys
-    if provider == PROVIDER_GOOGLE:
-        return config.get(CONF_GOOGLE_PLACES_API_KEY, "")
-    if provider == PROVIDER_BRAVE:
-        return config.get(CONF_BRAVE_API_KEY, "")
-
-    return ""
-
-
 # Service defaults
 
 SERVICE_DEFAULTS = {

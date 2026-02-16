@@ -59,7 +59,6 @@ from .const import (
     PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
     SERVICE_DEFAULTS,
-    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -106,8 +105,9 @@ def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
 def expand_config_for_schema(config: dict) -> dict:
     """Add form field values for provider API keys so schemas get correct defaults."""
     result = dict(config)
-    result[CONF_GOOGLE_API_KEY] = get_provider_api_key(config, PROVIDER_GOOGLE)
-    result[CONF_BRAVE_API_KEY] = get_provider_api_key(config, PROVIDER_BRAVE)
+    provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
+    result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
+    result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
     return result
 
 

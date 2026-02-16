@@ -8,9 +8,15 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.llm_intents import (
     DOMAIN,
+    async_migrate_entry,
     async_setup,
     async_setup_entry,
     async_unload_entry,
+)
+from custom_components.llm_intents.const import (
+    CONF_GOOGLE_PLACES_API_KEY,
+    CONF_PROVIDER_API_KEYS,
+    PROVIDER_GOOGLE,
 )
 
 
@@ -107,3 +113,44 @@ class TestLlmIntentsIntegration:
             await async_update_options(hass, config_entry)
             mock_setup.assert_called_once_with(hass, config_entry.data)
             assert hass.data[DOMAIN]["current_config"] == config_entry.data
+
+    async def test_async_migrate_entry_v2_to_v3_migrates_places_key(self, hass):
+        """Test migrating from version 2 to 3 migrates google_places_api_key to provider_api_keys."""
+        entry = Mock(spec=ConfigEntry)
+        entry.version = 2
+        entry.data = {
+            CONF_GOOGLE_PLACES_API_KEY: "test_google_api_key",
+            "other_config": "value",
+        }
+        entry.options = {}
+        entry.entry_id = "test_entry"
+
+        # Track what gets updated
+        updated_data = {}
+        updated_options = {}
+        updated_version = None
+
+        def mock_update_entry(entry_obj, **kwargs):
+            nonlocal updated_data, updated_options, updated_version
+            updated_data = kwargs.get("data", {})
+            updated_options = kwargs.get("options", {})
+            updated_version = kwargs.get("version")
+
+        hass.config_entries.async_update_entry = Mock(side_effect=mock_update_entry)
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert updated_version == 3
+        assert CONF_PROVIDER_API_KEYS in updated_data
+        assert updated_data[CONF_PROVIDER_API_KEYS][PROVIDER_GOOGLE] == "test_google_api_key"
+        assert CONF_GOOGLE_PLACES_API_KEY not in updated_data
+        assert "other_config" in updated_data
+        assert updated_data["other_config"] == "value"
+
+        # Verify that the migrated key can be accessed the new way
+        # (simulating how tools would access it)
+        config_data = {**updated_data, **updated_options}
+        provider_keys = config_data.get(CONF_PROVIDER_API_KEYS) or {}
+        api_key = provider_keys.get(PROVIDER_GOOGLE, "")
+        assert api_key == "test_google_api_key"

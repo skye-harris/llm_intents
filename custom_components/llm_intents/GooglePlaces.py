@@ -16,10 +16,10 @@ from .const import (
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
+    CONF_PROVIDER_API_KEYS,
     DOMAIN,
     PROVIDER_GOOGLE,
     SERVICE_DEFAULTS,
-    get_provider_api_key,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,7 +80,8 @@ class FindPlacesTool(BaseTool):
 
         query = tool_input.tool_args["query"]
 
-        api_key = get_provider_api_key(config_data, PROVIDER_GOOGLE)
+        provider_keys = config_data.get(CONF_PROVIDER_API_KEYS) or {}
+        api_key = provider_keys.get(PROVIDER_GOOGLE, "")
         num_results = int(
             config_data.get(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
