@@ -44,5 +44,5 @@ class SearXngSearchTool(SearchWebTool):
                     results.append(result)
                 return results
             raise RuntimeError(
-                f"Web search received a HTTP {resp.status} error from Brave"
+                f"Web search received a HTTP {resp.status} error from SearXNG"
             )
