@@ -62,8 +62,8 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 
 ##### Requirements
 
-* Requires a [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
-* The free tier plan is supported.
+* Requires a [Brave Search API key](https://brave.com/search/api/).
+  * Brave provide $5 of free credit per month, equal to 1000 searches.
 
 #### Configuration Steps
 
@@ -97,6 +97,7 @@ Uses a self-hosted SearXNG search service to return summarized results.
 
 1. Select "SearXNG" as the search provider during setup.
 2. Configure your server URL and maximum search results to provide to the LLM.
+   1. Server should be in the format: `protocol://host:port`, eg: `http://192.168.0.1:8080` 
 
 #### Options
 

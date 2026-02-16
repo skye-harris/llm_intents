@@ -16,7 +16,7 @@ jobs:
       contents: write
     steps:
       - name: "Checkout the repository"
-        uses: "actions/checkout@v5.0.0"
+        uses: "actions/checkout@v6.0.2"
 
       - name: Adjust version number
         shell: bash
@@ -35,11 +35,11 @@ jobs:
           zip llm_intents.zip -r ./
 
       - name: Sign release package
-        uses: sigstore/gh-action-sigstore-python@v3.0.1
+        uses: sigstore/gh-action-sigstore-python@v3.2.0
         with:
           inputs: ${{ github.workspace }}/custom_components/llm_intents/llm_intents.zip
 
       - name: "Upload the ZIP file to the release"
-        uses: "softprops/action-gh-release@v2.3.3"
+        uses: "softprops/action-gh-release@v2.5.0"
         with:
           files: ${{ github.workspace }}/custom_components/llm_intents/llm_intents.zip
