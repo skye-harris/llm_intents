@@ -7,6 +7,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast"
         }
@@ -39,12 +40,19 @@
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
         "data": {
-          "google_places_api_key": "API Key",
+          "google_api_key": "Google API Key",
           "google_places_rank_preference": "Rank Preference",
           "google_places_num_results": "Number of Results",
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "youtube": {
+        "title": "Configure YouTube Search",
+        "description": "Configure YouTube search settings. Uses the same Google API key as Google Places.",
+        "data": {
+          "google_api_key": "Google API Key"
         }
       },
       "wikipedia": {
@@ -89,6 +97,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search"
         }
       },
@@ -127,12 +136,19 @@
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
         "data": {
-          "google_places_api_key": "API Key",
+          "google_api_key": "Google API Key",
           "google_places_rank_preference": "Rank Preference",
           "google_places_num_results": "Number of Results",
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "youtube": {
+        "title": "Configure YouTube Search",
+        "description": "Configure YouTube search settings. Uses the same Google API key as Google Places.",
+        "data": {
+          "google_api_key": "Google API Key"
         }
       },
       "wikipedia": {

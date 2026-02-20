@@ -10,6 +10,7 @@ ADDON_NAME = "Tools for Assist"
 
 SEARCH_API_NAME = "Search Services"
 WEATHER_API_NAME = "Weather Forecast"
+MEDIA_API_NAME = "Media Services"
 
 # SQLite Cache
 
@@ -19,6 +20,10 @@ SEARCH_SERVICES_PROMPT = "You may utilise the Search Services tools to lookup up
 
 WEATHER_SERVICES_PROMPT = """
 Use the Weather Services tools to access current weather and forecast data.
+"""
+
+MEDIA_SERVICES_PROMPT = """
+Use the Media Services tools to play video content on media player devices.
 """
 
 # Search Providers
@@ -36,10 +41,20 @@ CONF_SEARCH_PROVIDERS = {
 CONF_SEARXNG_URL = "searxng_server_url"
 CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
 
+# Provider API keys - shared across tools using the same backend
+
+CONF_PROVIDER_API_KEYS = "provider_api_keys"
+PROVIDER_GOOGLE = "google"
+PROVIDER_BRAVE = "brave"
+
+# Form field keys for provider API keys
+
+CONF_GOOGLE_API_KEY = "google_api_key"
+CONF_BRAVE_API_KEY = "brave_api_key"
+
 # Brave-specific constants
 
 CONF_BRAVE_ENABLED = "brave_search_enabled"
-CONF_BRAVE_API_KEY = "brave_api_key"
 CONF_BRAVE_NUM_RESULTS = "brave_num_results"
 CONF_BRAVE_COUNTRY_CODE = "brave_country_code"
 CONF_BRAVE_LATITUDE = "brave_latitude"
@@ -97,6 +112,10 @@ CONF_GOOGLE_PLACES_LONGITUDE = "google_places_longitude"
 CONF_GOOGLE_PLACES_RADIUS = "google_places_radius"
 CONF_GOOGLE_PLACES_RANKING = "google_places_rank_preference"
 
+# YouTube-specific constants
+
+CONF_YOUTUBE_ENABLED = "youtube_enabled"
+
 # Wikipedia-specific constants
 
 CONF_WIKIPEDIA_ENABLED = "wikipedia_enabled"
@@ -112,9 +131,11 @@ CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
+
 # Service defaults
 
 SERVICE_DEFAULTS = {
+    CONF_GOOGLE_API_KEY: "",
     CONF_BRAVE_API_KEY: "",
     CONF_BRAVE_NUM_RESULTS: 2,
     CONF_BRAVE_LATITUDE: "",
@@ -124,7 +145,6 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_POST_CODE: "",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
-    CONF_GOOGLE_PLACES_API_KEY: "",
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",
     CONF_GOOGLE_PLACES_LONGITUDE: "",

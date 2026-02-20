@@ -188,6 +188,59 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 | `Hourly Weather Entity`      | ❌        | The weather entity to use for hourly weather forecast data                                                  |
 | `Current Temperature Sensor` | ❌        | Optional local sensor entity to provide current temperature when requesting today's hourly weather forecast |
 
+### 🎥 YouTube Search + Playback
+
+Searches YouTube for videos and enables playback on compatible media players. The tool combines YouTube search capabilities with intelligent media player detection to provide a seamless video playback experience.
+
+Search results include video titles, URLs, channel names, descriptions, and publication dates. When a user requests to play a video, the search results are automatically used with the playback tool to start video on the appropriate device.
+
+#### Requirements
+
+* Requires a [Google API key](https://console.cloud.google.com/apis/credentials) with the **YouTube Data API v3** enabled.
+* The same Google API key can be shared with the Google Places tool if both are configured.
+* Google provides a free tier with generous quotas for YouTube Data API v3.
+
+#### Configuration Steps
+
+1. Select "YouTube" during setup.
+2. Enter your Google API key (the same key used for Google Places if configured).
+3. Configure the number of search results to return (default: 1).
+
+#### Playback Compatibility
+
+The YouTube tool works seamlessly with Home Assistant media players that support video playback. Video-capable devices are automatically detected based on their `device_class` attribute:
+
+**Supported Device Classes:**
+* `tv` - Television devices (e.g., smart TVs, Android TV boxes)
+* `receiver` - AV receivers with video output
+
+**Not Supported:**
+* `speaker` - Audio-only devices are automatically excluded
+* Media players without a `device_class` set - These must be explicitly configured
+
+**Playback Targeting:**
+Videos can be played by specifying:
+* **Entity ID** - Direct entity selection (e.g., `media_player.living_room_tv`)
+* **Area** - Play on all video-capable devices in an area (e.g., "Living Room")
+* **Device ID** - Target a specific device by its device registry ID
+
+The tool automatically filters media players to only include video-capable devices when using area-based targeting, ensuring videos are only sent to devices that can display them.
+
+#### How It Works
+
+1. **Search**: When a user requests a YouTube video, the `search_youtube` tool queries YouTube's API and returns matching videos with metadata.
+2. **Playback**: If the user wants to play a video, the `play_video` tool uses the video URL from search results and calls Home Assistant's `media_player.play_media` service on the target device(s).
+3. **Caching**: Search results are cached for 2 hours to reduce API usage and improve response times for repeated queries.
+
+#### Options
+
+| Setting             | Required | Default | Description                                                           |
+|---------------------|----------|---------|-----------------------------------------------------------------------|
+| `API Key`           | ✅        | —       | Google API key with YouTube Data API v3 enabled                      |
+| `Number of Results` | ✅        | `1`     | Number of video results to return (1-25). Use more for multiple options. |
+
+---
+
 ## Acknowledgements
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
