@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
 from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
+from .BraveLlmContextSearch import BraveLlmContextSearchTool
 from .BraveSearch import BraveSearchTool
 from .const import (
     CONF_GOOGLE_PLACES_ENABLED,
@@ -35,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
-        BraveSearchTool,
+        BraveLlmContextSearchTool,
     ),
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
