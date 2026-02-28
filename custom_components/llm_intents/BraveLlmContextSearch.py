@@ -6,9 +6,12 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .BaseWebSearch import SearchWebTool
 from .const import (
+    CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
+    CONF_BRAVE_MAX_SNIPPETS_PER_URL,
+    CONF_BRAVE_MAX_TOKENS_PER_URL,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
@@ -20,12 +23,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class BraveLlmContextSearchTool(SearchWebTool):
-
     async def cleanup_text(self, text: str) -> str:
         text = await super().cleanup_text(text)
         text = re.sub(r"\[Image: [^\]]+\]", "", text)
 
-        if text[0] == '{' and text[-1] == '}':
+        if text[0] == "{" and text[-1] == "}":
             # decode JSON objects
             try:
                 return json.loads(text)
@@ -47,6 +49,11 @@ class BraveLlmContextSearchTool(SearchWebTool):
         timezone = self.config.get(CONF_BRAVE_TIMEZONE)
         country_code = self.config.get(CONF_BRAVE_COUNTRY_CODE)
         post_code = self.config.get(CONF_BRAVE_POST_CODE)
+        context_threshold_mode = self.config.get(
+            CONF_BRAVE_CONTEXT_THRESHOLD_MODE, "disabled"
+        )
+        max_tokens_per_url = self.config.get(CONF_BRAVE_MAX_TOKENS_PER_URL, 1024)
+        max_snippets_per_url = self.config.get(CONF_BRAVE_MAX_SNIPPETS_PER_URL, 2)
 
         if not api_key:
             raise RuntimeError("Brave API key not configured")
@@ -57,17 +64,14 @@ class BraveLlmContextSearchTool(SearchWebTool):
             "X-Subscription-Token": api_key,
         }
 
-        snippets_per_url = 2
-        max_tokens_per_url = 1024
-
         params = {
             "q": query,
             "count": num_results,
-            "maximum_number_of_snippets": num_results * snippets_per_url,
+            "maximum_number_of_snippets": num_results * max_snippets_per_url,
             "maximum_number_of_tokens": num_results * max_tokens_per_url,
             "maximum_number_of_tokens_per_url": max_tokens_per_url,
-            "maximum_number_of_snippets_per_url": snippets_per_url,
-            "context_threshold_mode": "strict", # disabled strict lenient balanced
+            "maximum_number_of_snippets_per_url": max_snippets_per_url,
+            "context_threshold_mode": context_threshold_mode,
         }
 
         if latitude:
@@ -99,13 +103,10 @@ class BraveLlmContextSearchTool(SearchWebTool):
                     snippets = result.get("snippets")
 
                     result_content = [
-                        await self.cleanup_text(snippet)
-                        for snippet in snippets
+                        await self.cleanup_text(snippet) for snippet in snippets
                     ]
 
-                    result = {"title": title, "content": result_content}
-
-                    results.append(result)
+                    results.append({"title": title, "content": result_content})
 
                 return results
             raise RuntimeError(

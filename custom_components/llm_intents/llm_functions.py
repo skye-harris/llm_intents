@@ -12,6 +12,7 @@ from .BraveLlmContextSearch import BraveLlmContextSearchTool
 from .BraveSearch import BraveSearchTool
 from .const import (
     CONF_GOOGLE_PLACES_ENABLED,
+    CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -36,6 +37,10 @@ _LOGGER = logging.getLogger(__name__)
 SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
+        BraveSearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE_LLM,
         BraveLlmContextSearchTool,
     ),
     (

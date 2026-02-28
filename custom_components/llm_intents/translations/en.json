@@ -22,7 +22,24 @@
           "brave_latitude": "Latitude (optional)",
           "brave_longitude": "Longitude (optional)",
           "brave_timezone": "Timezone (optional)",
-          "brave_post_code": "Post Code (optional)"
+          "brave_post_code": "Post Code (optional)",
+          "brave_max_snippets_per_url": "Max snippets per result"
+        }
+      },
+      "brave_llm": {
+        "title": "Configure Brave LLM Context Search",
+        "description": "Configure Brave LLM Context API settings.",
+        "data": {
+          "brave_api_key": "API Key",
+          "brave_num_results": "Number of Results",
+          "brave_country_code": "Country Code (optional)",
+          "brave_latitude": "Latitude (optional)",
+          "brave_longitude": "Longitude (optional)",
+          "brave_timezone": "Timezone (optional)",
+          "brave_post_code": "Post Code (optional)",
+          "brave_max_snippets_per_url": "Max snippets per result",
+          "brave_max_tokens_per_url": "Max tokens per result",
+          "brave_context_threshold_mode": "Context threshold mode"
         }
       },
       "searxng": {
@@ -118,7 +135,24 @@
           "brave_latitude": "Latitude (optional)",
           "brave_longitude": "Longitude (optional)",
           "brave_timezone": "Timezone (optional)",
-          "brave_post_code": "Post Code (optional)"
+          "brave_post_code": "Post Code (optional)",
+          "brave_max_snippets_per_url": "Max snippets per result"
+        }
+      },
+      "brave_llm": {
+        "title": "Configure Brave LLM Context Search",
+        "description": "Configure Brave LLM Context API settings.",
+        "data": {
+          "brave_api_key": "API Key",
+          "brave_num_results": "Number of Results",
+          "brave_country_code": "Country Code (optional)",
+          "brave_latitude": "Latitude (optional)",
+          "brave_longitude": "Longitude (optional)",
+          "brave_timezone": "Timezone (optional)",
+          "brave_post_code": "Post Code (optional)",
+          "brave_max_snippets_per_url": "Max snippets per result",
+          "brave_max_tokens_per_url": "Max tokens per result",
+          "brave_context_threshold_mode": "Context threshold mode"
         }
       },
       "searxng": {
