@@ -1,17 +1,15 @@
-import json
+"""Brave Web search tool."""
+
 import logging
-import re
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .BaseWebSearch import SearchWebTool
+from .base_web_search import SearchWebTool
 from .const import (
-    CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
     CONF_BRAVE_MAX_SNIPPETS_PER_URL,
-    CONF_BRAVE_MAX_TOKENS_PER_URL,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
@@ -22,20 +20,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class BraveLlmContextSearchTool(SearchWebTool):
-    async def cleanup_text(self, text: str) -> str:
-        text = await super().cleanup_text(text)
-        text = re.sub(r"\[Image: [^\]]+\]", "", text)
-
-        if text[0] == "{" and text[-1] == "}":
-            # decode JSON objects
-            try:
-                return json.loads(text)
-            except json.decoder.JSONDecodeError:
-                _LOGGER.warning("Failed to decode JSON: %s", text)
-
-        return text
-
+class BraveSearchTool(SearchWebTool):
     async def async_search(
         self,
         query: str,
@@ -44,16 +29,12 @@ class BraveLlmContextSearchTool(SearchWebTool):
         provider_keys = self.config.get(CONF_PROVIDER_API_KEYS) or {}
         api_key = provider_keys.get(PROVIDER_BRAVE, "")
         num_results = int(self.config.get(CONF_BRAVE_NUM_RESULTS, 2))
+        max_snippets_per_url = int(self.config.get(CONF_BRAVE_MAX_SNIPPETS_PER_URL, 2))
         latitude = self.config.get(CONF_BRAVE_LATITUDE)
         longitude = self.config.get(CONF_BRAVE_LONGITUDE)
         timezone = self.config.get(CONF_BRAVE_TIMEZONE)
         country_code = self.config.get(CONF_BRAVE_COUNTRY_CODE)
         post_code = self.config.get(CONF_BRAVE_POST_CODE)
-        context_threshold_mode = self.config.get(
-            CONF_BRAVE_CONTEXT_THRESHOLD_MODE, "disabled"
-        )
-        max_tokens_per_url = self.config.get(CONF_BRAVE_MAX_TOKENS_PER_URL, 1024)
-        max_snippets_per_url = self.config.get(CONF_BRAVE_MAX_SNIPPETS_PER_URL, 2)
 
         if not api_key:
             raise RuntimeError("Brave API key not configured")
@@ -67,11 +48,9 @@ class BraveLlmContextSearchTool(SearchWebTool):
         params = {
             "q": query,
             "count": num_results,
-            "maximum_number_of_snippets": num_results * max_snippets_per_url,
-            "maximum_number_of_tokens": num_results * max_tokens_per_url,
-            "maximum_number_of_tokens_per_url": max_tokens_per_url,
-            "maximum_number_of_snippets_per_url": max_snippets_per_url,
-            "context_threshold_mode": context_threshold_mode,
+            "result_filter": "web",
+            "summary": "true",
+            "extra_snippets": "true",
         }
 
         if latitude:
@@ -91,20 +70,27 @@ class BraveLlmContextSearchTool(SearchWebTool):
             headers["X-Loc-Postal-Code"] = str(post_code)
 
         async with session.get(
-            "https://api.search.brave.com/res/v1/llm/context",
+            "https://api.search.brave.com/res/v1/web/search",
             headers=headers,
             params=params,
         ) as resp:
             if resp.status == 200:
                 data = await resp.json()
                 results = []
-                for result in data.get("grounding", {}).get("generic", []):
-                    title = result.get("title")
-                    snippets = result.get("snippets")
-
-                    result_content = [
-                        await self.cleanup_text(snippet) for snippet in snippets
+                for result in data.get("web", {}).get("results", []):
+                    title = result.get("title", "")
+                    content = result.get("description", "")
+                    extra_snippets = result.get("extra_snippets", [])[
+                        0:max_snippets_per_url
                     ]
+
+                    if extra_snippets:
+                        result_content = [
+                            await self.cleanup_text(snippet)
+                            for snippet in extra_snippets
+                        ]
+                    else:
+                        result_content = await self.cleanup_text(content)
 
                     results.append({"title": title, "content": result_content})
 

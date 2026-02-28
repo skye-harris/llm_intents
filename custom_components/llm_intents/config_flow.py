@@ -105,6 +105,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
 
 
 def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
+    """Convert a dict to a list of select options."""
     return [SelectOptionDict(value=key, label=opts[key]) for key in opts]
 
 
@@ -229,6 +230,7 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
 
 
 def get_searxng_schema(hass) -> vol.Schema:
+    """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
             vol.Required(
@@ -388,11 +390,11 @@ SEARCH_STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
     STEP_BRAVE: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
-        lambda hass: get_brave_schema(hass, False),
+        lambda hass: get_brave_schema(hass, is_llm_context_search=False),
     ],
     STEP_BRAVE_LLM: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE_LLM,
-        lambda hass: get_brave_schema(hass, True),
+        lambda hass: get_brave_schema(hass, is_llm_context_search=True),
     ],
     STEP_SEARXNG: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
@@ -408,7 +410,6 @@ WEATHER_STEP_ORDER = {
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
 }
 
-# TODO: handle better
 INITIAL_CONFIG_STEP_ORDER = {
     **SEARCH_STEP_ORDER,
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
@@ -692,7 +693,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     async def handle_step(
         self, current_step: str, user_input: dict[str, Any] | None = None
     ):
-        """Handle the current configuration step"""
+        """Handle the current configuration step."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
             _, schema_func = SEARCH_STEP_ORDER[current_step]

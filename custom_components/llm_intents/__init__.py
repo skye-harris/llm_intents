@@ -1,7 +1,7 @@
-from .config_flow import LlmIntentsConfigFlow
+"""Tools for Assist."""
+
 from .const import (
     CONF_BRAVE_ENABLED,
-    CONF_DAILY_WEATHER_ENTITY,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_PROVIDER_API_KEYS,
@@ -30,24 +30,24 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Tools for Assist integration."""
     hass.data.setdefault(DOMAIN, {})
-    _LOGGER.info(f"Setting up {ADDON_NAME} integration")
+    _LOGGER.info("Setting up %s", ADDON_NAME)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Tools for Assist from a config entry."""
-    _LOGGER.info(f"Setting up {ADDON_NAME} for entry: %s", entry.entry_id)
+    _LOGGER.info("Setting up %s for entry: %s", ADDON_NAME, entry.entry_id)
     config = {**entry.data, **(entry.options or {})}
     await setup_llm_functions(hass, config)
-    _LOGGER.info(f"{ADDON_NAME} functions successfully set up")
+    _LOGGER.info("%s functions successfully set up", ADDON_NAME)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.info(f"Unloading {ADDON_NAME} for entry: %s", entry.entry_id)
+    _LOGGER.info("Unloading %s for entry: %s", ADDON_NAME, entry.entry_id)
     await cleanup_llm_functions(hass)
-    _LOGGER.info(f"{ADDON_NAME} functions successfully unloaded")
+    _LOGGER.info("%s functions successfully unloaded", ADDON_NAME)
     return True
 
 

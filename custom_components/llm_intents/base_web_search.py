@@ -1,3 +1,5 @@
+"""Base web search class, from which web search providers extend."""
+
 import html
 import logging
 import re
@@ -7,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
 
-from .BaseTool import BaseTool
+from .base_tool import BaseTool
 from .cache import SQLiteCache
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,20 +41,18 @@ class SearchWebTool(BaseTool):
     )
 
     def with_instructions(self, response: dict) -> dict:
-        """Wrap our response with instructions"""
+        """Wrap our response with instructions."""
         response["instruction"] = self.response_instruction
         return response
 
     async def cleanup_text(self, text: str) -> str:
-        """Clean up our text a little before sending to the LLM"""
+        """Clean up our text a little before sending to the LLM."""
         text = html.unescape(text)
         text = re.sub(r"<[^>]+>", "", text)
-        text = re.sub(r"\s+", " ", text).strip()
-
-        return text
+        return re.sub(r"\s+", " ", text).strip()
 
     async def async_search(self, query: str) -> list:
-        """Perform a search in our subclasses"""
+        """Perform a search in our subclasses."""
 
     async def async_call(
         self,
@@ -71,7 +71,7 @@ class SearchWebTool(BaseTool):
                 return self.with_instructions(cached_response)
 
             results = await self.async_search(query)
-            response = {"results": results if results else "No results found"}
+            response = {"results": results or "No results found"}
 
             if results:
                 cache.set(__name__, {"query": query}, response)

@@ -8,8 +8,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
 from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
-from .BraveLlmContextSearch import BraveLlmContextSearchTool
-from .BraveSearch import BraveSearchTool
+from .brave_llm_context_search import BraveLlmContextSearchTool
+from .brave_web_search import BraveSearchTool
 from .const import (
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
@@ -25,12 +25,12 @@ from .const import (
     WEATHER_API_NAME,
     WEATHER_SERVICES_PROMPT,
 )
-from .GooglePlaces import FindPlacesTool
-from .PlayMedia import PlayVideoTool
-from .SearXngSearch import SearXngSearchTool
-from .Weather import WeatherForecastTool
-from .Wikipedia import SearchWikipediaTool
-from .YouTube import SearchYouTubeTool
+from .google_places import FindPlacesTool
+from .play_media import PlayVideoTool
+from .searxng_search import SearXngSearchTool
+from .weather import WeatherForecastTool
+from .wikipedia import SearchWikipediaTool
+from .youtube import SearchYouTubeTool
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,14 +65,12 @@ MEDIA_CONF_ENABLED_MAP = [
 class BaseAPI(llm.API):
     """Base class for API implementations."""
 
-    _TOOLS_CONF_MAP = []
+    _TOOLS_CONF_MAP = None
     _API_PROMPT = ""
 
     def __init__(self, hass: HomeAssistant, name: str, id: str | None = None) -> None:
         """Initialize the API."""
-        super().__init__(
-            hass=hass, id=id if id else name.lower().replace(" ", "_"), name=name
-        )
+        super().__init__(hass=hass, id=id or name.lower().replace(" ", "_"), name=name)
 
     def get_enabled_tools(self) -> list:
         """Get all enabled tools for this service."""
@@ -81,7 +79,7 @@ class BaseAPI(llm.API):
         config_data = {**config_data, **entry.options}
         tools = []
 
-        for key, tool_class in self._TOOLS_CONF_MAP:
+        for key, tool_class in self._TOOLS_CONF_MAP or []:
             tool_enabled = False
 
             if isinstance(key, str):
@@ -92,7 +90,7 @@ class BaseAPI(llm.API):
 
             if tool_enabled:
                 tool_class.update_args(self.hass)
-                tools = tools + [tool_class(config_data, self.hass)]
+                tools = [*tools, tool_class(config_data, self.hass)]
 
         return tools
 

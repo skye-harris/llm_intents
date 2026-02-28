@@ -1,3 +1,5 @@
+"""Google Places tool."""
+
 import logging
 import re
 
@@ -8,7 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt
 from homeassistant.util.json import JsonObjectType
 
-from .BaseTool import BaseTool
+from .base_tool import BaseTool
 from .cache import SQLiteCache
 from .const import (
     CONF_GOOGLE_PLACES_LATITUDE,
@@ -63,7 +65,7 @@ class FindPlacesTool(BaseTool):
     )
 
     def wrap_response(self, response: dict) -> dict:
-        """Wrap the response with our instructions"""
+        """Wrap the response with our instructions."""
         response["instruction"] = self.response_instruction
         return response
 
