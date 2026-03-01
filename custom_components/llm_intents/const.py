@@ -29,10 +29,12 @@ Use the Media Services tools to play video content on media player devices.
 # Search Providers
 CONF_SEARCH_PROVIDER = "search_provider"
 CONF_SEARCH_PROVIDER_BRAVE = "Brave"
+CONF_SEARCH_PROVIDER_BRAVE_LLM = "Brave LLM Context"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
 
 CONF_SEARCH_PROVIDERS = {
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
+    "Brave LLM Context": CONF_SEARCH_PROVIDER_BRAVE_LLM,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
 }
 
@@ -46,6 +48,7 @@ CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
 CONF_PROVIDER_API_KEYS = "provider_api_keys"
 PROVIDER_GOOGLE = "google"
 PROVIDER_BRAVE = "brave"
+PROVIDER_BRAVE_LLM = "brave_llm"
 
 # Form field keys for provider API keys
 
@@ -61,6 +64,15 @@ CONF_BRAVE_LATITUDE = "brave_latitude"
 CONF_BRAVE_LONGITUDE = "brave_longitude"
 CONF_BRAVE_TIMEZONE = "brave_timezone"
 CONF_BRAVE_POST_CODE = "brave_post_code"
+CONF_BRAVE_MAX_SNIPPETS_PER_URL = "brave_max_snippets_per_url"
+CONF_BRAVE_MAX_TOKENS_PER_URL = "brave_max_tokens_per_url"
+CONF_BRAVE_CONTEXT_THRESHOLD_MODE = "brave_context_threshold_mode"
+
+CONF_BRAVE_CONTEXT_THRESHOLD_MODES = {
+    "strict": "Strict",
+    "lenient": "Lenient",
+    "balanced": "Balanced",
+}
 
 CONF_BRAVE_COUNTRY_CODES = {
     "AR": "Argentina",
@@ -143,6 +155,9 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_TIMEZONE: "",
     CONF_BRAVE_COUNTRY_CODE: "",
     CONF_BRAVE_POST_CODE: "",
+    CONF_BRAVE_MAX_SNIPPETS_PER_URL: 2,
+    CONF_BRAVE_MAX_TOKENS_PER_URL: 1024,
+    CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,

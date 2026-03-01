@@ -20,3 +20,10 @@ disallow_untyped_decorators = true
 disallow_untyped_defs = true
 warn_return_any = true
 warn_unreachable = true
+
+[tool.ruff.lint]
+ignore=[
+    "TD002",
+    "TD003",
+    "FIX002"
+]

@@ -1,12 +1,15 @@
+"""Brave Web search tool."""
+
 import logging
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .BaseWebSearch import SearchWebTool
+from .base_web_search import SearchWebTool
 from .const import (
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
+    CONF_BRAVE_MAX_SNIPPETS_PER_URL,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
@@ -23,11 +26,10 @@ class BraveSearchTool(SearchWebTool):
         query: str,
     ) -> list:
         """Call the tool."""
-        use_extra_snippets = True
-
         provider_keys = self.config.get(CONF_PROVIDER_API_KEYS) or {}
         api_key = provider_keys.get(PROVIDER_BRAVE, "")
         num_results = int(self.config.get(CONF_BRAVE_NUM_RESULTS, 2))
+        max_snippets_per_url = int(self.config.get(CONF_BRAVE_MAX_SNIPPETS_PER_URL, 2))
         latitude = self.config.get(CONF_BRAVE_LATITUDE)
         longitude = self.config.get(CONF_BRAVE_LONGITUDE)
         timezone = self.config.get(CONF_BRAVE_TIMEZONE)
@@ -48,10 +50,8 @@ class BraveSearchTool(SearchWebTool):
             "count": num_results,
             "result_filter": "web",
             "summary": "true",
+            "extra_snippets": "true",
         }
-
-        if use_extra_snippets:
-            params["extra_snippets"] = "true"
 
         if latitude:
             headers["X-Loc-Lat"] = str(latitude)
@@ -80,11 +80,11 @@ class BraveSearchTool(SearchWebTool):
                 for result in data.get("web", {}).get("results", []):
                     title = result.get("title", "")
                     content = result.get("description", "")
+                    extra_snippets = result.get("extra_snippets", [])[
+                        0:max_snippets_per_url
+                    ]
 
-                    # just use the first 2 snippets
-                    extra_snippets = result.get("extra_snippets", [])[0:2]
-
-                    if use_extra_snippets and extra_snippets:
+                    if extra_snippets:
                         result_content = [
                             await self.cleanup_text(snippet)
                             for snippet in extra_snippets
@@ -92,9 +92,7 @@ class BraveSearchTool(SearchWebTool):
                     else:
                         result_content = await self.cleanup_text(content)
 
-                    result = {"title": title, "content": result_content}
-
-                    results.append(result)
+                    results.append({"title": title, "content": result_content})
 
                 return results
             raise RuntimeError(

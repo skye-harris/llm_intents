@@ -21,7 +21,7 @@ from custom_components.llm_intents.config_flow import (
     get_brave_schema,
     get_google_places_schema,
     get_step_user_data_schema,
-    get_wikipedia_schema,
+    get_wikipedia_schema, STEP_YOUTUBE, STEP_WEATHER, STEP_BRAVE_LLM, STEP_SEARXNG,
 )
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
@@ -33,61 +33,60 @@ from custom_components.llm_intents.const import (
     CONF_BRAVE_TIMEZONE,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
+    CONF_GOOGLE_API_KEY,
     CONF_WIKIPEDIA_NUM_RESULTS,
-    DOMAIN,
+    DOMAIN, CONF_BRAVE_MAX_SNIPPETS_PER_URL, CONF_GOOGLE_PLACES_LONGITUDE, CONF_GOOGLE_PLACES_LATITUDE, CONF_GOOGLE_PLACES_RADIUS, CONF_GOOGLE_PLACES_RANKING,
 )
 
 
 class TestSchemaFunctions:
     """Test the schema generation functions."""
 
-    def test_get_step_user_data_schema(self):
+    def test_get_step_user_data_schema(self, hass):
         """Test the user step schema generation."""
-        schema = get_step_user_data_schema()
+        schema = get_step_user_data_schema(hass)
         assert isinstance(schema, vol.Schema)
 
-        # Test default values
-
-        defaults = {
-            "use_brave": False,
-            "use_google_places": False,
-            "use_wikipedia": False,
+        # Test values
+        test_data = {
+            "search_provider": "Brave",
+            "google_places_enabled": False,
+            "wikipedia_enabled": True,
+            "weather_enabled": True,
+            "youtube_enabled": False,
         }
-        validated = schema(defaults)
-        assert validated == defaults
 
-    def test_get_brave_schema(self):
-        """Test the Brave schema generation."""
-        defaults = {
-            CONF_BRAVE_API_KEY: "test_key",
-            CONF_BRAVE_NUM_RESULTS: 5,
-        }
-        schema = get_brave_schema(defaults)
+        validated = schema(test_data)
+        assert validated == test_data
+
+    def test_get_brave_web_schema(self, hass):
+        """Test the Brave Web Search schema generation."""
+        schema = get_brave_schema(hass, is_llm_context_search=False)
         assert isinstance(schema, vol.Schema)
-
-        # Test validation
 
         test_data = {
             CONF_BRAVE_API_KEY: "new_key",
             CONF_BRAVE_NUM_RESULTS: 3,
+            CONF_BRAVE_COUNTRY_CODE: "AU",
         }
-        validated = schema(test_data)
-        # Schema adds optional fields with default values
 
         expected_data = {
             CONF_BRAVE_API_KEY: "new_key",
-            CONF_BRAVE_NUM_RESULTS: 3,
-            CONF_BRAVE_COUNTRY_CODE: "",
+            CONF_BRAVE_NUM_RESULTS: 3.0,
+            CONF_BRAVE_MAX_SNIPPETS_PER_URL: 2.0,
+            CONF_BRAVE_COUNTRY_CODE: "AU",
             CONF_BRAVE_LATITUDE: "",
             CONF_BRAVE_LONGITUDE: "",
             CONF_BRAVE_TIMEZONE: "",
             CONF_BRAVE_POST_CODE: "",
         }
+
+        validated = schema(test_data)
         assert validated == expected_data
 
-    def test_get_brave_schema_validation(self):
+    def test_get_brave_schema_validation(self, hass):
         """Test Brave schema validation rules."""
-        schema = get_brave_schema({})
+        schema = get_brave_schema(hass, is_llm_context_search=False)
 
         # Test minimum value validation
 
@@ -96,59 +95,73 @@ class TestSchemaFunctions:
                 {
                     CONF_BRAVE_API_KEY: "key",
                     CONF_BRAVE_NUM_RESULTS: 0,  # Should be >= 1
+                    CONF_BRAVE_MAX_SNIPPETS_PER_URL: 0,
                 }
             )
 
-    def test_get_google_places_schema(self):
+        with pytest.raises(vol.Invalid):
+            schema(
+                {
+                    CONF_BRAVE_API_KEY: "key",
+                    CONF_BRAVE_NUM_RESULTS: 1,  # Should be >= 1
+                    CONF_BRAVE_MAX_SNIPPETS_PER_URL: 0, # Should be >= 1
+                }
+            )
+
+    def test_get_google_places_schema(self, hass):
         """Test the Google Places schema generation."""
-        defaults = {
-            CONF_GOOGLE_PLACES_API_KEY: "test_key",
-            CONF_GOOGLE_PLACES_NUM_RESULTS: 3,
-        }
-        schema = get_google_places_schema(defaults)
+        schema = get_google_places_schema(hass)
         assert isinstance(schema, vol.Schema)
 
         # Test validation
-
         test_data = {
-            CONF_GOOGLE_PLACES_API_KEY: "new_key",
-            CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
+            CONF_GOOGLE_API_KEY: "new_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 2.0,
         }
-        validated = schema(test_data)
-        assert validated == test_data
 
-    def test_get_google_places_schema_validation(self):
+        expected_result = {
+            CONF_GOOGLE_API_KEY: "new_key",
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 2.0,
+            CONF_GOOGLE_PLACES_RADIUS: 5.0,
+            CONF_GOOGLE_PLACES_LONGITUDE: "",
+            CONF_GOOGLE_PLACES_LATITUDE: "",
+            CONF_GOOGLE_PLACES_RANKING: "Distance",
+        }
+
+        validated = schema(test_data)
+        assert validated == expected_result
+
+    def test_get_google_places_schema_validation(self, hass):
         """Test Google Places schema validation rules."""
-        schema = get_google_places_schema({})
+        schema = get_google_places_schema(hass)
 
         # Test minimum value validation
 
         with pytest.raises(vol.Invalid):
             schema(
                 {
-                    CONF_GOOGLE_PLACES_API_KEY: "key",
+                    CONF_GOOGLE_API_KEY: "key",
                     CONF_GOOGLE_PLACES_NUM_RESULTS: 0,  # Should be >= 1
+                    CONF_GOOGLE_PLACES_RANKING: "Unsupported",
+                    CONF_GOOGLE_PLACES_RADIUS: 0,
                 }
             )
 
-    def test_get_wikipedia_schema(self):
+    def test_get_wikipedia_schema(self, hass):
         """Test the Wikipedia schema generation."""
-        defaults = {CONF_WIKIPEDIA_NUM_RESULTS: 2}
-        schema = get_wikipedia_schema(defaults)
+        schema = get_wikipedia_schema(hass)
         assert isinstance(schema, vol.Schema)
 
         # Test validation
-
         test_data = {CONF_WIKIPEDIA_NUM_RESULTS: 1}
         validated = schema(test_data)
         assert validated == test_data
 
-    def test_get_wikipedia_schema_validation(self):
+    def test_get_wikipedia_schema_validation(self, hass):
         """Test Wikipedia schema validation rules."""
-        schema = get_wikipedia_schema()
+        schema = get_wikipedia_schema(hass)
 
         # Test minimum value validation
-
         with pytest.raises(vol.Invalid):
             schema({CONF_WIKIPEDIA_NUM_RESULTS: 0})  # Should be >= 1
 
@@ -177,18 +190,46 @@ class TestLlmIntentsConfigFlow:
             assert result["step_id"] == STEP_USER
             assert "data_schema" in result
 
-    async def test_async_step_user_brave_selection(self, config_flow):
+    async def test_async_step_user_brave_web_selection(self, config_flow):
         """Test user step with Brave selected."""
         with (
             patch.object(config_flow, "_async_current_entries", return_value=[]),
             patch.object(config_flow, "async_set_unique_id"),
             patch.object(config_flow, "_abort_if_unique_id_configured"),
         ):
-            user_input = {"use_brave": True}
+            user_input = {"search_provider": "Brave"}
             result = await config_flow.async_step_user(user_input)
 
             assert result["type"] == FlowResultType.FORM
             assert result["step_id"] == STEP_BRAVE
+            assert "data_schema" in result
+
+    async def test_async_step_user_brave_llm_selection(self, config_flow):
+        """Test user step with Brave selected."""
+        with (
+            patch.object(config_flow, "_async_current_entries", return_value=[]),
+            patch.object(config_flow, "async_set_unique_id"),
+            patch.object(config_flow, "_abort_if_unique_id_configured"),
+        ):
+            user_input = {"search_provider": "Brave LLM Context"}
+            result = await config_flow.async_step_user(user_input)
+
+            assert result["type"] == FlowResultType.FORM
+            assert result["step_id"] == STEP_BRAVE_LLM
+            assert "data_schema" in result
+
+    async def test_async_step_user_searxng_selection(self, config_flow):
+        """Test user step with Brave selected."""
+        with (
+            patch.object(config_flow, "_async_current_entries", return_value=[]),
+            patch.object(config_flow, "async_set_unique_id"),
+            patch.object(config_flow, "_abort_if_unique_id_configured"),
+        ):
+            user_input = {"search_provider": "SearXNG"}
+            result = await config_flow.async_step_user(user_input)
+
+            assert result["type"] == FlowResultType.FORM
+            assert result["step_id"] == STEP_SEARXNG
             assert "data_schema" in result
 
     async def test_async_step_user_google_places_selection(self, config_flow):
@@ -198,7 +239,7 @@ class TestLlmIntentsConfigFlow:
             patch.object(config_flow, "async_set_unique_id"),
             patch.object(config_flow, "_abort_if_unique_id_configured"),
         ):
-            user_input = {"use_google_places": True}
+            user_input = {"google_places_enabled": True}
             result = await config_flow.async_step_user(user_input)
 
             assert result["type"] == FlowResultType.FORM
@@ -212,11 +253,39 @@ class TestLlmIntentsConfigFlow:
             patch.object(config_flow, "async_set_unique_id"),
             patch.object(config_flow, "_abort_if_unique_id_configured"),
         ):
-            user_input = {"use_wikipedia": True}
+            user_input = {"wikipedia_enabled": True}
             result = await config_flow.async_step_user(user_input)
 
             assert result["type"] == FlowResultType.FORM
             assert result["step_id"] == STEP_WIKIPEDIA
+            assert "data_schema" in result
+
+    async def test_async_step_user_youtube_selection(self, config_flow):
+        """Test user step with Wikipedia selected."""
+        with (
+            patch.object(config_flow, "_async_current_entries", return_value=[]),
+            patch.object(config_flow, "async_set_unique_id"),
+            patch.object(config_flow, "_abort_if_unique_id_configured"),
+        ):
+            user_input = {"youtube_enabled": True}
+            result = await config_flow.async_step_user(user_input)
+
+            assert result["type"] == FlowResultType.FORM
+            assert result["step_id"] == STEP_YOUTUBE
+            assert "data_schema" in result
+
+    async def test_async_step_user_weather_selection(self, config_flow):
+        """Test user step with Wikipedia selected."""
+        with (
+            patch.object(config_flow, "_async_current_entries", return_value=[]),
+            patch.object(config_flow, "async_set_unique_id"),
+            patch.object(config_flow, "_abort_if_unique_id_configured"),
+        ):
+            user_input = {"weather_enabled": True}
+            result = await config_flow.async_step_user(user_input)
+
+            assert result["type"] == FlowResultType.FORM
+            assert result["step_id"] == STEP_WEATHER
             assert "data_schema" in result
 
     async def test_async_step_user_no_selection(self, config_flow):
@@ -227,14 +296,15 @@ class TestLlmIntentsConfigFlow:
             patch.object(config_flow, "_abort_if_unique_id_configured"),
         ):
             user_input = {
-                "use_brave": False,
-                "use_google_places": False,
-                "use_wikipedia": False,
+                "google_places_enabled": False,
+                "wikipedia_enabled": False,
+                "youtube_enabled": False,
+                "weather_enabled": False,
             }
             result = await config_flow.async_step_user(user_input)
 
             assert result["type"] == FlowResultType.CREATE_ENTRY
-            assert result["title"] == "LLM Intents"
+            assert result["title"] == "Tools for Assist"
             assert result["data"] == user_input
 
     async def test_async_step_user_with_existing_config(self, config_flow):
@@ -957,9 +1027,9 @@ class TestEdgeCases:
         with pytest.raises(vol.Invalid):
             schema(user_input)
 
-    async def test_brave_schema_with_invalid_num_results(self):
+    async def test_brave_schema_with_invalid_num_results(self, hass):
         """Test Brave schema with invalid number of results."""
-        schema = get_brave_schema({})
+        schema = get_brave_schema(hass, is_llm_context_search=False)
 
         # Test with negative number
         with pytest.raises(vol.Invalid):
@@ -978,9 +1048,9 @@ class TestEdgeCases:
                 }
             )
 
-    async def test_google_places_schema_with_invalid_num_results(self):
+    async def test_google_places_schema_with_invalid_num_results(self, hass):
         """Test Google Places schema with invalid number of results."""
-        schema = get_google_places_schema({})
+        schema = get_google_places_schema(hass)
 
         # Test with negative number
         with pytest.raises(vol.Invalid):
@@ -991,9 +1061,9 @@ class TestEdgeCases:
                 }
             )
 
-    async def test_wikipedia_schema_with_invalid_num_results(self):
+    async def test_wikipedia_schema_with_invalid_num_results(self, hass):
         """Test Wikipedia schema with invalid number of results."""
-        schema = get_wikipedia_schema({})
+        schema = get_wikipedia_schema(hass)
 
         # Test with negative number
         with pytest.raises(vol.Invalid):

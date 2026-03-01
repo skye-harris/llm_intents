@@ -1,3 +1,5 @@
+"""Wikipedia tool."""
+
 import logging
 import re
 import urllib.parse
@@ -8,7 +10,7 @@ from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
-from .BaseTool import BaseTool
+from .base_tool import BaseTool
 from .cache import SQLiteCache
 from .const import (
     CONF_WIKIPEDIA_NUM_RESULTS,

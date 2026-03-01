@@ -26,10 +26,14 @@ from homeassistant.helpers.selector import (
 from .const import (
     ADDON_NAME,
     CONF_BRAVE_API_KEY,
+    CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
+    CONF_BRAVE_CONTEXT_THRESHOLD_MODES,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_COUNTRY_CODES,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
+    CONF_BRAVE_MAX_SNIPPETS_PER_URL,
+    CONF_BRAVE_MAX_TOKENS_PER_URL,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
@@ -46,6 +50,7 @@ from .const import (
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
+    CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
@@ -70,6 +75,7 @@ if TYPE_CHECKING:  # pragma: no cover
 STEP_INIT = "init"
 STEP_USER = "user"
 STEP_BRAVE = "brave"
+STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_YOUTUBE = "youtube"
@@ -99,6 +105,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
 
 
 def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
+    """Convert a dict to a list of select options."""
     return [SelectOptionDict(value=key, label=opts[key]) for key in opts]
 
 
@@ -135,50 +142,95 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
 
 
-def get_brave_schema(hass) -> vol.Schema:
+def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
     """Return the static schema for Brave service configuration."""
-    return vol.Schema(
-        {
+    schema = {
+        vol.Required(
+            CONF_BRAVE_API_KEY, default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY)
+        ): str,
+        vol.Required(
+            CONF_BRAVE_NUM_RESULTS,
+            default=SERVICE_DEFAULTS.get(CONF_BRAVE_NUM_RESULTS),
+        ): NumberSelector(
+            NumberSelectorConfig(
+                min=1,
+                max=20,
+                step=1,
+                mode=NumberSelectorMode.SLIDER,
+                unit_of_measurement="Results",
+            )
+        ),
+        vol.Required(
+            CONF_BRAVE_MAX_SNIPPETS_PER_URL,
+            default=SERVICE_DEFAULTS.get(CONF_BRAVE_MAX_SNIPPETS_PER_URL),
+        ): NumberSelector(
+            NumberSelectorConfig(
+                min=1,
+                max=5,
+                step=1,
+                mode=NumberSelectorMode.SLIDER,
+                unit_of_measurement="Snippets",
+            )
+        ),
+    }
+
+    if is_llm_context_search:
+        schema = {
+            **schema,
             vol.Required(
-                CONF_BRAVE_API_KEY, default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY)
-            ): str,
-            vol.Required(
-                CONF_BRAVE_NUM_RESULTS,
-                default=SERVICE_DEFAULTS.get(CONF_BRAVE_NUM_RESULTS),
+                CONF_BRAVE_MAX_TOKENS_PER_URL,
+                default=SERVICE_DEFAULTS.get(CONF_BRAVE_MAX_TOKENS_PER_URL),
             ): NumberSelector(
                 NumberSelectorConfig(
-                    min=1,
-                    max=20,
-                    step=1,
+                    min=1024,
+                    max=32768,
+                    step=256,
                     mode=NumberSelectorMode.SLIDER,
-                    unit_of_measurement="Results",
+                    unit_of_measurement="Tokens",
                 )
             ),
             vol.Optional(
-                CONF_BRAVE_COUNTRY_CODE,
+                CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
+                default=SERVICE_DEFAULTS.get(CONF_BRAVE_CONTEXT_THRESHOLD_MODE),
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
-                    options=options_to_selections_dict(CONF_BRAVE_COUNTRY_CODES),
+                    options=options_to_selections_dict(
+                        CONF_BRAVE_CONTEXT_THRESHOLD_MODES
+                    ),
                 )
             ),
-            vol.Optional(
-                CONF_BRAVE_LATITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE)
-            ): str,
-            vol.Optional(
-                CONF_BRAVE_LONGITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE)
-            ): str,
-            vol.Optional(
-                CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
-            ): str,
-            vol.Optional(
-                CONF_BRAVE_POST_CODE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE)
-            ): str,
         }
-    )
+
+    schema = {
+        **schema,
+        vol.Optional(
+            CONF_BRAVE_COUNTRY_CODE,
+        ): SelectSelector(
+            SelectSelectorConfig(
+                mode=SelectSelectorMode.DROPDOWN,
+                options=options_to_selections_dict(CONF_BRAVE_COUNTRY_CODES),
+            )
+        ),
+        vol.Optional(
+            CONF_BRAVE_LATITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE)
+        ): str,
+        vol.Optional(
+            CONF_BRAVE_LONGITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE)
+        ): str,
+        vol.Optional(
+            CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
+        ): str,
+        vol.Optional(
+            CONF_BRAVE_POST_CODE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE)
+        ): str,
+    }
+
+    return vol.Schema(schema)
 
 
 def get_searxng_schema(hass) -> vol.Schema:
+    """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
             vol.Required(
@@ -338,7 +390,11 @@ SEARCH_STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
     STEP_BRAVE: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
-        get_brave_schema,
+        lambda hass: get_brave_schema(hass, is_llm_context_search=False),
+    ],
+    STEP_BRAVE_LLM: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE_LLM,
+        lambda hass: get_brave_schema(hass, is_llm_context_search=True),
     ],
     STEP_SEARXNG: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
@@ -354,7 +410,6 @@ WEATHER_STEP_ORDER = {
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
 }
 
-# TODO: handle better
 INITIAL_CONFIG_STEP_ORDER = {
     **SEARCH_STEP_ORDER,
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
@@ -467,6 +522,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step."""
         return await self.handle_step(STEP_BRAVE, user_input)
+
+    async def async_step_brave_llm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Brave LLM Context Search configuration step."""
+        return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
     async def async_step_searxng(
         self, user_input: dict[str, Any] | None = None
@@ -632,7 +693,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     async def handle_step(
         self, current_step: str, user_input: dict[str, Any] | None = None
     ):
-        """Handle the current configuration step"""
+        """Handle the current configuration step."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
             _, schema_func = SEARCH_STEP_ORDER[current_step]
@@ -670,6 +731,14 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
         return await self.handle_step(STEP_BRAVE, user_input)
+
+    async def async_step_brave_llm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Brave LLM Context Search configuration step in options flow."""
+        if user_input is not None:
+            self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
+        return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
     async def async_step_searxng(
         self, user_input: dict[str, Any] | None = None

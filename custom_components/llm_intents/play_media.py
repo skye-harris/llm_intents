@@ -11,7 +11,7 @@ from homeassistant.helpers import llm
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 from homeassistant.util.json import JsonObjectType
 
-from .BaseTool import BaseTool
+from .base_tool import BaseTool
 
 _LOGGER = logging.getLogger(__name__)
 

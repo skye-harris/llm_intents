@@ -64,25 +64,59 @@ Uses the Brave Web Search API to return summarized, snippet-rich results.
 ##### Requirements
 
 * Requires a [Brave Search API key](https://brave.com/search/api/).
-  * Brave provide $5 of free credit per month, equal to 1000 searches.
+    * Brave provide $5 of free credit per month, equal to 1000 searches.
 
 #### Configuration Steps
 
 1. Select "Brave" as the search provider during setup.
-2. Enter your [Brave "Data for AI" API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=ai).
+2. Enter your [Brave Search API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=normal).
 3. Configure optional settings like number of results, location preferences.
 
 #### Options
 
-| Setting             | Required | Default | Description                                                 |
-|---------------------|----------|---------|-------------------------------------------------------------|
-| `API Key`           | ✅        | —       | Brave Search API key                                        |
-| `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM                     |
-| `Country Code`      | ❌        | —       | ISO country code to bias results                            |
-| `Latitude`          | ❌        | —       | Optional latitude for local result relevance (recommended)  |
-| `Longitude`         | ❌        | —       | Optional longitude for local result relevance (recommended) |
-| `Timezone`          | ❌        | —       | Optional TZ timezone identifier for local result relevance  |
-| `Post Code`         | ❌        | —       | Optional post code for local result relevance               |
+| Setting                   | Required | Default | Description                                                          |
+|---------------------------|----------|---------|----------------------------------------------------------------------|
+| `API Key`                 | ✅        | —       | Brave Search API key                                                 |
+| `Number of Results`       | ✅        | `2`     | Number of results to provide to the LLM                              |
+| `Max Snippets per Result` | ✅        | `2`     | Maximum number of content snippets to provide to the LLM, per result |
+| `Country Code`            | ❌        | —       | ISO country code to bias results                                     |
+| `Latitude`                | ❌        | —       | Optional latitude for local result relevance (recommended)           |
+| `Longitude`               | ❌        | —       | Optional longitude for local result relevance (recommended)          |
+| `Timezone`                | ❌        | —       | Optional TZ timezone identifier for local result relevance           |
+| `Post Code`               | ❌        | —       | Optional post code for local result relevance                        |
+
+---
+
+### 🔍 Brave LLM Context Search
+
+Uses the Brave LLM Context Search API to return pre-extracted web context optimised for AI Agents.
+
+##### Requirements
+
+* Requires a [Brave Search API key](https://brave.com/search/api/).
+    * Brave provide $5 of free credit per month, equal to 1000 searches.
+    * This does not work with the now-deprecated `Data for AI` API keys
+
+#### Configuration Steps
+
+1. Select "Brave LLM Context" as the search provider during setup.
+2. Enter your [Brave Search API key](https://api-dashboard.search.brave.com/app/subscriptions/subscribe?tab=normal).
+3. Configure optional settings like number of results, location preferences.
+
+#### Options
+
+| Setting                   | Required | Default    | Description                                                          |
+|---------------------------|----------|------------|----------------------------------------------------------------------|
+| `API Key`                 | ✅        | —          | Brave Search API key                                                 |
+| `Number of Results`       | ✅        | `2`        | Number of results to provide to the LLM                              |
+| `Max Snippets per Result` | ✅        | `2`        | Maximum number of content snippets to provide to the LLM, per result |
+| `Max Tokens per Result`   | ✅        | `1024`     | Set a target token limit for result content                          |
+| `Context Threshold Mode`  | ❌        | `Balanced` | Relevance threshold for including content                            |
+| `Country Code`            | ❌        | —          | ISO country code to bias results                                     |
+| `Latitude`                | ❌        | —          | Optional latitude for local result relevance (recommended)           |
+| `Longitude`               | ❌        | —          | Optional longitude for local result relevance (recommended)          |
+| `Timezone`                | ❌        | —          | Optional TZ timezone identifier for local result relevance           |
+| `Post Code`               | ❌        | —          | Optional post code for local result relevance                        |
 
 ---
 
@@ -98,7 +132,7 @@ Uses a self-hosted SearXNG search service to return summarized results.
 
 1. Select "SearXNG" as the search provider during setup.
 2. Configure your server URL and maximum search results to provide to the LLM.
-   1. Server should be in the format: `protocol://host:port`, eg: `http://192.168.0.1:8080` 
+    1. Server should be in the format: `protocol://host:port`, eg: `http://192.168.0.1:8080`
 
 #### Options
 
@@ -212,15 +246,18 @@ Search results include video titles, URLs, channel names, descriptions, and publ
 The YouTube tool works seamlessly with Home Assistant media players that support video playback. Video-capable devices are automatically detected based on their `device_class` attribute:
 
 **Supported Device Classes:**
+
 * `tv` - Television devices (e.g., smart TVs, Android TV boxes)
 * `receiver` - AV receivers with video output
 
 **Not Supported:**
+
 * `speaker` - Audio-only devices are automatically excluded
 * Media players without a `device_class` set - These must be explicitly configured
 
 **Playback Targeting:**
 Videos can be played by specifying:
+
 * **Entity ID** - Direct entity selection (e.g., `media_player.living_room_tv`)
 * **Area** - Play on all video-capable devices in an area (e.g., "Living Room")
 * **Device ID** - Target a specific device by its device registry ID
@@ -235,9 +272,9 @@ The tool automatically filters media players to only include video-capable devic
 
 #### Options
 
-| Setting             | Required | Default | Description                                                           |
-|---------------------|----------|---------|-----------------------------------------------------------------------|
-| `API Key`           | ✅        | —       | Google API key with YouTube Data API v3 enabled                      |
+| Setting             | Required | Default | Description                                                              |
+|---------------------|----------|---------|--------------------------------------------------------------------------|
+| `API Key`           | ✅        | —       | Google API key with YouTube Data API v3 enabled                          |
 | `Number of Results` | ✅        | `1`     | Number of video results to return (1-25). Use more for multiple options. |
 
 ---

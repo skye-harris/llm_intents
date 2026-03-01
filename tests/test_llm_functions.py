@@ -25,14 +25,16 @@ class TestLlmFunctions:
     def config_data(self):
         """Create test configuration data."""
         return {
-            "use_brave": True,
+            "search_provider": ["Brave"],
             "brave_api_key": "test_brave_key",
             "brave_num_results": 3,
-            "use_google_places": True,
+            "google_places_enabled": True,
             "google_places_api_key": "test_places_key",
             "google_places_num_results": 2,
-            "use_wikipedia": True,
+            "wikipedia_enabled": True,
             "wikipedia_num_results": 2,
+            "weather_enabled": True,
+            "youtube_enabled": True,
         }
 
     async def test_setup_llm_functions(self, hass, config_data):
