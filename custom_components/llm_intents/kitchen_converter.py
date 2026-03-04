@@ -80,9 +80,7 @@ class KitchenConverterTool(BaseTool):
         from_unit = tool_input.tool_args["from_unit"].lower()
         to_unit = tool_input.tool_args["to_unit"].lower()
 
-        _LOGGER.debug(
-            "Kitchen converter: %s %s -> %s", amount_str, from_unit, to_unit
-        )
+        _LOGGER.debug("Kitchen converter: %s %s -> %s", amount_str, from_unit, to_unit)
 
         try:
             amount = _parse_amount(amount_str)
@@ -95,9 +93,13 @@ class KitchenConverterTool(BaseTool):
             }
 
         if from_unit not in UNIT_TO_ML:
-            return {"error": f"Unknown unit '{from_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."}
+            return {
+                "error": f"Unknown unit '{from_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."
+            }
         if to_unit not in UNIT_TO_ML:
-            return {"error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."}
+            return {
+                "error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."
+            }
 
         value_ml = amount * UNIT_TO_ML[from_unit]
         result = value_ml / UNIT_TO_ML[to_unit]

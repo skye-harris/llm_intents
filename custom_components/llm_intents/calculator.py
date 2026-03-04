@@ -52,12 +52,16 @@ class CalculatorTool(BaseTool):
         operation = tool_input.tool_args["operation"].lower()
         numbers_raw = tool_input.tool_args["numbers"]
 
-        _LOGGER.info("Calculator called: operation=%s numbers=%s", operation, numbers_raw)
+        _LOGGER.info(
+            "Calculator called: operation=%s numbers=%s", operation, numbers_raw
+        )
 
         try:
             nums = json.loads(numbers_raw)
             if not isinstance(nums, list) or len(nums) == 0:
-                return {"error": "numbers must be a non-empty JSON array, e.g. [4, 5, 3.2]"}
+                return {
+                    "error": "numbers must be a non-empty JSON array, e.g. [4, 5, 3.2]"
+                }
             nums = [float(n) for n in nums]
         except (json.JSONDecodeError, TypeError, ValueError) as e:
             return {"error": f"Invalid numbers value: {e}"}

@@ -630,7 +630,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is None:
             return self.async_show_menu(
                 step_id=STEP_INIT,
-                menu_options=[STEP_CONFIGURE_SEARCH, "configure_weather", STEP_CONFIGURE_BASIC_UTILITIES],
+                menu_options=[
+                    STEP_CONFIGURE_SEARCH,
+                    "configure_weather",
+                    STEP_CONFIGURE_BASIC_UTILITIES,
+                ],
             )
         return None
 
