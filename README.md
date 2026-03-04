@@ -7,6 +7,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Wikipedia**
 * **Weather Forecast**
 * **YouTube Search and Playback**
+* **Basic Utilities** — Calculator, Kitchen Unit Converter, and Date Information
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
 A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 2-hour period.
@@ -56,6 +57,8 @@ the `Control Home Assistant` heading, and enabling the services desired for the 
 
 - Search Services
 - Weather Forecast
+- Media Services
+- Basic Utilities
 
 ### 🔍 Brave Web Search
 
@@ -276,6 +279,59 @@ The tool automatically filters media players to only include video-capable devic
 |---------------------|----------|---------|--------------------------------------------------------------------------|
 | `API Key`           | ✅        | —       | Google API key with YouTube Data API v3 enabled                          |
 | `Number of Results` | ✅        | `1`     | Number of video results to return (1-25). Use more for multiple options. |
+
+---
+
+### 🧮 Basic Utilities
+
+A set of always-available utility tools.
+
+#### 🔢 Calculator
+
+Performs basic math operations on a list of numbers.
+
+| Operation | Description                                    |
+|-----------|------------------------------------------------|
+| `add`     | Sum all numbers                                |
+| `sub`     | Subtract subsequent numbers from the first     |
+| `mul`     | Multiply all numbers together                  |
+| `div`     | Divide the first number by each subsequent one |
+| `min`     | Return the smallest number                     |
+| `max`     | Return the largest number                      |
+| `avg`     | Return the average of all numbers              |
+
+**Parameters:**
+
+| Parameter   | Required | Description                                         |
+|-------------|----------|-----------------------------------------------------|
+| `operation` | ✅        | One of: `add`, `sub`, `mul`, `div`, `min`, `max`, `avg` |
+| `numbers`   | ✅        | A JSON array of numbers, e.g. `[4, 5, 3.2]`        |
+
+#### 🥄 Kitchen Unit Converter
+
+Converts kitchen quantities between common volume units. Supports fractional amounts such as `1/8` or `1 1/2`.
+
+**Supported units:** `cup`, `tablespoon`, `teaspoon`, `ml`, `pint`
+
+**Parameters:**
+
+| Parameter   | Required | Description                                                              |
+|-------------|----------|--------------------------------------------------------------------------|
+| `amount`    | ✅        | The quantity to convert (number or fraction, e.g. `1/8`, `2.5`, `1 1/2`) |
+| `from_unit` | ✅        | Unit to convert from                                                     |
+| `to_unit`   | ✅        | Unit to convert to                                                       |
+
+#### 📅 Calendar Day Information
+
+Returns the day of the week and a formatted date string for a given day, month, and optional year. Useful for answering questions like "What day is March 15?" or planning events.
+
+**Parameters:**
+
+| Parameter | Required | Description                                      |
+|-----------|----------|--------------------------------------------------|
+| `day`     | ✅        | Day of the month (1–31)                          |
+| `month`   | ✅        | Month (1–12)                                     |
+| `year`    | ❌        | Year (1900–2100, defaults to the current year)   |
 
 ---
 
