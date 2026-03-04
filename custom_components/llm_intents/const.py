@@ -11,6 +11,7 @@ ADDON_NAME = "Tools for Assist"
 SEARCH_API_NAME = "Search Services"
 WEATHER_API_NAME = "Weather Forecast"
 MEDIA_API_NAME = "Media Services"
+BASIC_UTILITIES_API_NAME = "Basic Utilities"
 
 # SQLite Cache
 
@@ -25,6 +26,17 @@ Use the Weather Services tools to access current weather and forecast data.
 MEDIA_SERVICES_PROMPT = """
 Use the Media Services tools to play video content on media player devices.
 """
+
+BASIC_UTILITIES_SERVICES_PROMPT = """
+Use the Basic Utilities tools for calculations and unit conversions.
+"""
+
+# Basic Utilities constants
+
+CONF_BASIC_UTILITIES_ENABLED = "basic_utilities_enabled"
+CONF_CALCULATOR_ENABLED = "calculator_enabled"
+CONF_KITCHEN_CONVERTER_ENABLED = "kitchen_converter_enabled"
+CONF_DATE_INFO_ENABLED = "date_info_enabled"
 
 # Search Providers
 CONF_SEARCH_PROVIDER = "search_provider"
@@ -169,4 +181,7 @@ SERVICE_DEFAULTS = {
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,
     CONF_WEATHER_TEMPERATURE_SENSOR: None,
+    CONF_CALCULATOR_ENABLED: True,
+    CONF_KITCHEN_CONVERTER_ENABLED: True,
+    CONF_DATE_INFO_ENABLED: True,
 }
