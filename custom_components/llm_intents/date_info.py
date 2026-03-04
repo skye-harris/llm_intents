@@ -28,15 +28,15 @@ class DateInfoTool(BaseTool):
             vol.Required(
                 "day",
                 description="The day of the month (1-31).",
-            ): vol.All(int, vol.Range(min=1, max=31)),
+            ): int,
             vol.Required(
                 "month",
                 description="The month (1-12, where 1 is January and 12 is December).",
-            ): vol.All(int, vol.Range(min=1, max=12)),
+            ): int,
             vol.Optional(
                 "year",
                 description="The year (optional, defaults to the current year).",
-            ): vol.All(int, vol.Range(min=1900, max=2100)),
+            ): int,
         }
     )
 

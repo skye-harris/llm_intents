@@ -34,6 +34,9 @@ Use the Basic Utilities tools for calculations and unit conversions.
 # Basic Utilities constants
 
 CONF_BASIC_UTILITIES_ENABLED = "basic_utilities_enabled"
+CONF_CALCULATOR_ENABLED = "calculator_enabled"
+CONF_KITCHEN_CONVERTER_ENABLED = "kitchen_converter_enabled"
+CONF_DATE_INFO_ENABLED = "date_info_enabled"
 
 # Search Providers
 CONF_SEARCH_PROVIDER = "search_provider"
@@ -178,4 +181,7 @@ SERVICE_DEFAULTS = {
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,
     CONF_WEATHER_TEMPERATURE_SENSOR: None,
+    CONF_CALCULATOR_ENABLED: True,
+    CONF_KITCHEN_CONVERTER_ENABLED: True,
+    CONF_DATE_INFO_ENABLED: True,
 }

@@ -16,7 +16,11 @@ from .kitchen_converter import KitchenConverterTool
 from .const import (
     BASIC_UTILITIES_API_NAME,
     BASIC_UTILITIES_SERVICES_PROMPT,
+    CONF_BASIC_UTILITIES_ENABLED,
+    CONF_CALCULATOR_ENABLED,
+    CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
+    CONF_KITCHEN_CONVERTER_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_WEATHER_ENABLED,
@@ -66,7 +70,11 @@ MEDIA_CONF_ENABLED_MAP = [
     (CONF_YOUTUBE_ENABLED, PlayVideoTool),
 ]
 
-BASIC_UTILITIES_TOOLS = [CalculatorTool, KitchenConverterTool, DateInfoTool]
+BASIC_UTILITIES_CONF_ENABLED_MAP = [
+    (CONF_CALCULATOR_ENABLED, CalculatorTool),
+    (CONF_KITCHEN_CONVERTER_ENABLED, KitchenConverterTool),
+    (CONF_DATE_INFO_ENABLED, DateInfoTool),
+]
 
 
 class BaseAPI(llm.API):
@@ -150,11 +158,8 @@ class MediaAPI(BaseAPI):
 class BasicUtilitiesAPI(BaseAPI):
     """Basic Utilities API for LLM integration."""
 
+    _TOOLS_CONF_MAP = BASIC_UTILITIES_CONF_ENABLED_MAP
     _API_PROMPT = BASIC_UTILITIES_SERVICES_PROMPT
-
-    def get_enabled_tools(self) -> list:
-        """Basic Utilities tools are always enabled."""
-        return [tool_class({}, self.hass) for tool_class in BASIC_UTILITIES_TOOLS]
 
 
 async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) -> None:
@@ -202,9 +207,10 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
                 llm.async_register_api(hass, media_api)
             )
 
-        hass.data[DOMAIN]["unregister_api"].append(
-            llm.async_register_api(hass, basic_utilities_api)
-        )
+        if basic_utilities_api.get_enabled_tools():
+            hass.data[DOMAIN]["unregister_api"].append(
+                llm.async_register_api(hass, basic_utilities_api)
+            )
     except Exception as e:
         _LOGGER.error("Failed to register LLM API: %s", e)
         raise

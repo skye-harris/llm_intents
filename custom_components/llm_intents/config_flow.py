@@ -25,6 +25,7 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     ADDON_NAME,
+    CONF_BASIC_UTILITIES_ENABLED,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
     CONF_BRAVE_CONTEXT_THRESHOLD_MODES,
@@ -55,6 +56,9 @@ from .const import (
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
+    CONF_CALCULATOR_ENABLED,
+    CONF_DATE_INFO_ENABLED,
+    CONF_KITCHEN_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
@@ -81,6 +85,7 @@ STEP_GOOGLE_PLACES = "google_places"
 STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
+STEP_BASIC_UTILITIES = "basic_utilities"
 STEP_CONFIGURE_SEARCH = "configure"
 STEP_CONFIGURE_WEATHER = "configure_weather"
 
@@ -100,6 +105,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
         vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
+        vol.Optional(CONF_BASIC_UTILITIES_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
 
@@ -337,6 +343,26 @@ def get_wikipedia_schema(hass) -> vol.Schema:
     )
 
 
+def get_basic_utilities_schema(hass) -> vol.Schema:
+    """Return the static schema for Basic Utilities tool configuration."""
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_CALCULATOR_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_CALCULATOR_ENABLED, True),
+            ): bool,
+            vol.Optional(
+                CONF_KITCHEN_CONVERTER_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_KITCHEN_CONVERTER_ENABLED, True),
+            ): bool,
+            vol.Optional(
+                CONF_DATE_INFO_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_DATE_INFO_ENABLED, True),
+            ): bool,
+        }
+    )
+
+
 def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
@@ -403,6 +429,7 @@ SEARCH_STEP_ORDER = {
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
+    STEP_BASIC_UTILITIES: [CONF_BASIC_UTILITIES_ENABLED, get_basic_utilities_schema],
 }
 
 WEATHER_STEP_ORDER = {
@@ -559,6 +586,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Weather configuration step."""
         return await self.handle_step(STEP_WEATHER, user_input)
 
+    async def async_step_basic_utilities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Basic Utilities configuration step."""
+        return await self.handle_step(STEP_BASIC_UTILITIES, user_input)
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
@@ -619,6 +652,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 ): bool,
                 vol.Optional(
                     CONF_WIKIPEDIA_ENABLED,
+                    default=False,
+                ): bool,
+                vol.Optional(
+                    CONF_BASIC_UTILITIES_ENABLED,
                     default=False,
                 ): bool,
             }
@@ -763,6 +800,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle Wikipedia configuration step in options flow."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
+
+    async def async_step_basic_utilities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Basic Utilities configuration step in options flow."""
+        return await self.handle_step(STEP_BASIC_UTILITIES, user_input)
 
     async def async_step_weather(
         self, user_input: dict[str, Any] | None = None
