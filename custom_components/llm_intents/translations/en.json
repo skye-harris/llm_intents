@@ -9,7 +9,8 @@
           "google_places_enabled": "Enable Google Places",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
-          "weather_enabled": "Enable Weather Forecast"
+          "weather_enabled": "Enable Weather Forecast",
+          "basic_utilities_enabled": "Enable Basic Utilities"
         }
       },
       "brave": {
@@ -92,6 +93,15 @@
           "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
           "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
         }
+      },
+      "basic_utilities": {
+        "title": "Configure Basic Utilities",
+        "description": "Select which basic utility tools to enable.",
+        "data": {
+          "calculator_enabled": "Enable Calculator",
+          "kitchen_converter_enabled": "Enable Kitchen Unit Converter",
+          "date_info_enabled": "Enable Calendar Day Info"
+        }
       }
     },
     "abort": {
@@ -105,7 +115,8 @@
         "description": "Choose what you want to do:",
         "menu_options": {
           "configure": "Configure Search Services",
-          "configure_weather": "Configure Weather Forecast"
+          "configure_weather": "Configure Weather Forecast",
+          "configure_basic_utilities": "Configure Basic Utilities"
         }
       },
       "configure": {
@@ -204,6 +215,22 @@
           "weather_daily_entity": "Weather entity to pull daily forecast data from",
           "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
           "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
+        }
+      },
+      "configure_basic_utilities": {
+        "title": "Configure Basic Utilities",
+        "description": "Enable or disable Basic Utilities tools.",
+        "data": {
+          "basic_utilities_enabled": "Enable Basic Utilities"
+        }
+      },
+      "basic_utilities": {
+        "title": "Configure Basic Utilities",
+        "description": "Select which basic utility tools to enable.",
+        "data": {
+          "calculator_enabled": "Enable Calculator",
+          "kitchen_converter_enabled": "Enable Kitchen Unit Converter",
+          "date_info_enabled": "Enable Calendar Day Info"
         }
       }
     }
