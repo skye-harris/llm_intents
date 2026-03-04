@@ -10,7 +10,12 @@ from homeassistant.helpers import llm
 from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
 from .brave_llm_context_search import BraveLlmContextSearchTool
 from .brave_web_search import BraveSearchTool
+from .calculator import CalculatorTool
+from .date_info import DateInfoTool
+from .kitchen_converter import KitchenConverterTool
 from .const import (
+    BASIC_UTILITIES_API_NAME,
+    BASIC_UTILITIES_SERVICES_PROMPT,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
@@ -60,6 +65,8 @@ WEATHER_CONF_ENABLED_MAP = [
 MEDIA_CONF_ENABLED_MAP = [
     (CONF_YOUTUBE_ENABLED, PlayVideoTool),
 ]
+
+BASIC_UTILITIES_TOOLS = [CalculatorTool, KitchenConverterTool, DateInfoTool]
 
 
 class BaseAPI(llm.API):
@@ -140,6 +147,16 @@ class MediaAPI(BaseAPI):
     _API_PROMPT = MEDIA_SERVICES_PROMPT
 
 
+class BasicUtilitiesAPI(BaseAPI):
+    """Basic Utilities API for LLM integration."""
+
+    _API_PROMPT = BASIC_UTILITIES_SERVICES_PROMPT
+
+    def get_enabled_tools(self) -> list:
+        """Basic Utilities tools are always enabled."""
+        return [tool_class({}, self.hass) for tool_class in BASIC_UTILITIES_TOOLS]
+
+
 async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) -> None:
     """Set up LLM functions for search services."""
     # Check if already set up with same config to avoid unnecessary work
@@ -159,10 +176,12 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
     search_api = SearchAPI(hass, SEARCH_API_NAME)
     weather_api = WeatherAPI(hass, WEATHER_API_NAME)
     media_api = MediaAPI(hass, MEDIA_API_NAME)
+    basic_utilities_api = BasicUtilitiesAPI(hass, BASIC_UTILITIES_API_NAME)
 
     hass.data[DOMAIN]["api"] = search_api
     hass.data[DOMAIN]["weather_api"] = weather_api
     hass.data[DOMAIN]["media_api"] = media_api
+    hass.data[DOMAIN]["basic_utilities_api"] = basic_utilities_api
     hass.data[DOMAIN]["config"] = config_data.copy()
     hass.data[DOMAIN]["unregister_api"] = []
 
@@ -182,6 +201,10 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
             hass.data[DOMAIN]["unregister_api"].append(
                 llm.async_register_api(hass, media_api)
             )
+
+        hass.data[DOMAIN]["unregister_api"].append(
+            llm.async_register_api(hass, basic_utilities_api)
+        )
     except Exception as e:
         _LOGGER.error("Failed to register LLM API: %s", e)
         raise

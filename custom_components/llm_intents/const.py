@@ -11,6 +11,7 @@ ADDON_NAME = "Tools for Assist"
 SEARCH_API_NAME = "Search Services"
 WEATHER_API_NAME = "Weather Forecast"
 MEDIA_API_NAME = "Media Services"
+BASIC_UTILITIES_API_NAME = "Basic Utilities"
 
 # SQLite Cache
 
@@ -25,6 +26,14 @@ Use the Weather Services tools to access current weather and forecast data.
 MEDIA_SERVICES_PROMPT = """
 Use the Media Services tools to play video content on media player devices.
 """
+
+BASIC_UTILITIES_SERVICES_PROMPT = """
+Use the Basic Utilities tools for calculations and unit conversions.
+"""
+
+# Basic Utilities constants
+
+CONF_BASIC_UTILITIES_ENABLED = "basic_utilities_enabled"
 
 # Search Providers
 CONF_SEARCH_PROVIDER = "search_provider"
