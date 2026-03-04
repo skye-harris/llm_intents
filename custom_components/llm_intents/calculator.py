@@ -34,7 +34,7 @@ class CalculatorTool(BaseTool):
                     "The math operation to perform. "
                     "One of: add, sub, mul, div, min, max, avg."
                 ),
-            ): vol.In(ALLOWED_OPERATIONS),
+            ): str,
             vol.Required(
                 "numbers",
                 description="A JSON array of numbers to operate on, e.g. [4, 5, 3.2].",

@@ -61,11 +61,11 @@ class KitchenConverterTool(BaseTool):
             vol.Required(
                 "from_unit",
                 description="Unit to convert from: cup, tablespoon, teaspoon, ml, pint.",
-            ): vol.In(ALLOWED_UNITS),
+            ): str,
             vol.Required(
                 "to_unit",
                 description="Unit to convert to: cup, tablespoon, teaspoon, ml, pint.",
-            ): vol.In(ALLOWED_UNITS),
+            ): str,
         }
     )
 
