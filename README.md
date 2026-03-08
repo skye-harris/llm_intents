@@ -290,11 +290,7 @@ A set of always-available utility tools.
 
 Evaluate mathematical expressions and return the result.
 
-**Parameters:**
-
-| Parameter    | Required | Description                                 |
-|--------------|----------|---------------------------------------------|
-| `expression` | ✅        | The mathematical expression to be evaluated |
+Calculator supports mathematical expression evaluation, along with calculating the minimum, maximum, and average of a series of values.
 
 #### 🥄 Kitchen Unit Converter
 
