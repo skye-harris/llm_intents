@@ -288,24 +288,13 @@ A set of always-available utility tools.
 
 #### 🔢 Calculator
 
-Performs basic math operations on a list of numbers.
-
-| Operation | Description                                    |
-|-----------|------------------------------------------------|
-| `add`     | Sum all numbers                                |
-| `sub`     | Subtract subsequent numbers from the first     |
-| `mul`     | Multiply all numbers together                  |
-| `div`     | Divide the first number by each subsequent one |
-| `min`     | Return the smallest number                     |
-| `max`     | Return the largest number                      |
-| `avg`     | Return the average of all numbers              |
+Evaluate mathematical expressions and return the result.
 
 **Parameters:**
 
-| Parameter   | Required | Description                                         |
-|-------------|----------|-----------------------------------------------------|
-| `operation` | ✅        | One of: `add`, `sub`, `mul`, `div`, `min`, `max`, `avg` |
-| `numbers`   | ✅        | A JSON array of numbers, e.g. `[4, 5, 3.2]`        |
+| Parameter    | Required | Description                                 |
+|--------------|----------|---------------------------------------------|
+| `expression` | ✅        | The mathematical expression to be evaluated |
 
 #### 🥄 Kitchen Unit Converter
 
@@ -327,11 +316,11 @@ Returns the day of the week and a formatted date string for a given day, month, 
 
 **Parameters:**
 
-| Parameter | Required | Description                                      |
-|-----------|----------|--------------------------------------------------|
-| `day`     | ✅        | Day of the month (1–31)                          |
-| `month`   | ✅        | Month (1–12)                                     |
-| `year`    | ❌        | Year (1900–2100, defaults to the current year)   |
+| Parameter | Required | Description                                    |
+|-----------|----------|------------------------------------------------|
+| `day`     | ✅        | Day of the month (1–31)                        |
+| `month`   | ✅        | Month (1–12)                                   |
+| `year`    | ❌        | Year (1900–2100, defaults to the current year) |
 
 ---
 
