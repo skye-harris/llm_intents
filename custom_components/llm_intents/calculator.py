@@ -1,11 +1,11 @@
 """Calculator tool for basic math operations."""
 
-import json
 import logging
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
@@ -30,15 +30,17 @@ class CalculatorTool(BaseTool):
         {
             vol.Required(
                 "operation",
-                description=(
-                    "The math operation to perform. "
-                    "One of: add, sub, mul, div, min, max, avg."
-                ),
-            ): str,
+                description="The math operation to perform.",
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=["add", "sub", "mul", "div", "min", "max", "avg"],
+                    multiple=False,
+                )
+            ),
             vol.Required(
                 "numbers",
-                description="A JSON array of numbers to operate on, e.g. [4, 5, 3.2].",
-            ): str,
+                description="An array of numbers to operate on, e.g. [4, 5, 3.2].",
+            ): vol.All([float], vol.Length(min=2)),
         }
     )
 
@@ -50,21 +52,9 @@ class CalculatorTool(BaseTool):
     ) -> JsonObjectType:
         """Execute the calculation and return the result."""
         operation = tool_input.tool_args["operation"].lower()
-        numbers_raw = tool_input.tool_args["numbers"]
+        nums = tool_input.tool_args["numbers"]
 
-        _LOGGER.info(
-            "Calculator called: operation=%s numbers=%s", operation, numbers_raw
-        )
-
-        try:
-            nums = json.loads(numbers_raw)
-            if not isinstance(nums, list) or len(nums) == 0:
-                return {
-                    "error": "numbers must be a non-empty JSON array, e.g. [4, 5, 3.2]"
-                }
-            nums = [float(n) for n in nums]
-        except (json.JSONDecodeError, TypeError, ValueError) as e:
-            return {"error": f"Invalid numbers value: {e}"}
+        _LOGGER.info("Calculator called: operation=%s numbers=%s", operation, nums)
 
         if operation not in ALLOWED_OPERATIONS:
             return {

@@ -23,7 +23,8 @@ ALLOWED_UNITS = list(UNIT_TO_ML.keys())
 
 
 def _parse_amount(amount: str) -> float:
-    """Parse a fractional or decimal amount string to a float.
+    """
+    Parse a fractional or decimal amount string to a float.
 
     Supports: '2', '2.5', '1/8', '1 1/2'.
     """
