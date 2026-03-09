@@ -99,7 +99,7 @@
         "description": "Select which basic utility tools to enable.",
         "data": {
           "calculator_enabled": "Enable Calculator",
-          "kitchen_converter_enabled": "Enable Kitchen Unit Converter",
+          "unit_converter_enabled": "Enable Unit Converter",
           "date_info_enabled": "Enable Calendar Day Info"
         }
       }
@@ -229,7 +229,7 @@
         "description": "Select which basic utility tools to enable.",
         "data": {
           "calculator_enabled": "Enable Calculator",
-          "kitchen_converter_enabled": "Enable Kitchen Unit Converter",
+          "unit_converter_enabled": "Enable Unit Converter",
           "date_info_enabled": "Enable Calendar Day Info"
         }
       }

@@ -59,6 +59,12 @@ from .const import (
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
+<<<<<<< HEAD
+=======
+    CONF_CALCULATOR_ENABLED,
+    CONF_DATE_INFO_ENABLED,
+    CONF_UNIT_CONVERTER_ENABLED,
+>>>>>>> 902d519 (Convert to allow weight unit conversions)
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
@@ -353,8 +359,8 @@ def get_basic_utilities_schema(hass) -> vol.Schema:
                 default=SERVICE_DEFAULTS.get(CONF_CALCULATOR_ENABLED, True),
             ): bool,
             vol.Optional(
-                CONF_KITCHEN_CONVERTER_ENABLED,
-                default=SERVICE_DEFAULTS.get(CONF_KITCHEN_CONVERTER_ENABLED, True),
+                CONF_UNIT_CONVERTER_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_UNIT_CONVERTER_ENABLED, True),
             ): bool,
             vol.Optional(
                 CONF_DATE_INFO_ENABLED,
