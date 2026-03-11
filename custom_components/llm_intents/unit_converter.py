@@ -131,7 +131,7 @@ class UnitConverterTool(BaseTool):
                 "error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."
             }
 
-        if from_is_volume and to_is_weight or from_is_weight and to_is_volume:
+        if (from_is_volume and to_is_weight) or (from_is_weight and to_is_volume):
             return {
                 "error": (
                     f"Cannot convert between volume ('{from_unit}') and weight ('{to_unit}'). "
