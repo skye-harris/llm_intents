@@ -31,10 +31,12 @@ CONF_SEARCH_PROVIDER = "search_provider"
 CONF_SEARCH_PROVIDER_BRAVE = "Brave"
 CONF_SEARCH_PROVIDER_BRAVE_LLM = "Brave LLM Context"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
+CONF_SEARCH_PROVIDER_OLLAMA = "Ollama"
 
 CONF_SEARCH_PROVIDERS = {
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
     "Brave LLM Context": CONF_SEARCH_PROVIDER_BRAVE_LLM,
+    "Ollama": CONF_SEARCH_PROVIDER_OLLAMA,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
 }
 
@@ -43,17 +45,23 @@ CONF_SEARCH_PROVIDERS = {
 CONF_SEARXNG_URL = "searxng_server_url"
 CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
 
+# Ollama-specific constants
+
+CONF_OLLAMA_NUM_RESULTS = "ollama_num_results"
+
 # Provider API keys - shared across tools using the same backend
 
 CONF_PROVIDER_API_KEYS = "provider_api_keys"
 PROVIDER_GOOGLE = "google"
 PROVIDER_BRAVE = "brave"
 PROVIDER_BRAVE_LLM = "brave_llm"
+PROVIDER_OLLAMA = "ollama"
 
 # Form field keys for provider API keys
 
 CONF_GOOGLE_API_KEY = "google_api_key"
 CONF_BRAVE_API_KEY = "brave_api_key"
+CONF_OLLAMA_API_KEY = "ollama_api_key"
 
 # Brave-specific constants
 
@@ -160,6 +168,8 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
+    CONF_OLLAMA_API_KEY: "",
+    CONF_OLLAMA_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",
     CONF_GOOGLE_PLACES_LONGITUDE: "",

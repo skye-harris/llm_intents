@@ -53,6 +53,14 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "ollama": {
+        "title": "Configure Ollama Web Search",
+        "description": "Configure Ollama Web Search API settings.",
+        "data": {
+          "ollama_api_key": "API Key",
+          "ollama_num_results": "Number of Results"
+        }
+      },
       "google_places": {
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
@@ -164,6 +172,14 @@
         },
         "data_description": {
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
+        }
+      },
+      "ollama": {
+        "title": "Configure Ollama Web Search",
+        "description": "Configure Ollama Web Search API settings.",
+        "data": {
+          "ollama_api_key": "API Key",
+          "ollama_num_results": "Number of Results"
         }
       },
       "google_places": {

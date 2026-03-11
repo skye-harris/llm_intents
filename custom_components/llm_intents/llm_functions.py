@@ -13,6 +13,7 @@ from .brave_web_search import BraveSearchTool
 from .const import (
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
+    CONF_SEARCH_PROVIDER_OLLAMA,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -26,6 +27,7 @@ from .const import (
     WEATHER_SERVICES_PROMPT,
 )
 from .google_places import FindPlacesTool
+from .ollama_web_search import OllamaSearchTool
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
 from .weather import WeatherForecastTool
@@ -46,6 +48,10 @@ SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         SearXngSearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_OLLAMA,
+        OllamaSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_YOUTUBE_ENABLED, SearchYouTubeTool),

@@ -2,7 +2,7 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _SearXNG_, or _Ollama_.
 * **Location Search** powered by Google Places
 * **Wikipedia**
 * **Weather Forecast**
@@ -59,7 +59,7 @@ the `Control Home Assistant` heading, and enabling the services desired for the 
 
 ### 🔍 Brave Web Search
 
-Uses the Brave Web Search API to return summarized, snippet-rich results.
+Uses the Brave Web Search API to return summarised, snippet-rich results.
 
 ##### Requirements
 
@@ -122,7 +122,29 @@ Uses the Brave LLM Context Search API to return pre-extracted web context optimi
 
 ### 🔍 SearXNG Web Search
 
-Uses a self-hosted SearXNG search service to return summarized results.
+Uses a self-hosted SearXNG search service to return summarised results.
+
+##### Requirements
+
+* Requires a SearXNG server instance, with JSON responses enabled (https://github.com/searxng/searxng-docker).
+
+#### Configuration Steps
+
+1. Select "SearXNG" as the search provider during setup.
+2. Configure your server URL and maximum search results to provide to the LLM.
+    1. Server should be in the format: `protocol://host:port`, eg: `http://192.168.0.1:8080`
+
+#### Options
+
+| Setting             | Required | Default | Description                             |
+|---------------------|----------|---------|-----------------------------------------|
+| `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM |
+
+---
+
+### 🔍 Ollama Web Search
+
+Uses the Ollama web search API to return summarised results.
 
 ##### Requirements
 

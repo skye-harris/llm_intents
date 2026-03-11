@@ -47,10 +47,13 @@ from .const import (
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
     CONF_HOURLY_WEATHER_ENTITY,
+    CONF_OLLAMA_API_KEY,
+    CONF_OLLAMA_NUM_RESULTS,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
+    CONF_SEARCH_PROVIDER_OLLAMA,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
@@ -63,6 +66,7 @@ from .const import (
     DOMAIN,
     PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
+    PROVIDER_OLLAMA,
     SERVICE_DEFAULTS,
 )
 
@@ -77,6 +81,7 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
+STEP_OLLAMA = "ollama"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
@@ -115,6 +120,7 @@ def expand_config_for_schema(config: dict) -> dict:
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
+    result[CONF_OLLAMA_API_KEY] = provider_keys.get(PROVIDER_OLLAMA, "")
     return result
 
 
@@ -135,11 +141,15 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     ):
         provider_keys[PROVIDER_GOOGLE] = config_data[CONF_GOOGLE_PLACES_API_KEY]
 
+    if PROVIDER_OLLAMA not in provider_keys and config_data.get(CONF_OLLAMA_API_KEY):
+        provider_keys[PROVIDER_OLLAMA] = config_data[CONF_OLLAMA_API_KEY]
+
     config_data[CONF_PROVIDER_API_KEYS] = provider_keys
     # Remove form/legacy keys - store only in provider_api_keys
     config_data.pop(CONF_BRAVE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
+    config_data.pop(CONF_OLLAMA_API_KEY, None)
 
 
 def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
@@ -239,6 +249,29 @@ def get_searxng_schema(hass) -> vol.Schema:
             vol.Required(
                 CONF_SEARXNG_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_SEARXNG_NUM_RESULTS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                )
+            ),
+        }
+    )
+
+
+def get_ollama_schema(hass) -> vol.Schema:
+    """Return the static schema for the Ollama service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_OLLAMA_API_KEY, default=SERVICE_DEFAULTS.get(CONF_OLLAMA_API_KEY)
+            ): str,
+            vol.Required(
+                CONF_OLLAMA_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_OLLAMA_NUM_RESULTS),
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
@@ -400,6 +433,10 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         get_searxng_schema,
     ],
+    STEP_OLLAMA: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_OLLAMA,
+        get_ollama_schema,
+    ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
@@ -534,6 +571,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.FlowResult:
         """Handle SearXNG configuration step."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_ollama(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Ollama configuration step."""
+        return await self.handle_step(STEP_OLLAMA, user_input)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
@@ -745,6 +788,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle SearXNG configuration step in options flow."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_ollama(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Ollama configuration step."""
+        return await self.handle_step(STEP_OLLAMA, user_input)
 
     async def async_step_google_places(
         self, user_input: dict[str, Any] | None = None
