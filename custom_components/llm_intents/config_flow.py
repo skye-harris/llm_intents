@@ -25,6 +25,7 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     ADDON_NAME,
+    CONF_BASIC_UTILITIES_ENABLED,
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
     CONF_BRAVE_CONTEXT_THRESHOLD_MODES,
@@ -37,7 +38,9 @@ from .const import (
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
+    CONF_CALCULATOR_ENABLED,
     CONF_DAILY_WEATHER_ENTITY,
+    CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_API_KEY,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
@@ -55,6 +58,7 @@ from .const import (
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
+    CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
@@ -81,8 +85,10 @@ STEP_GOOGLE_PLACES = "google_places"
 STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
+STEP_BASIC_UTILITIES = "basic_utilities"
 STEP_CONFIGURE_SEARCH = "configure"
 STEP_CONFIGURE_WEATHER = "configure_weather"
+STEP_CONFIGURE_BASIC_UTILITIES = "configure_basic_utilities"
 
 
 def get_step_user_data_schema(hass) -> vol.Schema:
@@ -100,6 +106,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
         vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
+        vol.Optional(CONF_BASIC_UTILITIES_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
 
@@ -337,6 +344,26 @@ def get_wikipedia_schema(hass) -> vol.Schema:
     )
 
 
+def get_basic_utilities_schema(hass) -> vol.Schema:
+    """Return the static schema for Basic Utilities tool configuration."""
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_CALCULATOR_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_CALCULATOR_ENABLED, True),
+            ): bool,
+            vol.Optional(
+                CONF_UNIT_CONVERTER_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_UNIT_CONVERTER_ENABLED, True),
+            ): bool,
+            vol.Optional(
+                CONF_DATE_INFO_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_DATE_INFO_ENABLED, True),
+            ): bool,
+        }
+    )
+
+
 def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
@@ -410,9 +437,15 @@ WEATHER_STEP_ORDER = {
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
 }
 
+BASIC_UTILITIES_STEP_ORDER = {
+    STEP_CONFIGURE_BASIC_UTILITIES: [None, None],
+    STEP_BASIC_UTILITIES: [CONF_BASIC_UTILITIES_ENABLED, get_basic_utilities_schema],
+}
+
 INITIAL_CONFIG_STEP_ORDER = {
     **SEARCH_STEP_ORDER,
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
+    STEP_BASIC_UTILITIES: [CONF_BASIC_UTILITIES_ENABLED, get_basic_utilities_schema],
 }
 
 
@@ -559,6 +592,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Weather configuration step."""
         return await self.handle_step(STEP_WEATHER, user_input)
 
+    async def async_step_basic_utilities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Basic Utilities configuration step."""
+        return await self.handle_step(STEP_BASIC_UTILITIES, user_input)
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
@@ -591,7 +630,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is None:
             return self.async_show_menu(
                 step_id=STEP_INIT,
-                menu_options=[STEP_CONFIGURE_SEARCH, "configure_weather"],
+                menu_options=[
+                    STEP_CONFIGURE_SEARCH,
+                    "configure_weather",
+                    STEP_CONFIGURE_BASIC_UTILITIES,
+                ],
             )
         return None
 
@@ -763,6 +806,61 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> config_entries.FlowResult:
         """Handle Wikipedia configuration step in options flow."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
+
+    async def async_step_configure_basic_utilities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle the configure basic utilities menu option."""
+        data = self.config_entry.data
+        opts = self.config_entry.options or {}
+        defaults = {**data, **opts}
+
+        if user_input is None:
+            schema = vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_BASIC_UTILITIES_ENABLED,
+                        default=defaults.get(CONF_BASIC_UTILITIES_ENABLED, False),
+                    ): bool,
+                }
+            )
+            return self.async_show_form(
+                step_id=STEP_CONFIGURE_BASIC_UTILITIES,
+                data_schema=schema,
+            )
+
+        self.user_selections = user_input.copy()
+        self.config_data.update(user_input)
+
+        next_step = get_next_step(
+            STEP_CONFIGURE_BASIC_UTILITIES, user_input, BASIC_UTILITIES_STEP_ORDER
+        )
+        if next_step:
+            step_id, schema_func = next_step
+            schema = schema_func(self.hass)
+            schema = self.add_suggested_values_to_schema(schema, defaults)
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=schema,
+            )
+
+        return self.async_create_entry(data=self.config_data)
+
+    async def async_step_basic_utilities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Basic Utilities tool toggles step in options flow."""
+        if user_input is None:
+            opts = {**self.config_entry.data, **(self.config_entry.options or {})}
+            schema = get_basic_utilities_schema(self.hass)
+            schema = self.add_suggested_values_to_schema(schema, opts)
+            return self.async_show_form(
+                step_id=STEP_BASIC_UTILITIES,
+                data_schema=schema,
+            )
+
+        self.config_data.update(user_input)
+        return self.async_create_entry(data=self.config_data)
 
     async def async_step_weather(
         self, user_input: dict[str, Any] | None = None
