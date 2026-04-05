@@ -78,11 +78,12 @@ class EntityHistoryTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Return state change history of the device entity."""
-        entity_name = tool_input.tool_args.get("entity_name").lower()
+        entity_name = tool_input.tool_args.get("entity_name").lower().strip()
         start_time = tool_input.tool_args.get("start_date_time")
         end_time = tool_input.tool_args.get("end_date_time")
 
         try:
+            # Assist puts the entity name into static context, so we must look-up by name
             entity = find_entity_by_name(hass, entity_name)
             entity_id = entity.entity_id
         except RuntimeError:
