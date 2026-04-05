@@ -14,6 +14,7 @@ from .calculator import CalculatorTool
 from .const import (
     BASIC_UTILITIES_API_NAME,
     BASIC_UTILITIES_SERVICES_PROMPT,
+    CONF_BASIC_UTILITIES_ENABLED,
     CONF_CALCULATOR_ENABLED,
     CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
@@ -32,6 +33,7 @@ from .const import (
     WEATHER_SERVICES_PROMPT,
 )
 from .date_info import DateInfoTool
+from .entity_history import EntityHistoryTool
 from .google_places import FindPlacesTool
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
@@ -73,6 +75,7 @@ BASIC_UTILITIES_CONF_ENABLED_MAP = [
     (CONF_CALCULATOR_ENABLED, CalculatorTool),
     (CONF_UNIT_CONVERTER_ENABLED, UnitConverterTool),
     (CONF_DATE_INFO_ENABLED, DateInfoTool),
+    (CONF_BASIC_UTILITIES_ENABLED, EntityHistoryTool),
 ]
 
 
