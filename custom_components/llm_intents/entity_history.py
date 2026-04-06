@@ -121,10 +121,10 @@ class EntityHistoryTool(BaseTool):
         for sublist in result.values():
             sublist_results = [self.format_result(item) for item in sublist]
 
-            initial_state = sublist_results[0]
-            entity_id = initial_state["entity_id"]
-            sublist_results = [item for item in sublist_results]
+            initial_state = sublist_results.pop(0)
+            results["state_at_search_start"] = initial_state.get('state')
 
-            results[entity_id] = sublist_results
+            if sublist_results:
+                results["search_duration_state_changes"] = sublist_results
 
-        return {"results": results}
+        return results
