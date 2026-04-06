@@ -2,7 +2,7 @@
 
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
@@ -91,18 +91,8 @@ class EntityHistoryTool(BaseTool):
         except RuntimeError:
             raise HomeAssistantError("Could not find entity")
 
-        if start_time and not end_time:
-            start_time = _to_datetime(start_time)
-            end_time = start_time + timedelta(hours=24)
-        elif end_time and not start_time:
-            end_time = _to_datetime(end_time)
-            start_time = end_time - timedelta(hours=24)
-        elif start_time and end_time:
-            start_time = _to_datetime(start_time)
-            end_time = _to_datetime(end_time)
-        else:
-            end_time = datetime.now().astimezone()
-            start_time = end_time - timedelta(hours=24)
+        start_time = _to_datetime(start_time)
+        end_time = _to_datetime(end_time)
 
         with recorder.util.session_scope(hass=hass, read_only=True) as session:
             result = await recorder.get_instance(hass).async_add_executor_job(
