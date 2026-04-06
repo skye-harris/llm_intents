@@ -36,9 +36,9 @@ class EntityHistoryTool(BaseTool):
     description = (
         "Where the `GetLiveContext` tool provides live device states, the `get_entity_context_history` tool is used to retrieve the past (historic, previous) states of a device.\n"
         "This tool must be used any time the user requests information on when a device changed state, or what a devices state was at an earlier day or time.\n"
-        "If only the start time is provided, the response will include data for the 24hours after the start_time.\n"
-        "- If only the end time is provided, the response will include data for the 24hours leading upto the end_time.\n"
-        "- If neither are provided, the response will include data for the 24hours leading upto the current time.\n"
+        "You must make use of the `start_date_time` and `end_date_time` arguments to specify the search period.\n"
+        "- If the user does not specify, search FROM yesterdays date UNTIL today's date.\n"
+        "- If the user wants to know the device state at an exact time, limit the start and end date/time arguments to exactly that date and time.\n"
         "Example queries: `What time did the kitchen reach 25 degrees?` `When was the bedroom light turned off?` `What was the temperature outside at 8am this morning?`"
     )
     prompt_description = None
@@ -49,13 +49,13 @@ class EntityHistoryTool(BaseTool):
                 "entity_name",
                 description="The name of the entity or device to retrieve the history for, exactly as it appears in the static device context.",
             ): str,
-            vol.Optional(
+            vol.Required(
                 "end_date_time",
-                description="The end date/time of the period to retrieve information from, in the formats: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`.",
+                description="The end date/time of the period to retrieve information from, in the format: `YYYY-MM-DD HH:MM`.",
             ): str,
-            vol.Optional(
+            vol.Required(
                 "start_date_time",
-                description="The start date/time of the period to retrieve information from, in the formats: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`.",
+                description="The start date/time of the period to retrieve information from, in the format: ``YYYY-MM-DD HH:MM`.",
             ): str,
         }
     )
@@ -121,12 +121,9 @@ class EntityHistoryTool(BaseTool):
         for sublist in result.values():
             sublist_results = [self.format_result(item) for item in sublist]
 
-            # first item is the current state
-            curr_state = sublist_results.pop(0)
-            entity_id = curr_state["entity_id"]
-
+            initial_state = sublist_results[0]
+            entity_id = initial_state["entity_id"]
             sublist_results = [item for item in sublist_results]
-            sublist_results.reverse()
 
             results[entity_id] = sublist_results
 
