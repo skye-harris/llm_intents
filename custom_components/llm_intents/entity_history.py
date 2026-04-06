@@ -36,9 +36,11 @@ class EntityHistoryTool(BaseTool):
     description = (
         "Where the `GetLiveContext` tool provides live device states, the `get_entity_context_history` tool is used to retrieve the past (historic, previous) states of a device.\n"
         "This tool must be used any time the user requests information on when a device changed state, or what a devices state was at an earlier day or time.\n"
-        "You must make use of the `start_date_time` and `end_date_time` arguments to specify the search period.\n"
+        "You must make use of the `start_date_time` and `end_date_time` arguments to specify the search period, but ensure this is not too small that it does not cover the time period intended by the user.\n"
         "- If the user does not specify, search FROM yesterdays date UNTIL today's date.\n"
         "- If the user wants to know the device state at an exact time, limit the start and end date/time arguments to exactly that date and time.\n"
+        "- If the user wants information for a particular time period, such as the morning, evening, or overnight, ensure that the start and end times encapsulate the entire duration.\n"
+        "- If the user wants to know the last time something changed, ensure to use the current date and time as the search end time.\n"
         "Example queries: `What time did the kitchen reach 25 degrees?` `When was the bedroom light turned off?` `What was the temperature outside at 8am this morning?`"
     )
     prompt_description = None
@@ -124,7 +126,12 @@ class EntityHistoryTool(BaseTool):
             initial_state = sublist_results.pop(0)
             results["state_at_search_start"] = initial_state.get('state')
 
+            # Filter unavailable/unknown values
+            sublist_results = [item for item in sublist_results if item.get('state') not in ["unavailable", "unknown"]]
+
             if sublist_results:
                 results["search_duration_state_changes"] = sublist_results
+
+            results["instruction"] = "Answer the users question in a naturally-spoken manner"
 
         return results
