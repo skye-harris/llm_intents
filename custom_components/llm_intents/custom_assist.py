@@ -125,11 +125,12 @@ class GetFilterableLiveContextTool(Tool):
 
     name = "GetLiveContext"
     description = (
-        "Provides real-time information about the CURRENT state, value, or mode of devices, sensors, entities, or areas. "
-        "Use this tool for: "
-        "1. Answering questions about current conditions (e.g., 'Is the light on?'). "
-        "2. As the first step in conditional actions (e.g., 'If the weather is rainy, turn off sprinklers' requires checking the weather first). "
-        "You may filter for devices by any combination of name, area, and domain from the static context."
+        "Provides real-time information about the CURRENT state, value, or mode of devices, sensors, entities, or areas.\n"
+        "Use this tool for:\n"
+        "1. Answering questions about current conditions (e.g., 'Is the light on?').\n"
+        "2. As the first step in conditional actions (e.g., 'If the weather is rainy, turn off sprinklers' requires checking the weather first).\n"
+        "You may filter for devices by any combination of arguments from the static context.\n"
+        " - Prefer filtering by domain when searching for multiple devices of the same type"
     )
 
     parameters = vol.Schema(
