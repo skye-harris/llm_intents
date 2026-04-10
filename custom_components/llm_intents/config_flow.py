@@ -11,6 +11,8 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import callback
+from homeassistant.helpers import llm
+from homeassistant.helpers.llm import LLMContext
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -21,6 +23,7 @@ from homeassistant.helpers.selector import (
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TemplateSelector,
 )
 
 from .const import (
@@ -49,6 +52,10 @@ from .const import (
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
+    CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
+    CONF_HOME_CONTROL_DISABLED_TOOLS,
+    CONF_HOME_CONTROL_ENABLED,
+    CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
@@ -86,6 +93,7 @@ STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
 STEP_BASIC_UTILITIES = "basic_utilities"
+STEP_HOME_CONTROL = "home_control"
 STEP_CONFIGURE_SEARCH = "configure"
 STEP_CONFIGURE_WEATHER = "configure_weather"
 STEP_CONFIGURE_BASIC_UTILITIES = "configure_basic_utilities"
@@ -107,6 +115,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
         vol.Optional(CONF_BASIC_UTILITIES_ENABLED, default=False): bool,
+        vol.Optional(CONF_HOME_CONTROL_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
 
@@ -236,7 +245,7 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
     return vol.Schema(schema)
 
 
-def get_searxng_schema(hass) -> vol.Schema:
+def get_searxng_schema(hass, args: dict[str, Any]) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
@@ -259,7 +268,7 @@ def get_searxng_schema(hass) -> vol.Schema:
     )
 
 
-def get_google_places_schema(hass) -> vol.Schema:
+def get_google_places_schema(hass, args: dict[str, Any]) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
         {
@@ -312,7 +321,7 @@ def get_google_places_schema(hass) -> vol.Schema:
     )
 
 
-def get_youtube_schema(hass) -> vol.Schema:
+def get_youtube_schema(hass, args: dict[str, Any]) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
         {
@@ -324,7 +333,7 @@ def get_youtube_schema(hass) -> vol.Schema:
     )
 
 
-def get_wikipedia_schema(hass) -> vol.Schema:
+def get_wikipedia_schema(hass, args: dict[str, Any]) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
         {
@@ -344,7 +353,7 @@ def get_wikipedia_schema(hass) -> vol.Schema:
     )
 
 
-def get_basic_utilities_schema(hass) -> vol.Schema:
+def get_basic_utilities_schema(hass, args: dict[str, Any]) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
         {
@@ -364,7 +373,7 @@ def get_basic_utilities_schema(hass) -> vol.Schema:
     )
 
 
-def get_weather_schema(hass) -> vol.Schema:
+def get_weather_schema(hass, args: dict[str, Any]) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = []
@@ -413,6 +422,45 @@ def get_weather_schema(hass) -> vol.Schema:
     )
 
 
+async def enumerate_tools(hass) -> list[llm.Tool]:
+    """Enumerate available tools for the Assist API"""
+    tools = []
+    apis = llm.async_get_apis(hass)
+    for api in apis:
+        # For simplicity lets just enumerate directly from assist, as otherwise our own internal filtering may get in the way of this
+        if api.name == "Assist":
+            api_instance = await api.async_get_api_instance(
+                LLMContext(DOMAIN, None, None, None, None)
+            )
+            for tool in api_instance.tools:
+                tools.append(tool)
+
+    return tools
+
+
+def get_home_control_schema(hass, args: dict[str, Any]) -> vol.Schema:
+    """Return the static schema for Home Control configuration."""
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_HOME_CONTROL_ENABLED,
+                default=False,
+            ): bool,
+            vol.Optional(
+                CONF_HOME_CONTROL_PROMPT_TEMPLATE,
+                default=CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
+            ): TemplateSelector(),
+            vol.Required(CONF_HOME_CONTROL_DISABLED_TOOLS, default=[]): SelectSelector(
+                SelectSelectorConfig(
+                    options=[tool.name for tool in args.get("tools", [])],
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
+    )
+
+
 SEARCH_STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
     STEP_BRAVE: [
@@ -430,6 +478,7 @@ SEARCH_STEP_ORDER = {
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
+    STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
 }
 
 WEATHER_STEP_ORDER = {
@@ -446,6 +495,7 @@ INITIAL_CONFIG_STEP_ORDER = {
     **SEARCH_STEP_ORDER,
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
     STEP_BASIC_UTILITIES: [CONF_BASIC_UTILITIES_ENABLED, get_basic_utilities_schema],
+    # STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
 }
 
 
@@ -631,9 +681,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             return self.async_show_menu(
                 step_id=STEP_INIT,
                 menu_options=[
-                    STEP_CONFIGURE_SEARCH,
-                    "configure_weather",
                     STEP_CONFIGURE_BASIC_UTILITIES,
+                    STEP_HOME_CONTROL,
+                    STEP_CONFIGURE_SEARCH,
+                    STEP_CONFIGURE_WEATHER,
                 ],
             )
         return None
@@ -734,13 +785,16 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def handle_step(
-        self, current_step: str, user_input: dict[str, Any] | None = None
+        self,
+        current_step: str,
+        user_input: dict[str, Any] | None = None,
+        schema_args: dict[str, Any] | None = None,
     ):
         """Handle the current configuration step."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
             _, schema_func = SEARCH_STEP_ORDER[current_step]
-            schema = schema_func(self.hass)
+            schema = schema_func(self.hass, schema_args or {})
             schema = self.add_suggested_values_to_schema(
                 schema, expand_config_for_schema(opts)
             )
@@ -872,3 +926,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             self.config_data[CONF_HOURLY_WEATHER_ENTITY] = None
             self.config_data[CONF_WEATHER_TEMPERATURE_SENSOR] = None
         return await self.handle_step(STEP_WEATHER, user_input)
+
+    async def async_step_home_control(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Home Control (override Assist) configuration step in options flow."""
+        return await self.handle_step(
+            STEP_HOME_CONTROL, user_input, {"tools": await enumerate_tools(self.hass)}
+        )
