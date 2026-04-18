@@ -547,7 +547,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = schema_func(self.hass, {})
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
@@ -906,7 +906,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle Basic Utilities tool toggles step in options flow."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = get_basic_utilities_schema(self.hass)
+            schema = get_basic_utilities_schema(self.hass, {})
             schema = self.add_suggested_values_to_schema(schema, opts)
             return self.async_show_form(
                 step_id=STEP_BASIC_UTILITIES,
