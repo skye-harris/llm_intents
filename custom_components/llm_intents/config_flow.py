@@ -8,9 +8,13 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
+from zoneinfo import available_timezones
+import asyncio
+
 from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -149,8 +153,11 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
 
 
-def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
+async def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
     """Return the static schema for Brave service configuration."""
+    iana_timezones = await asyncio.to_thread(available_timezones)
+    iana_timezones = sorted(iana_timezones)
+
     schema = {
         vol.Required(
             CONF_BRAVE_API_KEY, default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY)
@@ -227,16 +234,20 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
         ): str,
         vol.Optional(
             CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
-        ): str,
+        ): SelectSelector(
+            SelectSelectorConfig(
+                mode=SelectSelectorMode.DROPDOWN,
+                options=iana_timezones,
+            )
+        ),
         vol.Optional(
             CONF_BRAVE_POST_CODE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE)
         ): str,
     }
-
     return vol.Schema(schema)
 
 
-def get_searxng_schema(hass) -> vol.Schema:
+async def get_searxng_schema(hass) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
@@ -259,7 +270,7 @@ def get_searxng_schema(hass) -> vol.Schema:
     )
 
 
-def get_google_places_schema(hass) -> vol.Schema:
+async def get_google_places_schema(hass) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
         {
@@ -312,7 +323,7 @@ def get_google_places_schema(hass) -> vol.Schema:
     )
 
 
-def get_youtube_schema(hass) -> vol.Schema:
+async def get_youtube_schema(hass) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
         {
@@ -324,7 +335,7 @@ def get_youtube_schema(hass) -> vol.Schema:
     )
 
 
-def get_wikipedia_schema(hass) -> vol.Schema:
+async def get_wikipedia_schema(hass) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
         {
@@ -344,7 +355,7 @@ def get_wikipedia_schema(hass) -> vol.Schema:
     )
 
 
-def get_basic_utilities_schema(hass) -> vol.Schema:
+async def get_basic_utilities_schema(hass) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
         {
@@ -364,7 +375,7 @@ def get_basic_utilities_schema(hass) -> vol.Schema:
     )
 
 
-def get_weather_schema(hass) -> vol.Schema:
+async def get_weather_schema(hass) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = []
@@ -413,15 +424,25 @@ def get_weather_schema(hass) -> vol.Schema:
     )
 
 
+async def get_brave_search_schema(hass, args=None) -> vol.Schema:
+    """Return the static schema for Brave Search configuration."""
+    return await get_brave_schema(hass, is_llm_context_search=False)
+
+
+async def get_brave_llm_schema(hass, args=None) -> vol.Schema:
+    """Return the static schema for Brave Search configuration."""
+    return await get_brave_schema(hass, is_llm_context_search=True)
+
+
 SEARCH_STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
     STEP_BRAVE: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
-        lambda hass: get_brave_schema(hass, is_llm_context_search=False),
+        get_brave_search_schema,
     ],
     STEP_BRAVE_LLM: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE_LLM,
-        lambda hass: get_brave_schema(hass, is_llm_context_search=True),
+        get_brave_llm_schema,
     ],
     STEP_SEARXNG: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
@@ -482,22 +503,26 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.user_selections: dict[str, Any] = {}
         self.config_data: dict[str, Any] = {}
 
-    async def handle_step(self, current_step: str, user_input: dict[str, Any] | None):
+    async def handle_step(
+        self,
+        current_step: str,
+        user_input: dict[str, Any] | None,
+        errors: dict[str, str] | None = None,
+    ) -> FlowResult:
         """Handle a configuration step."""
-        if user_input is None:
-            return self.async_show_form(step_id=current_step)
+        if user_input is None or errors:
+            return self.async_show_form(step_id=current_step, errors=errors)
 
         self.config_data.update(user_input)
         merge_provider_api_keys_from_input(self.config_data, user_input)
 
         # Check if we need to configure other services
-
         next_step = get_next_step(
             current_step, self.user_selections, INITIAL_CONFIG_STEP_ORDER
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
@@ -539,7 +564,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         next_step = get_next_step(STEP_USER, user_input, INITIAL_CONFIG_STEP_ORDER)
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
@@ -554,13 +579,39 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step."""
-        return await self.handle_step(STEP_BRAVE, user_input)
+        errors = {}
+        # if user_input:
+        #     latitude = user_input.get(CONF_BRAVE_LATITUDE)
+        #     longitude = user_input.get(CONF_BRAVE_LONGITUDE)
+        #     if longitude is None and latitude is not None:
+        #         errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
+        #     if latitude is None and longitude is not None:
+        #         errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
+        #     if latitude is not None and (latitude > 90 or latitude < -90):
+        #         errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
+        #     if longitude is not None and (longitude > 180 or longitude < -180):
+        #         errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
+
+        return await self.handle_step(STEP_BRAVE, user_input, errors=errors)
 
     async def async_step_brave_llm(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave LLM Context Search configuration step."""
-        return await self.handle_step(STEP_BRAVE_LLM, user_input)
+        errors = {}
+        # if user_input:
+        #     latitude = user_input.get(CONF_BRAVE_LATITUDE)
+        #     longitude = user_input.get(CONF_BRAVE_LONGITUDE)
+        #     if longitude is None and latitude is not None:
+        #         errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
+        #     if latitude is None and longitude is not None:
+        #         errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
+        #     if latitude is not None and (latitude > 90 or latitude < -90):
+        #         errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
+        #     if longitude is not None and (longitude > 180 or longitude < -180):
+        #         errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
+
+        return await self.handle_step(STEP_BRAVE_LLM, user_input, errors=errors)
 
     async def async_step_searxng(
         self, user_input: dict[str, Any] | None = None
@@ -681,7 +732,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         next_step = get_next_step(STEP_USER, user_input, SEARCH_STEP_ORDER)
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
                 schema, expand_config_for_schema(self.config_data)
             )
@@ -723,7 +774,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(schema, defaults)
             return self.async_show_form(
                 step_id=step_id,
@@ -734,19 +785,32 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def handle_step(
-        self, current_step: str, user_input: dict[str, Any] | None = None
+        self,
+        current_step: str,
+        user_input: dict[str, Any] | None = None,
+        errors: dict[str, str] | None = None,
     ):
         """Handle the current configuration step."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
             _, schema_func = SEARCH_STEP_ORDER[current_step]
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
                 schema, expand_config_for_schema(opts)
             )
             return self.async_show_form(
                 step_id=current_step,
                 data_schema=schema,
+            )
+
+        if errors:
+            _, schema_func = SEARCH_STEP_ORDER[current_step]
+            schema = await schema_func(self.hass)
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+            return self.async_show_form(
+                step_id=current_step,
+                data_schema=schema,
+                errors=errors,
             )
 
         self.config_data.update(user_input)
@@ -756,7 +820,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         opts = {**self.config_entry.data, **(self.config_entry.options or {})}
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
                 schema, expand_config_for_schema(opts)
             )
@@ -771,17 +835,41 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step in options flow."""
+        errors = {}
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
-        return await self.handle_step(STEP_BRAVE, user_input)
+            # latitude = user_input.get(CONF_BRAVE_LATITUDE)
+            # longitude = user_input.get(CONF_BRAVE_LONGITUDE)
+            # if longitude is None and latitude is not None:
+            #     errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
+            # if latitude is None and longitude is not None:
+            #     errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
+            # if latitude is not None and (latitude > 90 or latitude < -90):
+            #     errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
+            # if longitude is not None and (longitude > 180 or longitude < -180):
+            #     errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
+
+        return await self.handle_step(STEP_BRAVE, user_input, errors=errors)
 
     async def async_step_brave_llm(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave LLM Context Search configuration step in options flow."""
+        errors = {}
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
-        return await self.handle_step(STEP_BRAVE_LLM, user_input)
+            # latitude = user_input.get(CONF_BRAVE_LATITUDE)
+            # longitude = user_input.get(CONF_BRAVE_LONGITUDE)
+            # if longitude is None and latitude is not None:
+            #     errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
+            # if latitude is None and longitude is not None:
+            #     errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
+            # if latitude is not None and (latitude > 90 or latitude < -90):
+            #     errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
+            # if longitude is not None and (longitude > 180 or longitude < -180):
+            #     errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
+
+        return await self.handle_step(STEP_BRAVE_LLM, user_input, errors=errors)
 
     async def async_step_searxng(
         self, user_input: dict[str, Any] | None = None
@@ -837,7 +925,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(schema, defaults)
             return self.async_show_form(
                 step_id=step_id,
@@ -852,7 +940,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle Basic Utilities tool toggles step in options flow."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = get_basic_utilities_schema(self.hass)
+            schema = await get_basic_utilities_schema(self.hass)
             schema = self.add_suggested_values_to_schema(schema, opts)
             return self.async_show_form(
                 step_id=STEP_BASIC_UTILITIES,
