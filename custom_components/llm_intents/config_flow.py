@@ -257,8 +257,8 @@ async def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
             CONF_BRAVE_LONGITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE)
         ): MyNumberSelector(
             NumberSelectorConfig(
-                min=-90,
-                max=90,
+                min=-180,
+                max=180,
                 step=0.001,
                 mode=NumberSelectorMode.BOX,
                 unit_of_measurement="Degrees",
@@ -325,11 +325,27 @@ async def get_google_places_schema(hass) -> vol.Schema:
             vol.Optional(
                 CONF_GOOGLE_PLACES_LATITUDE,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LATITUDE),
-            ): str,
+            ): MyNumberSelector(
+                NumberSelectorConfig(
+                    min=-90,
+                    max=90,
+                    step=0.001,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Degrees",
+                ),
+            ),
             vol.Optional(
                 CONF_GOOGLE_PLACES_LONGITUDE,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LONGITUDE),
-            ): str,
+            ): MyNumberSelector(
+                NumberSelectorConfig(
+                    min=-180,
+                    max=180,
+                    step=0.001,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Degrees",
+                ),
+            ),
             vol.Required(
                 CONF_GOOGLE_PLACES_RADIUS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
@@ -612,17 +628,6 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step."""
         errors = {}
-        # if user_input:
-        #     latitude = user_input.get(CONF_BRAVE_LATITUDE)
-        #     longitude = user_input.get(CONF_BRAVE_LONGITUDE)
-        #     if longitude is None and latitude is not None:
-        #         errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
-        #     if latitude is None and longitude is not None:
-        #         errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
-        #     if latitude is not None and (latitude > 90 or latitude < -90):
-        #         errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
-        #     if longitude is not None and (longitude > 180 or longitude < -180):
-        #         errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
 
         return await self.handle_step(STEP_BRAVE, user_input, errors=errors)
 
@@ -631,17 +636,6 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.FlowResult:
         """Handle Brave LLM Context Search configuration step."""
         errors = {}
-        # if user_input:
-        #     latitude = user_input.get(CONF_BRAVE_LATITUDE)
-        #     longitude = user_input.get(CONF_BRAVE_LONGITUDE)
-        #     if longitude is None and latitude is not None:
-        #         errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
-        #     if latitude is None and longitude is not None:
-        #         errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
-        #     if latitude is not None and (latitude > 90 or latitude < -90):
-        #         errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
-        #     if longitude is not None and (longitude > 180 or longitude < -180):
-        #         errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
 
         return await self.handle_step(STEP_BRAVE_LLM, user_input, errors=errors)
 
@@ -870,16 +864,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         errors = {}
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
-            # latitude = user_input.get(CONF_BRAVE_LATITUDE)
-            # longitude = user_input.get(CONF_BRAVE_LONGITUDE)
-            # if longitude is None and latitude is not None:
-            #     errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
-            # if latitude is None and longitude is not None:
-            #     errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
-            # if latitude is not None and (latitude > 90 or latitude < -90):
-            #     errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
-            # if longitude is not None and (longitude > 180 or longitude < -180):
-            #     errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
 
         return await self.handle_step(STEP_BRAVE, user_input, errors=errors)
 
@@ -890,16 +874,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         errors = {}
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
-            # latitude = user_input.get(CONF_BRAVE_LATITUDE)
-            # longitude = user_input.get(CONF_BRAVE_LONGITUDE)
-            # if longitude is None and latitude is not None:
-            #     errors[CONF_BRAVE_LONGITUDE] = "latitude_no_longitude"
-            # if latitude is None and longitude is not None:
-            #     errors[CONF_BRAVE_LATITUDE] = "longitude_no_latitude"
-            # if latitude is not None and (latitude > 90 or latitude < -90):
-            #     errors[CONF_BRAVE_LATITUDE] = "latitude_out_of_bounds"
-            # if longitude is not None and (longitude > 180 or longitude < -180):
-            #     errors[CONF_BRAVE_LONGITUDE] = "longitude_out_of_bounds"
 
         return await self.handle_step(STEP_BRAVE_LLM, user_input, errors=errors)
 
