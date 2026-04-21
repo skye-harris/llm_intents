@@ -555,11 +555,10 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self,
         current_step: str,
         user_input: dict[str, Any] | None,
-        errors: dict[str, str] | None = None,
     ) -> FlowResult:
         """Handle a configuration step."""
-        if user_input is None or errors:
-            return self.async_show_form(step_id=current_step, errors=errors)
+        if user_input is None:
+            return self.async_show_form(step_id=current_step)
 
         self.config_data.update(user_input)
         merge_provider_api_keys_from_input(self.config_data, user_input)
@@ -583,8 +582,6 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle the initial configuration step for the user."""
-        errors = {}
-
         # Check if entry already exists
         if self._async_current_entries():
             # TODO: support a single instance of multiple LLM API types (diff tools)
@@ -597,7 +594,6 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id=STEP_USER,
                 data_schema=schema,
-                errors=errors,
             )
         # Store user selections
         self.user_selections = user_input.copy()
@@ -627,17 +623,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step."""
-        errors = {}
-
-        return await self.handle_step(STEP_BRAVE, user_input, errors=errors)
+        return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_brave_llm(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave LLM Context Search configuration step."""
-        errors = {}
-
-        return await self.handle_step(STEP_BRAVE_LLM, user_input, errors=errors)
+        return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
     async def async_step_searxng(
         self, user_input: dict[str, Any] | None = None
@@ -814,7 +806,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self,
         current_step: str,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, str] | None = None,
     ):
         """Handle the current configuration step."""
         if user_input is None:
@@ -827,16 +818,6 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             return self.async_show_form(
                 step_id=current_step,
                 data_schema=schema,
-            )
-
-        if errors:
-            _, schema_func = SEARCH_STEP_ORDER[current_step]
-            schema = await schema_func(self.hass)
-            schema = self.add_suggested_values_to_schema(schema, user_input)
-            return self.async_show_form(
-                step_id=current_step,
-                data_schema=schema,
-                errors=errors,
             )
 
         self.config_data.update(user_input)
@@ -861,21 +842,19 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave configuration step in options flow."""
-        errors = {}
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
 
-        return await self.handle_step(STEP_BRAVE, user_input, errors=errors)
+        return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_brave_llm(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Brave LLM Context Search configuration step in options flow."""
-        errors = {}
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
 
-        return await self.handle_step(STEP_BRAVE_LLM, user_input, errors=errors)
+        return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
     async def async_step_searxng(
         self, user_input: dict[str, Any] | None = None
