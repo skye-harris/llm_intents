@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import types
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+from zoneinfo import available_timezones
 
 import voluptuous as vol
-from zoneinfo import available_timezones
-import asyncio
-
 from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import callback
@@ -93,6 +92,23 @@ STEP_BASIC_UTILITIES = "basic_utilities"
 STEP_CONFIGURE_SEARCH = "configure"
 STEP_CONFIGURE_WEATHER = "configure_weather"
 STEP_CONFIGURE_BASIC_UTILITIES = "configure_basic_utilities"
+
+
+class MyNumberSelector(NumberSelector):
+    def __call__(self, data: Any) -> float | None:
+        # Handle for empty values
+        if data == "" or data is None:
+            return None
+
+        value: float = vol.Coerce(float)(data)
+
+        if "min" in self.config and value < self.config["min"]:
+            raise vol.Invalid(f"Value {value} is too small")
+
+        if "max" in self.config and value > self.config["max"]:
+            raise vol.Invalid(f"Value {value} is too large")
+
+        return value
 
 
 def get_step_user_data_schema(hass) -> vol.Schema:
@@ -228,10 +244,26 @@ async def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
         ),
         vol.Optional(
             CONF_BRAVE_LATITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE)
-        ): str,
+        ): MyNumberSelector(
+            NumberSelectorConfig(
+                min=-90,
+                max=90,
+                step=0.001,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="Degrees",
+            ),
+        ),
         vol.Optional(
             CONF_BRAVE_LONGITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE)
-        ): str,
+        ): MyNumberSelector(
+            NumberSelectorConfig(
+                min=-90,
+                max=90,
+                step=0.001,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="Degrees",
+            ),
+        ),
         vol.Optional(
             CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
         ): SelectSelector(
