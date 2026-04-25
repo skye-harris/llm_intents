@@ -1,10 +1,10 @@
 -r requirements.txt
-flake8~=7.3
-flake8-docstrings~=1.7
-pytest>=7.2
+flake8
+flake8-docstrings
+pytest
 pytest-cov
 pytest-homeassistant-custom-component
-pytest-asyncio>=0.20
+pytest-asyncio
 pytest-tornasync
 pytest-trio
 pre-commit
