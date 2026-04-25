@@ -5,7 +5,6 @@ name: Python application
 
 on:
   push:
-    branches: [ "master", "pipeline-tests" ]
   pull_request:
     branches: [ "master" ]
 
