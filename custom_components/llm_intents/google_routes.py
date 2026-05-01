@@ -197,9 +197,7 @@ class GetRouteTool(BaseTool):
             ) as resp:
                 if resp.status != 200:
                     error_text = await resp.text()
-                    _LOGGER.error(
-                        "Routes API HTTP %s: %s", resp.status, error_text
-                    )
+                    _LOGGER.error("Routes API HTTP %s: %s", resp.status, error_text)
                     return {"error": f"Routes API error: {resp.status}"}
 
                 data = await resp.json()
@@ -235,8 +233,8 @@ class GetRouteTool(BaseTool):
                 arrival = datetime.strptime(
                     departure_time, "%Y-%m-%dT%H:%M:%SZ"
                 ).replace(tzinfo=UTC) + timedelta(seconds=duration_seconds)
-                result["estimated_arrival"] = (
-                    dt_util.as_local(arrival).strftime("%Y-%m-%d %H:%M")
+                result["estimated_arrival"] = dt_util.as_local(arrival).strftime(
+                    "%Y-%m-%d %H:%M"
                 )
 
             return {"result": result, "instruction": self.response_directive}
