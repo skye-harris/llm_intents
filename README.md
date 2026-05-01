@@ -4,6 +4,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 
 * **Web Search** powered by your choice of _Brave_ or _SearXNG_
 * **Location Search** powered by Google Places
+* **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
 * **Weather Forecast**
 * **YouTube Search and Playback**
@@ -172,6 +173,46 @@ Search results include the location name, address, rating score, current open st
 | `Longitude`         | ❌        | —          | Your locations longitude, if you wish to use location biasing (recommended) |
 | `Radius`            | ❌        | `5`        | The radius around your location for location biased results (in kilometres) |
 | `Rank Preference`   | ❌        | `Distance` | The ranking preference for search results from Google Places                |
+
+---
+
+### 🗺️ Google Routes
+
+Computes travel distance and duration from a configured home address to any destination using the Google Routes API. The duration includes live traffic for driving and motorcycle/scooter trips, so it is suitable for questions like:
+
+* `"how far of a drive is it to the airport"`
+* `"how long would it take to drive to X"`
+* `"when should I leave to get to X by 6pm"` — the LLM uses the returned duration to work backwards from the target arrival time.
+
+For a future departure time, the API returns predicted (expected) traffic for that time window rather than current conditions.
+
+#### Requirements
+
+* Requires a [Google API key](https://console.cloud.google.com/apis/credentials) with the **Routes API** enabled.
+* The same Google API key can be shared with the Google Places and YouTube tools if those are configured.
+
+#### Configuration Steps
+
+1. Enable "Google Routes" during setup.
+2. Enter your Google API key (the same key used for Google Places / YouTube if configured).
+3. Enter your home address — this is used as the starting point for all route lookups.
+
+#### LLM-provided arguments
+
+| Argument           | Required | Default | Description                                                                            |
+|--------------------|----------|---------|----------------------------------------------------------------------------------------|
+| `destination`      | ✅       | —       | Destination address, place name, or business name                                      |
+| `departure_time`   | ❌       | `now`   | ISO 8601 departure time (e.g. `2026-05-01T17:30:00`). Omit for an immediate departure. |
+| `mode`             | ❌       | `DRIVE` | One of `DRIVE`, `WALK`, `BICYCLE`, `TRANSIT`, `TWO_WHEELER`                            |
+
+#### Options
+
+| Setting        | Required | Default | Description                                                             |
+|----------------|----------|---------|-------------------------------------------------------------------------|
+| `API Key`      | ✅       | —       | Google API key with Routes API enabled                                  |
+| `Home Address` | ✅       | —       | Starting point for route calculations (e.g. `123 Main St, Springfield`) |
+
+Distance is reported in miles or kilometres based on your Home Assistant unit system. Route lookups are not cached, so traffic information is always live.
 
 ---
 
