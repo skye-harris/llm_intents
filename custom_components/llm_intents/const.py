@@ -136,6 +136,19 @@ CONF_GOOGLE_PLACES_LONGITUDE = "google_places_longitude"
 CONF_GOOGLE_PLACES_RADIUS = "google_places_radius"
 CONF_GOOGLE_PLACES_RANKING = "google_places_rank_preference"
 
+# Google Routes-specific constants
+
+CONF_GOOGLE_ROUTES_ENABLED = "google_routes_enabled"
+CONF_GOOGLE_ROUTES_HOME_ADDRESS = "google_routes_home_address"
+
+CONF_GOOGLE_ROUTES_TRAVEL_MODES = {
+    "DRIVE": "Driving",
+    "WALK": "Walking",
+    "BICYCLE": "Bicycle",
+    "TRANSIT": "Public Transit",
+    "TWO_WHEELER": "Motorcycle / Scooter",
+}
+
 # YouTube-specific constants
 
 CONF_YOUTUBE_ENABLED = "youtube_enabled"
@@ -177,6 +190,7 @@ SERVICE_DEFAULTS = {
     CONF_GOOGLE_PLACES_LONGITUDE: "",
     CONF_GOOGLE_PLACES_RADIUS: 5,
     CONF_GOOGLE_PLACES_RANKING: "Distance",
+    CONF_GOOGLE_ROUTES_HOME_ADDRESS: "",
     CONF_WIKIPEDIA_NUM_RESULTS: 1,
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,

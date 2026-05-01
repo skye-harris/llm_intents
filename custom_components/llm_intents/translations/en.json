@@ -7,6 +7,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast",
@@ -64,6 +65,17 @@
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "google_routes": {
+        "title": "Configure Google Routes",
+        "description": "Configure Google Routes API settings. Uses the same Google API key as Google Places.",
+        "data": {
+          "google_api_key": "Google API Key",
+          "google_routes_home_address": "Home Address"
+        },
+        "data_description": {
+          "google_routes_home_address": "Starting point for route calculations (e.g. '123 Main St, Springfield, IL')"
         }
       },
       "youtube": {
@@ -125,6 +137,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search"
         }
@@ -187,6 +200,17 @@
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "google_routes": {
+        "title": "Configure Google Routes",
+        "description": "Configure Google Routes API settings. Uses the same Google API key as Google Places.",
+        "data": {
+          "google_api_key": "Google API Key",
+          "google_routes_home_address": "Home Address"
+        },
+        "data_description": {
+          "google_routes_home_address": "Starting point for route calculations (e.g. '123 Main St, Springfield, IL')"
         }
       },
       "youtube": {
