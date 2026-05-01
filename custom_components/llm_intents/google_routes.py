@@ -1,7 +1,7 @@
 """Google Routes tool."""
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -121,9 +121,9 @@ class GetRouteTool(BaseTool):
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
 
-        utc = parsed.astimezone(timezone.utc)
+        utc = parsed.astimezone(UTC)
         # Routes API requires departureTime to be in the future
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         if utc <= now_utc:
             utc = now_utc + timedelta(seconds=10)
 
@@ -166,7 +166,7 @@ class GetRouteTool(BaseTool):
             "languageCode": hass.config.language,
         }
 
-        if mode == "DRIVE" or mode == "TWO_WHEELER":
+        if mode in {"DRIVE", "TWO_WHEELER"}:
             body["routingPreference"] = "TRAFFIC_AWARE"
 
         if departure_time:
@@ -234,7 +234,7 @@ class GetRouteTool(BaseTool):
                 result["departure_time"] = departure_time
                 arrival = datetime.strptime(
                     departure_time, "%Y-%m-%dT%H:%M:%SZ"
-                ).replace(tzinfo=timezone.utc) + timedelta(seconds=duration_seconds)
+                ).replace(tzinfo=UTC) + timedelta(seconds=duration_seconds)
                 result["estimated_arrival"] = (
                     dt_util.as_local(arrival).strftime("%Y-%m-%d %H:%M")
                 )
