@@ -72,8 +72,13 @@ class GetRouteTool(BaseTool):
 
     response_directive = (
         "Use the route information to answer the user's question directly. "
-        "Report distance and duration concisely. If the user asked when to leave, "
-        "subtract the duration from their target arrival time."
+        "Report distance and duration concisely. "
+        "If `departure_time` is present in the result, the duration is for "
+        "that future departure - phrase it as 'with expected traffic'. "
+        "If `departure_time` is NOT present, the duration is for leaving now - "
+        "phrase it as 'with current traffic'. "
+        "If the user asked when to leave, subtract the duration from their "
+        "target arrival time."
     )
 
     parameters = vol.Schema(
