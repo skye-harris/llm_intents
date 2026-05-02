@@ -275,9 +275,7 @@ async def get_brave_schema(
                 unit_of_measurement="Degrees",
             ),
         ),
-        vol.Optional(
-            CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
-        ): SelectSelector(
+        vol.Optional(CONF_BRAVE_TIMEZONE): SelectSelector(
             SelectSelectorConfig(
                 mode=SelectSelectorMode.DROPDOWN,
                 options=iana_timezones,

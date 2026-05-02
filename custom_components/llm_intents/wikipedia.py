@@ -114,5 +114,5 @@ class SearchWikipediaTool(BaseTool):
                 return {"results": results}
 
         except Exception as e:
-            _LOGGER.exception()
+            _LOGGER.exception(msg="Wikipedia search encountered an error")
             return {"error": f"Error searching Wikipedia: {e!s}"}
