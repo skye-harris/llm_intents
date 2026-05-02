@@ -140,5 +140,5 @@ class SearchYouTubeTool(BaseTool):
                 return {"error": f"YouTube search error: {resp.status}"}
 
         except Exception:
-            _LOGGER.exception("YouTube search error")
+            _LOGGER.exception("YouTube search encountered an error")
             return {"error": "Error searching YouTube"}

@@ -77,5 +77,5 @@ class SearchWebTool(BaseTool):
 
             return response
         except Exception as e:
-            _LOGGER.exception()
+            _LOGGER.exception(msg="Web search error")
             return {"error": f"Error searching web: {e!s}"}

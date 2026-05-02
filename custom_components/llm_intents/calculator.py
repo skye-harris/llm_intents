@@ -54,7 +54,7 @@ class CalculatorTool(BaseTool):
         try:
             result = _calculate(operation, data)
         except Exception as e:
-            _LOGGER.exception()
+            _LOGGER.exception(msg="Calculator encountered an error")
             return {"error": str(e)}
 
         return {"value": result}
