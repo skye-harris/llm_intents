@@ -38,4 +38,5 @@ max-complexity = 25
 "**/{tests,docs,tools}/*" = [
     "S101", # Use of assert
     "PLR2004", # Magic numbers
+    "SLF001", # Private member accessed
 ]

@@ -200,7 +200,7 @@ class WeatherForecastTool(BaseTool):
             message = f"Weather entity {entity_id} not found."
             raise WeatherEntityNotFoundError(message)
         features = entity.attributes.get("supported_features", 0)
-        return features & WeatherEntityFeature.FORECAST_TWICE_DAILY
+        return bool(features & WeatherEntityFeature.FORECAST_TWICE_DAILY)
 
     async def _get_daily_forecast(
         self,
