@@ -1,5 +1,6 @@
 """Test the LLM Intents integration."""
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -24,14 +25,14 @@ class TestLlmIntentsIntegration:
     """Test the LLM Intents integration setup and teardown."""
 
     @pytest.fixture
-    def hass(self):
+    def hass(self) -> HomeAssistant:
         """Create a mock Home Assistant instance."""
         hass = Mock(spec=HomeAssistant)
         hass.data = {}
         return hass
 
     @pytest.fixture
-    def config_entry(self):
+    def config_entry(self) -> ConfigEntry:
         """Create a mock config entry."""
         entry = Mock(spec=ConfigEntry)
         entry.entry_id = "test_entry_id"
@@ -43,27 +44,29 @@ class TestLlmIntentsIntegration:
         entry.options = {}
         return entry
 
-    async def test_async_setup(self, hass):
+    async def test_async_setup(self, hass: HomeAssistant) -> None:
         """Test the async_setup function."""
         result = await async_setup(hass, {})
 
         assert result is True
         assert DOMAIN in hass.data
 
-    async def test_async_setup_entry(self, hass, config_entry):
+    async def test_async_setup_entry(
+        self, hass: HomeAssistant, config_entry: ConfigEntry
+    ) -> None:
         """Test setting up a config entry."""
         # Mock config_entries.async_entries to return an iterable list
         hass.config_entries.async_entries = Mock(return_value=[config_entry])
 
-        with patch(
-            "custom_components.llm_intents.setup_llm_functions"
-        ) as mock_setup:
+        with patch("custom_components.llm_intents.setup_llm_functions") as mock_setup:
             result = await async_setup_entry(hass, config_entry)
 
             assert result is True
             mock_setup.assert_called_once_with(hass, config_entry.data)
 
-    async def test_async_unload_entry(self, hass, config_entry):
+    async def test_async_unload_entry(
+        self, hass: HomeAssistant, config_entry: ConfigEntry
+    ) -> None:
         """Test unloading a config entry."""
         # Set up initial data as it would be after setup
         hass.data[DOMAIN] = {
@@ -80,7 +83,9 @@ class TestLlmIntentsIntegration:
             assert result is True
             mock_cleanup.assert_called_once_with(hass)
 
-    async def test_async_migrate_entry_v2_to_v3_migrates_places_key(self, hass):
+    async def test_async_migrate_entry_v2_to_v3_migrates_places_key(
+        self, hass: HomeAssistant
+    ) -> None:
         """Test migrating from version 2 to 3 migrates google_places_api_key to provider_api_keys."""
         entry = Mock(spec=ConfigEntry)
         entry.version = 2
@@ -96,7 +101,7 @@ class TestLlmIntentsIntegration:
         updated_options = {}
         updated_version = None
 
-        def mock_update_entry(entry_obj, **kwargs):
+        def mock_update_entry(entry_obj: ConfigEntry, **kwargs: Any) -> None:
             nonlocal updated_data, updated_options, updated_version
             updated_data = kwargs.get("data", {})
             updated_options = kwargs.get("options", {})
@@ -109,7 +114,10 @@ class TestLlmIntentsIntegration:
         assert result is True
         assert updated_version == 3
         assert CONF_PROVIDER_API_KEYS in updated_data
-        assert updated_data[CONF_PROVIDER_API_KEYS][PROVIDER_GOOGLE] == "test_google_api_key"
+        assert (
+            updated_data[CONF_PROVIDER_API_KEYS][PROVIDER_GOOGLE]
+            == "test_google_api_key"
+        )
         assert CONF_GOOGLE_PLACES_API_KEY not in updated_data
         assert "other_config" in updated_data
         assert updated_data["other_config"] == "value"

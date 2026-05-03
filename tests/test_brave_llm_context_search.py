@@ -1,28 +1,33 @@
 """Tests for the Brave LLM Context search tool."""
 
 from unittest.mock import patch
-import pytest
 
-from .utils import mock_session
-from custom_components.llm_intents.brave_llm_context_search import BraveLlmContextSearchTool
+import pytest
+from homeassistant.core import HomeAssistant
+
+from custom_components.llm_intents.brave_llm_context_search import (
+    BraveLlmContextSearchTool,
+)
 from custom_components.llm_intents.const import (
+    CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
+    CONF_BRAVE_COUNTRY_CODE,
+    CONF_BRAVE_LATITUDE,
+    CONF_BRAVE_LONGITUDE,
+    CONF_BRAVE_MAX_SNIPPETS_PER_URL,
+    CONF_BRAVE_MAX_TOKENS_PER_URL,
+    CONF_BRAVE_NUM_RESULTS,
+    CONF_BRAVE_POST_CODE,
+    CONF_BRAVE_TIMEZONE,
     CONF_PROVIDER_API_KEYS,
     PROVIDER_BRAVE,
     PROVIDER_BRAVE_LLM,
-    CONF_BRAVE_NUM_RESULTS,
-    CONF_BRAVE_LATITUDE,
-    CONF_BRAVE_LONGITUDE,
-    CONF_BRAVE_TIMEZONE,
-    CONF_BRAVE_COUNTRY_CODE,
-    CONF_BRAVE_POST_CODE,
-    CONF_BRAVE_MAX_SNIPPETS_PER_URL,
-    CONF_BRAVE_MAX_TOKENS_PER_URL,
-    CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
 )
+
+from .utils import mock_session
 
 
 @pytest.fixture
-def config():
+def config() -> dict:
     """Return a default config."""
     return {
         CONF_PROVIDER_API_KEYS: {
@@ -42,13 +47,13 @@ def config():
 
 
 @pytest.fixture
-def tool(config, mock_hass):
+def tool(config: dict, mock_hass: HomeAssistant) -> BraveLlmContextSearchTool:
     """Create a BraveLlmContextSearchTool instance."""
     return BraveLlmContextSearchTool(config, mock_hass)
 
 
 @pytest.fixture
-def success_response():
+def success_response() -> dict:
     """Return a sample Brave LLM Context API response."""
     return {
         "grounding": {
@@ -65,7 +70,9 @@ def success_response():
     }
 
 
-async def test_brave_llm_context_search_success(tool, success_response):
+async def test_brave_llm_context_search_success(
+    tool: BraveLlmContextSearchTool, success_response: dict
+) -> None:
     """Test successful search returns results."""
     with patch(
         "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
@@ -84,7 +91,9 @@ async def test_brave_llm_context_search_success(tool, success_response):
     ]
 
 
-async def test_brave_llm_context_search_config_params_headers(tool, success_response):
+async def test_brave_llm_context_search_config_params_headers(
+    tool: BraveLlmContextSearchTool, success_response: dict
+) -> None:
     """Test that config values are correctly passed as params and headers."""
     session = mock_session(
         status=200,
@@ -123,7 +132,9 @@ async def test_brave_llm_context_search_config_params_headers(tool, success_resp
     assert headers["X-Loc-Postal-Code"] == "12345"
 
 
-async def test_brave_llm_context_search_request_failure(tool, mock_hass):
+async def test_brave_llm_context_search_request_failure(
+    tool: BraveLlmContextSearchTool, mock_hass: HomeAssistant
+) -> None:
     """Test that HTTP errors from Brave raise RuntimeError."""
     error_response = {
         "grounding": {
@@ -132,18 +143,25 @@ async def test_brave_llm_context_search_request_failure(tool, mock_hass):
         }
     }
 
-    with patch(
-        "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
-        return_value=mock_session(
-            status=503,
-            data=error_response,
+    with (
+        patch(
+            "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
+            return_value=mock_session(
+                status=503,
+                data=error_response,
+            ),
+        ),
+        pytest.raises(
+            RuntimeError,
+            match=r"Web search received a HTTP 503 error from Brave: \{'grounding': \{'generic': \[\], 'error': 'Brave API error'\}\}",
         ),
     ):
-        with pytest.raises(RuntimeError, match=r"Web search received a HTTP 503 error from Brave: \{'grounding': \{'generic': \[\], 'error': 'Brave API error'\}\}"):
-            await tool.async_search("test query")
+        await tool.async_search("test query")
 
 
-async def test_brave_llm_context_search_cleanup_text_image_removal(tool):
+async def test_brave_llm_context_search_cleanup_text_image_removal(
+    tool: BraveLlmContextSearchTool,
+) -> None:
     """Test that image placeholders are removed in cleanup_text."""
     text_with_images = """
     Here is some text [Image: https://example.com/image.jpg] and more text.
@@ -159,7 +177,9 @@ async def test_brave_llm_context_search_cleanup_text_image_removal(tool):
     assert "here." in result
 
 
-async def test_brave_llm_context_search_cleanup_text_html_unescape(tool):
+async def test_brave_llm_context_search_cleanup_text_html_unescape(
+    tool: BraveLlmContextSearchTool,
+) -> None:
     """Test that HTML entities are unescaped in cleanup_text."""
     html_text = "This is &lt;html&gt; encoded text with &amp; entities."
 
@@ -169,7 +189,9 @@ async def test_brave_llm_context_search_cleanup_text_html_unescape(tool):
     assert result == "This is encoded text with & entities."
 
 
-async def test_brave_llm_context_search_cleanup_text_multiple_whitespace(tool):
+async def test_brave_llm_context_search_cleanup_text_multiple_whitespace(
+    tool: BraveLlmContextSearchTool,
+) -> None:
     """Test that multiple whitespace characters are collapsed in cleanup_text."""
     whitespace_text = "This   has\tmultiple\nwhitespace\tcharacters.\n\n\n"
 
@@ -178,7 +200,9 @@ async def test_brave_llm_context_search_cleanup_text_multiple_whitespace(tool):
     assert result == "This has multiple whitespace characters."
 
 
-async def test_brave_llm_context_search_cleanup_text_json_decode_error(tool):
+async def test_brave_llm_context_search_cleanup_text_json_decode_error(
+    tool: BraveLlmContextSearchTool,
+) -> None:
     """Test that JSON decode errors are handled gracefully in cleanup_text."""
     invalid_json = "not valid json { missing quotes"
 
