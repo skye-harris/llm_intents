@@ -54,9 +54,10 @@ class FindPlacesTool(BaseTool):
     parameters = vol.Schema(
         {
             vol.Required(
-                "query", description="The place or location to search for"
+                "query",
+                description="The place or location to search for",
             ): str,
-        }
+        },
     )
 
     def wrap_response(self, response: dict) -> dict:
@@ -83,15 +84,17 @@ class FindPlacesTool(BaseTool):
             config_data.get(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
                 SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
-            )
+            ),
         )
         latitude = config_data.get(CONF_GOOGLE_PLACES_LATITUDE)
         longitude = config_data.get(CONF_GOOGLE_PLACES_LONGITUDE)
         radius = config_data.get(
-            CONF_GOOGLE_PLACES_RADIUS, SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS)
+            CONF_GOOGLE_PLACES_RADIUS,
+            SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
         )
         rank_pref = config_data.get(
-            CONF_GOOGLE_PLACES_RANKING, SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RANKING)
+            CONF_GOOGLE_PLACES_RANKING,
+            SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RANKING),
         ).upper()
 
         if not api_key:
@@ -164,20 +167,20 @@ class FindPlacesTool(BaseTool):
                             next_closes = opening_hours.get("nextCloseTime")
                             next_opens = opening_hours.get("nextOpenTime")
                             weekday_descriptions = opening_hours.get(
-                                "weekdayDescriptions"
+                                "weekdayDescriptions",
                             )
 
                             if next_closes:
                                 utc_time = dt.parse_datetime(next_closes)
                                 local_time = dt.as_local(utc_time).strftime(
-                                    "%Y-%m-%d %H:%M"
+                                    "%Y-%m-%d %H:%M",
                                 )
                                 this_place["next_closes_at"] = local_time
 
                             if next_opens:
                                 utc_time = dt.parse_datetime(next_opens)
                                 local_time = dt.as_local(utc_time).strftime(
-                                    "%Y-%m-%d %H:%M"
+                                    "%Y-%m-%d %H:%M",
                                 )
                                 this_place["next_opens_at"] = local_time
 

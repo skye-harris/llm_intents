@@ -31,9 +31,10 @@ class SearchWikipediaTool(BaseTool):
     parameters = vol.Schema(
         {
             vol.Required(
-                "query", description="The subject matter to search Wikipedia for"
+                "query",
+                description="The subject matter to search Wikipedia for",
             ): str,
-        }
+        },
     )
 
     async def async_call(

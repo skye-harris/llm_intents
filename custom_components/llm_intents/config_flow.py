@@ -490,14 +490,16 @@ async def get_weather_schema(hass: HomeAssistant) -> vol.Schema:
 
 
 async def get_brave_search_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Brave Search configuration."""
     return await get_brave_schema(hass, is_llm_context_search=False)
 
 
 async def get_brave_llm_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Brave Search configuration."""
     return await get_brave_schema(hass, is_llm_context_search=True)

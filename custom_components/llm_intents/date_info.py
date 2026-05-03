@@ -37,7 +37,7 @@ class DateInfoTool(BaseTool):
                 "year",
                 description="The year (optional, defaults to the current year).",
             ): int,
-        }
+        },
     )
 
     async def async_call(
