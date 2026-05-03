@@ -23,6 +23,7 @@ def mock_hass() -> HomeAssistant:
     """Mock HomeAssistant instance."""
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = AsyncMock()
+    hass.data = {}
     return hass
 
 

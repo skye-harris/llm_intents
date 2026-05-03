@@ -25,13 +25,6 @@ class TestLlmIntentsIntegration:
     """Test the LLM Intents integration setup and teardown."""
 
     @pytest.fixture
-    def hass(self) -> HomeAssistant:
-        """Create a mock Home Assistant instance."""
-        hass = Mock(spec=HomeAssistant)
-        hass.data = {}
-        return hass
-
-    @pytest.fixture
     def config_entry(self) -> ConfigEntry:
         """Create a mock config entry."""
         entry = Mock(spec=ConfigEntry)
@@ -44,32 +37,32 @@ class TestLlmIntentsIntegration:
         entry.options = {}
         return entry
 
-    async def test_async_setup(self, hass: HomeAssistant) -> None:
+    async def test_async_setup(self, mock_hass: HomeAssistant) -> None:
         """Test the async_setup function."""
-        result = await async_setup(hass, {})
+        result = await async_setup(mock_hass, {})
 
         assert result is True
-        assert DOMAIN in hass.data
+        assert DOMAIN in mock_hass.data
 
     async def test_async_setup_entry(
-        self, hass: HomeAssistant, config_entry: ConfigEntry
+        self, mock_hass: HomeAssistant, config_entry: ConfigEntry
     ) -> None:
         """Test setting up a config entry."""
         # Mock config_entries.async_entries to return an iterable list
-        hass.config_entries.async_entries = Mock(return_value=[config_entry])
+        mock_hass.config_entries.async_entries = Mock(return_value=[config_entry])
 
         with patch("custom_components.llm_intents.setup_llm_functions") as mock_setup:
-            result = await async_setup_entry(hass, config_entry)
+            result = await async_setup_entry(mock_hass, config_entry)
 
             assert result is True
-            mock_setup.assert_called_once_with(hass, config_entry.data)
+            mock_setup.assert_called_once_with(mock_hass, config_entry.data)
 
     async def test_async_unload_entry(
-        self, hass: HomeAssistant, config_entry: ConfigEntry
+        self, mock_hass: HomeAssistant, config_entry: ConfigEntry
     ) -> None:
         """Test unloading a config entry."""
         # Set up initial data as it would be after setup
-        hass.data[DOMAIN] = {
+        mock_hass.data[DOMAIN] = {
             "api": Mock(),
             "current_config": config_entry.data,
             "unregister_api": [],
@@ -78,13 +71,13 @@ class TestLlmIntentsIntegration:
         with patch(
             "custom_components.llm_intents.cleanup_llm_functions"
         ) as mock_cleanup:
-            result = await async_unload_entry(hass, config_entry)
+            result = await async_unload_entry(mock_hass, config_entry)
 
             assert result is True
-            mock_cleanup.assert_called_once_with(hass)
+            mock_cleanup.assert_called_once_with(mock_hass)
 
     async def test_async_migrate_entry_v2_to_v3_migrates_places_key(
-        self, hass: HomeAssistant
+        self, mock_hass: HomeAssistant
     ) -> None:
         """Test migrating from version 2 to 3 migrates google_places_api_key to provider_api_keys."""
         entry = Mock(spec=ConfigEntry)
@@ -107,9 +100,11 @@ class TestLlmIntentsIntegration:
             updated_options = kwargs.get("options", {})
             updated_version = kwargs.get("version")
 
-        hass.config_entries.async_update_entry = Mock(side_effect=mock_update_entry)
+        mock_hass.config_entries.async_update_entry = Mock(
+            side_effect=mock_update_entry
+        )
 
-        result = await async_migrate_entry(hass, entry)
+        result = await async_migrate_entry(mock_hass, entry)
 
         assert result is True
         assert updated_version == 3
