@@ -21,6 +21,19 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Precipitation chance thresholds for friendly categorization
+PRECIPITATION_THRESHOLDS: dict[int, str] = {
+    0: "none",
+    5: "very unlikely",
+    15: "unlikely",
+    30: "possible",
+    50: "moderate",
+    70: "likely",
+    85: "very likely",
+    95: "extremely likely",
+    100: "almost guaranteed",
+}
+
 
 class WeatherToolError(Exception):
     """Base exception for weather tool errors."""
@@ -48,25 +61,10 @@ class ForecastRetrievalError(WeatherToolError):
 
 def _friendly_precipitation_chance(precipitation_chance: int) -> str:
     """Format the precipitation chance into string categories for the LLM."""
-    return (
-        "none"
-        if precipitation_chance == 0
-        else "very unlikely"
-        if precipitation_chance <= 5
-        else "unlikely"
-        if precipitation_chance <= 15
-        else "possible"
-        if precipitation_chance <= 30
-        else "moderate"
-        if precipitation_chance <= 50
-        else "likely"
-        if precipitation_chance <= 70
-        else "very likely"
-        if precipitation_chance <= 85
-        else "extremely likely"
-        if precipitation_chance <= 95
-        else "almost guaranteed"
-    )
+    for threshold, value in PRECIPITATION_THRESHOLDS.items():
+        if precipitation_chance <= threshold:
+            return value
+    return PRECIPITATION_THRESHOLDS[100]
 
 
 class WeatherAttribute:
@@ -187,7 +185,7 @@ class WeatherForecastTool(BaseTool):
     def _format_date(iso_str: str) -> str:
         """Format our date nicely for the LLM."""
         dt = datetime.fromisoformat(iso_str).astimezone()
-        now = datetime.now()
+        now = datetime.now().astimezone()
         date = dt.strftime("%A")
 
         if now.date() == dt.date():

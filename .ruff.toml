@@ -19,8 +19,6 @@ ignore = [
     "PERF401", # manual-list-comprehension
     "EXE002",
     "PLR0912",
-    "DTZ005",
-    "PLR2004",
     "E501",
     "PLR0915",
     "ARG002",

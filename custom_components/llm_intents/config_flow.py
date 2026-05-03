@@ -7,6 +7,8 @@ import logging
 import types
 from typing import TYPE_CHECKING, Any
 
+from . import CONFIG_VERSION_2
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -565,7 +567,7 @@ def get_next_step(
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Tools for Assist integration."""
 
-    VERSION = 2
+    VERSION = CONFIG_VERSION_2
 
     def __init__(self) -> None:
         """Initialize the config flow."""

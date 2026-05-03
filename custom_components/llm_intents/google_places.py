@@ -2,6 +2,7 @@
 
 import logging
 import re
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -143,7 +144,7 @@ class FindPlacesTool(BaseTool):
                 json=params,
                 headers=headers,
             ) as resp:
-                if resp.status == 200:
+                if resp.status == HTTPStatus.OK:
                     data = await resp.json()
                     results = []
 

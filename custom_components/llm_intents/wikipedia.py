@@ -3,6 +3,7 @@
 import logging
 import re
 import urllib.parse
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -72,7 +73,7 @@ class SearchWikipediaTool(BaseTool):
                 "https://en.wikipedia.org/w/api.php",
                 params=search_params,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTPStatus.OK:
                     _LOGGER.error(
                         "Wikipedia search received a HTTP %s error from Wikipedia",
                         resp.status,
@@ -98,7 +99,7 @@ class SearchWikipediaTool(BaseTool):
                     summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
                     try:
                         async with session.get(summary_url) as summary_resp:
-                            if summary_resp.status == 200:
+                            if summary_resp.status == HTTPStatus.OK:
                                 summary_data = await summary_resp.json()
                                 extract = summary_data.get("extract", snippet)
                             else:

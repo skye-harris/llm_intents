@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from http import HTTPStatus
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -102,7 +103,7 @@ class BraveLlmContextSearchTool(SearchWebTool):
             params=params,
         ) as resp:
             response_content = await resp.json()
-            if resp.status == 200:
+            if resp.status == HTTPStatus.OK:
                 results = []
                 for result in response_content.get("grounding", {}).get("generic", []):
                     title = result.get("title")

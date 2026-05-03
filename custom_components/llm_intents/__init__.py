@@ -7,6 +7,8 @@ from .const import (
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
+    CONFIG_VERSION_1,
+    CONFIG_VERSION_2,
     DOMAIN,
     PROVIDER_GOOGLE,
 )
@@ -58,7 +60,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry_options = (entry.options or {}).copy()
     current_version = entry.version
 
-    if current_version == 1:
+    if current_version == CONFIG_VERSION_1:
         entry_data[CONF_SEARCH_PROVIDER] = (
             CONF_SEARCH_PROVIDER_BRAVE
             if entry_data.get(CONF_BRAVE_ENABLED, False)
@@ -75,7 +77,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_data = entry.data.copy()
         entry_options = (entry.options or {}).copy()
 
-    if current_version == 2:
+    if current_version == CONFIG_VERSION_2:
         # Migrate CONF_GOOGLE_PLACES_API_KEY to CONF_PROVIDER_API_KEYS
         provider_keys = entry_data.get(CONF_PROVIDER_API_KEYS, {})
         if not isinstance(provider_keys, dict):

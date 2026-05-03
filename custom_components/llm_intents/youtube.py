@@ -1,6 +1,7 @@
 """YouTube search tool for Home Assistant LLM integration."""
 
 import logging
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -97,7 +98,7 @@ class SearchYouTubeTool(BaseTool):
                 "https://www.googleapis.com/youtube/v3/search",
                 params=params,
             ) as resp:
-                if resp.status == 200:
+                if resp.status == HTTPStatus.OK:
                     data = await resp.json()
                     results = []
 
