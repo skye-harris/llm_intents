@@ -91,7 +91,7 @@ class UnitConverterTool(BaseTool):
                     "Weight: gram, kilogram, milligram, pound, ounce, stone."
                 ),
             ): str,
-        }
+        },
     )
 
     async def async_call(
@@ -114,7 +114,7 @@ class UnitConverterTool(BaseTool):
                 "error": (
                     f"Could not parse amount '{amount_str}'. "
                     "Use a number or fraction like '1/8', '2.5', or '1 1/2'."
-                )
+                ),
             }
 
         from_is_volume = from_unit in UNIT_TO_ML
@@ -124,11 +124,11 @@ class UnitConverterTool(BaseTool):
 
         if not from_is_volume and not from_is_weight:
             return {
-                "error": f"Unknown unit '{from_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."
+                "error": f"Unknown unit '{from_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}.",
             }
         if not to_is_volume and not to_is_weight:
             return {
-                "error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}."
+                "error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}.",
             }
 
         if (from_is_volume and to_is_weight) or (from_is_weight and to_is_volume):
@@ -136,7 +136,7 @@ class UnitConverterTool(BaseTool):
                 "error": (
                     f"Cannot convert between volume ('{from_unit}') and weight ('{to_unit}'). "
                     "Both units must be the same type."
-                )
+                ),
             }
 
         if from_is_volume:

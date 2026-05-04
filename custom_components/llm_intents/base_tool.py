@@ -5,6 +5,8 @@ from homeassistant.helpers import llm
 
 
 class BaseTool(llm.Tool):
+    """Base tool class from which all others extend."""
+
     def __init__(self, config: dict, hass: HomeAssistant) -> None:
         """Init our tool."""
         super().__init__()
@@ -13,4 +15,4 @@ class BaseTool(llm.Tool):
 
     @staticmethod
     def update_args(hass: HomeAssistant) -> None:
-        pass
+        """Stub method for dynamically-updating arguments."""

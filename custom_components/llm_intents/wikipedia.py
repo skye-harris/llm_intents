@@ -3,6 +3,7 @@
 import logging
 import re
 import urllib.parse
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -30,9 +31,10 @@ class SearchWikipediaTool(BaseTool):
     parameters = vol.Schema(
         {
             vol.Required(
-                "query", description="The subject matter to search Wikipedia for"
+                "query",
+                description="The subject matter to search Wikipedia for",
             ): str,
-        }
+        },
     )
 
     async def async_call(
@@ -72,9 +74,10 @@ class SearchWikipediaTool(BaseTool):
                 "https://en.wikipedia.org/w/api.php",
                 params=search_params,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTPStatus.OK:
                     _LOGGER.error(
-                        f"Wikipedia search received a HTTP {resp.status} error from Wikipedia"
+                        "Wikipedia search received a HTTP %s error from Wikipedia",
+                        resp.status,
                     )
                     return {"error": f"Wikipedia search error: {resp.status}"}
 
@@ -97,7 +100,7 @@ class SearchWikipediaTool(BaseTool):
                     summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
                     try:
                         async with session.get(summary_url) as summary_resp:
-                            if summary_resp.status == 200:
+                            if summary_resp.status == HTTPStatus.OK:
                                 summary_data = await summary_resp.json()
                                 extract = summary_data.get("extract", snippet)
                             else:
@@ -113,5 +116,5 @@ class SearchWikipediaTool(BaseTool):
                 return {"results": results}
 
         except Exception as e:
-            _LOGGER.error("Wikipedia search error: %s", e)
+            _LOGGER.exception(msg="Wikipedia search encountered an error")
             return {"error": f"Error searching Wikipedia: {e!s}"}

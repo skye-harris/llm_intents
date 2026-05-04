@@ -1,7 +1,9 @@
 """Weather forecast tool."""
 
 import logging
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import date, datetime, timedelta
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.weather import WeatherEntityFeature
@@ -19,32 +21,61 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Precipitation chance thresholds for friendly categorization
+PRECIPITATION_THRESHOLDS: dict[int, str] = {
+    0: "none",
+    5: "very unlikely",
+    15: "unlikely",
+    30: "possible",
+    50: "moderate",
+    70: "likely",
+    85: "very likely",
+    95: "extremely likely",
+    100: "almost guaranteed",
+}
+
+
+class WeatherToolError(Exception):
+    """Base exception for weather tool errors."""
+
+    def __init__(self, message: str = "Weather tool encountered an error") -> None:
+        """Init exception with default message."""
+        super().__init__(message)
+
+
+class WeatherEntityNotFoundError(WeatherToolError):
+    """Raised when a weather entity is not found."""
+
+    def __init__(self, message: str = "Weather entity not found") -> None:
+        """Init exception with default message."""
+        super().__init__(message)
+
+
+class ForecastRetrievalError(WeatherToolError):
+    """Raised when forecast data cannot be retrieved."""
+
+    def __init__(self, message: str = "Failed to retrieve forecast") -> None:
+        """Init exception with default message."""
+        super().__init__(message)
+
 
 def _friendly_precipitation_chance(precipitation_chance: int) -> str:
     """Format the precipitation chance into string categories for the LLM."""
-    return (
-        "none"
-        if precipitation_chance == 0
-        else "very unlikely"
-        if precipitation_chance <= 5
-        else "unlikely"
-        if precipitation_chance <= 15
-        else "possible"
-        if precipitation_chance <= 30
-        else "moderate"
-        if precipitation_chance <= 50
-        else "likely"
-        if precipitation_chance <= 70
-        else "very likely"
-        if precipitation_chance <= 85
-        else "extremely likely"
-        if precipitation_chance <= 95
-        else "almost guaranteed"
-    )
+    for threshold, value in PRECIPITATION_THRESHOLDS.items():
+        if precipitation_chance <= threshold:
+            return value
+    return PRECIPITATION_THRESHOLDS[100]
 
 
 class WeatherAttribute:
-    def __init__(self, key: str, name: str, formatter):
+    """Represent a weather attribute."""
+
+    def __init__(
+        self,
+        key: str,
+        name: str,
+        formatter: Callable[[Any], str] | None = None,
+    ) -> None:
         """Init our WeatherAttribute."""
         super().__init__()
         self.formatter = formatter
@@ -53,7 +84,8 @@ class WeatherAttribute:
 
 
 def _build_attributes(
-    attribute_list: list[WeatherAttribute], weather_data: dict
+    attribute_list: list[WeatherAttribute],
+    weather_data: dict,
 ) -> list[str]:
     """Build our attributes in a friendly manner for the LLM."""
     output = []
@@ -61,7 +93,7 @@ def _build_attributes(
         if attribute.key in weather_data:
             attr_data = weather_data.get(attribute.key)
             output.append(
-                f"  {attribute.name}: {attribute.formatter(attr_data) if attribute.formatter else attr_data}"
+                f"  {attribute.name}: {attribute.formatter(attr_data) if attribute.formatter else attr_data}",
             )
     return output
 
@@ -70,12 +102,10 @@ class WeatherForecastTool(BaseTool):
     """Tool for weather forecast data."""
 
     name = "get_weather_forecast"
-    description = "\n".join(
-        [
-            "Use this tool to retrieve weather forecasts from now up until a week in advance",
-            "If the user requests data for `tonight`, use the `today` argument",
-            "Cannot be used to retrieve past or historic weather data: local sensor history can be queried via the device history tool",
-        ]
+    description = (
+        "Use this tool to retrieve weather forecasts from now up until a week in advance.\n"
+        "If the user requests data for `tonight`, use the `today` argument.\n"
+        "Cannot be used to retrieve past or historic weather data: local sensor history can be queried via the device history tool."
     )
     prompt_description = None
 
@@ -96,15 +126,15 @@ class WeatherForecastTool(BaseTool):
                     "friday",
                     "saturday",
                     "sunday",
-                ]
+                ],
             ),
-        }
+        },
     )
 
     @staticmethod
-    def _find_target_date(date_range: str):
+    def _find_target_date(date_range: str) -> date | None:
         """Find our target date based on the input."""
-        now = datetime.now()
+        now = datetime.now().astimezone()
 
         # Determine target date
         if date_range.lower() == "today":
@@ -124,7 +154,7 @@ class WeatherForecastTool(BaseTool):
             }
             target_weekday = weekdays.get(date_range.lower())
             if target_weekday is None:
-                return []
+                return None
 
             # Find next matching weekday (not necessarily next calendar week)
             days_ahead = (target_weekday - now.weekday() + 7) % 7
@@ -135,7 +165,7 @@ class WeatherForecastTool(BaseTool):
         return target_date
 
     @staticmethod
-    def _filter_forecast_by_day(forecast: list[dict], target_date) -> list[dict]:
+    def _filter_forecast_by_day(forecast: list[dict], target_date: date) -> list[dict]:
         """Filter forecast entries for the target date."""
         result = []
         for entry in forecast:
@@ -156,7 +186,7 @@ class WeatherForecastTool(BaseTool):
     def _format_date(iso_str: str) -> str:
         """Format our date nicely for the LLM."""
         dt = datetime.fromisoformat(iso_str).astimezone()
-        now = datetime.now()
+        now = datetime.now().astimezone()
         date = dt.strftime("%A")
 
         if now.date() == dt.date():
@@ -165,15 +195,19 @@ class WeatherForecastTool(BaseTool):
         return date
 
     def has_twice_daily_data(self, entity_id: str) -> bool:
-        """Does our daily entity data provide twice-daily data?"""
+        """Check if our daily entity data provides twice-daily data."""
         entity = self.hass.states.get(entity_id)
         if entity is None:
-            raise Exception(f"Weather entity {entity_id} not found.")
+            message = f"Weather entity {entity_id} not found."
+            raise WeatherEntityNotFoundError(message)
         features = entity.attributes.get("supported_features", 0)
-        return features & WeatherEntityFeature.FORECAST_TWICE_DAILY
+        return bool(features & WeatherEntityFeature.FORECAST_TWICE_DAILY)
 
     async def _get_daily_forecast(
-        self, hass: HomeAssistant, entity_id: str, date
+        self,
+        hass: HomeAssistant,
+        entity_id: str,
+        target_date: date | None,
     ) -> str:
         """Build the daily forecast data."""
         forecast = await hass.services.async_call(
@@ -185,16 +219,16 @@ class WeatherForecastTool(BaseTool):
         )
         forecast = forecast.get(entity_id, {}).get("forecast")
         if not forecast:
-            raise Exception("Failed to retrieve daily forecast from entity")
+            raise ForecastRetrievalError
 
-        if date:
-            forecast = self._filter_forecast_by_day(forecast, date)
+        if target_date:
+            forecast = self._filter_forecast_by_day(forecast, target_date)
 
         daily_attributes = [
             WeatherAttribute(key="condition", name="General Condition", formatter=None),
             WeatherAttribute(
                 key="precipitation_probability",
-                name="Precipitation",
+                name="Chance of Precipitation",
                 formatter=_friendly_precipitation_chance,
             ),
         ]
@@ -212,15 +246,18 @@ class WeatherForecastTool(BaseTool):
                     [
                         f"- Date: {self._format_date(day['datetime'])}",
                         f"  Temperature: {temperature}",
-                    ]
-                    + _build_attributes(daily_attributes, day),
-                )
+                        *_build_attributes(daily_attributes, day),
+                    ],
+                ),
             )
 
         return "\n".join(output)
 
     async def _get_twice_daily_forecast(
-        self, hass: HomeAssistant, entity_id: str, date
+        self,
+        hass: HomeAssistant,
+        entity_id: str,
+        target_date: date | None,
     ) -> str:
         """Build the twice daily forecast data."""
         forecast = await hass.services.async_call(
@@ -232,16 +269,16 @@ class WeatherForecastTool(BaseTool):
         )
         forecast = forecast.get(entity_id, {}).get("forecast")
         if not forecast:
-            raise Exception("Failed to retrieve twice-daily forecast from entity")
+            raise ForecastRetrievalError
 
-        if date:
-            forecast = self._filter_forecast_by_day(forecast, date)
+        if target_date:
+            forecast = self._filter_forecast_by_day(forecast, target_date)
 
         daily_attributes = [
             WeatherAttribute(key="condition", name="General Condition", formatter=None),
             WeatherAttribute(
                 key="precipitation_probability",
-                name="Precipitation",
+                name="Chance of Precipitation",
                 formatter=_friendly_precipitation_chance,
             ),
         ]
@@ -249,9 +286,9 @@ class WeatherForecastTool(BaseTool):
         days = {}
         for day in forecast:
             dt = datetime.fromisoformat(day["datetime"]).astimezone()
-            date = dt.date()
+            target_date = dt.date()
             day_night = "day" if day.get("is_daytime", True) else "night"
-            date_str = date.strftime("%A %-d %B")
+            date_str = target_date.strftime("%A %-d %B")
 
             days[date_str] = days.get(
                 date_str,
@@ -276,14 +313,17 @@ class WeatherForecastTool(BaseTool):
                     [
                         f"- Date: {self._format_date(day['datetime'])} {'daytime' if day['is_daytime'] else 'nighttime'}",
                         f"  Temperature: {temperature}",
-                    ]
-                    + _build_attributes(daily_attributes, day),
-                )
+                        *_build_attributes(daily_attributes, day),
+                    ],
+                ),
             )
         return "\n".join(output)
 
     async def _get_hourly_forecast(
-        self, hass: HomeAssistant, entity_id: str, date
+        self,
+        hass: HomeAssistant,
+        entity_id: str,
+        target_date: date,
     ) -> str:
         """Build the hourly forecast data."""
         forecast = await hass.services.async_call(
@@ -295,14 +335,14 @@ class WeatherForecastTool(BaseTool):
         )
         forecast = forecast.get(entity_id, {}).get("forecast")
         if not forecast:
-            raise Exception("Failed to retrieve hourly forecast from entity")
+            raise ForecastRetrievalError
 
-        forecast = self._filter_forecast_by_day(forecast, date)
+        forecast = self._filter_forecast_by_day(forecast, target_date)
 
         hourly_attributes = [
             WeatherAttribute(name="General Condition", key="condition", formatter=None),
             WeatherAttribute(
-                name="Precipitation",
+                name="Chance of Precipitation",
                 key="precipitation_probability",
                 formatter=_friendly_precipitation_chance,
             ),
@@ -315,37 +355,38 @@ class WeatherForecastTool(BaseTool):
                     [
                         f"- Time: {self._format_time(hour['datetime'])}",
                         f"  Temperature: {round(hour['temperature'])}",
-                    ]
-                    + _build_attributes(hourly_attributes, hour),
-                )
+                        *_build_attributes(hourly_attributes, hour),
+                    ],
+                ),
             )
 
         return "\n".join(output)
 
     @staticmethod
     def _get_current_temperature_sensor_data(
-        hass: HomeAssistant, temperature_entity_id: str
+        hass: HomeAssistant,
+        temperature_entity_id: str,
     ) -> str | None:
         output = []
         # Add current temperature from sensor if provided and this is today's forecast
         sensor_state = hass.states.get(temperature_entity_id)
-        if sensor_state:
-            if sensor_state.state not in ("unknown", "unavailable"):
-                try:
-                    current_temp = round(float(sensor_state.state))
-                    output.append(
-                        "\n".join(
-                            [
-                                "- Time: current",
-                                f"  Temperature: {current_temp}",
-                            ]
-                        )
-                    )
-                except (ValueError, TypeError):
-                    _LOGGER.warning(
-                        f"Could not parse temperature sensor value: {sensor_state.state}"
-                    )
-                    return None
+        if sensor_state and sensor_state.state not in ("unknown", "unavailable"):
+            try:
+                current_temp = round(float(sensor_state.state))
+                output.append(
+                    "\n".join(
+                        [
+                            "- Time: current",
+                            f"  Temperature: {current_temp}",
+                        ],
+                    ),
+                )
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Could not parse temperature sensor value: %s",
+                    sensor_state.state,
+                )
+                return None
         return "\n".join(output)
 
     async def async_call(
@@ -360,21 +401,23 @@ class WeatherForecastTool(BaseTool):
         config_data = {**config_data, **entry.options}
 
         date_range = tool_input.tool_args.get("range", "week").lower()
-        _LOGGER.info(f"Weather forecast for the period: {date_range}")
+        _LOGGER.info("Weather forecast for the period: %s", date_range)
 
         try:
             hourly_entity_id = config_data.get(CONF_HOURLY_WEATHER_ENTITY)
             daily_entity_id = config_data.get(CONF_DAILY_WEATHER_ENTITY)
             current_temperature_entity_id = config_data.get(
-                CONF_WEATHER_TEMPERATURE_SENSOR
+                CONF_WEATHER_TEMPERATURE_SENSOR,
             )
 
             forecast = None
             target_date = self._find_target_date(date_range)
 
-            if date_range != "week" and hourly_entity_id:
+            if date_range != "week" and hourly_entity_id and target_date:
                 forecast = await self._get_hourly_forecast(
-                    hass, hourly_entity_id, target_date
+                    hass,
+                    hourly_entity_id,
+                    target_date,
                 )
 
             if not forecast and daily_entity_id:
@@ -382,20 +425,25 @@ class WeatherForecastTool(BaseTool):
 
                 if is_twice_daily:
                     forecast = await self._get_twice_daily_forecast(
-                        hass, daily_entity_id, target_date
+                        hass,
+                        daily_entity_id,
+                        target_date,
                     )
                 else:
                     forecast = await self._get_daily_forecast(
-                        hass, daily_entity_id, target_date
+                        hass,
+                        daily_entity_id,
+                        target_date,
                     )
 
             if (
                 forecast
                 and current_temperature_entity_id
-                and target_date == datetime.today().date()
+                and target_date == datetime.now().astimezone().date()
             ):
                 current_temperature_data = self._get_current_temperature_sensor_data(
-                    hass, current_temperature_entity_id
+                    hass,
+                    current_temperature_entity_id,
                 )
                 if current_temperature_data:
                     forecast = current_temperature_data + "\n" + forecast
@@ -405,5 +453,5 @@ class WeatherForecastTool(BaseTool):
 
             return forecast
         except Exception as e:
-            _LOGGER.exception(e)
+            _LOGGER.exception(msg="Weather forecast encountered an error")
             return {"error": f"Error retrieving weather forecast: {e!s}"}

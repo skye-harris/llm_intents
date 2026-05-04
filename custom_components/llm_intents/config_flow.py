@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import types
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+
+from . import CONFIG_VERSION_2
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from homeassistant.data_entry_flow import FlowResult
+
+from zoneinfo import available_timezones
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -91,7 +100,29 @@ STEP_CONFIGURE_WEATHER = "configure_weather"
 STEP_CONFIGURE_BASIC_UTILITIES = "configure_basic_utilities"
 
 
-def get_step_user_data_schema(hass) -> vol.Schema:
+class NullableNumberSelector(NumberSelector):
+    """NumberSelector that allows for empty values."""
+
+    def __call__(self, data: Any) -> float | None:
+        """Perform our validation."""
+        # Handle for empty values
+        if data == "" or data is None:
+            return None
+
+        value: float = vol.Coerce(float)(data)
+
+        if "min" in self.config and value < self.config["min"]:
+            error_msg = f"Value {value} is too small"
+            raise vol.Invalid(error_msg)
+
+        if "max" in self.config and value > self.config["max"]:
+            error_msg = f"Value {value} is too large"
+            raise vol.Invalid(error_msg)
+
+        return value
+
+
+def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
         vol.Optional(
@@ -100,7 +131,7 @@ def get_step_user_data_schema(hass) -> vol.Schema:
             SelectSelectorConfig(
                 mode=SelectSelectorMode.DROPDOWN,
                 options=options_to_selections_dict(CONF_SEARCH_PROVIDERS),
-            )
+            ),
         ),
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
         vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
@@ -138,7 +169,7 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
         provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
 
     if PROVIDER_GOOGLE not in provider_keys and config_data.get(
-        CONF_GOOGLE_PLACES_API_KEY
+        CONF_GOOGLE_PLACES_API_KEY,
     ):
         provider_keys[PROVIDER_GOOGLE] = config_data[CONF_GOOGLE_PLACES_API_KEY]
 
@@ -149,11 +180,18 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
 
 
-def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
+async def get_brave_schema(
+    hass: HomeAssistant,
+    is_llm_context_search: bool,
+) -> vol.Schema:
     """Return the static schema for Brave service configuration."""
+    iana_timezones = await asyncio.to_thread(available_timezones)
+    iana_timezones = sorted(iana_timezones)
+
     schema = {
         vol.Required(
-            CONF_BRAVE_API_KEY, default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY)
+            CONF_BRAVE_API_KEY,
+            default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY),
         ): str,
         vol.Required(
             CONF_BRAVE_NUM_RESULTS,
@@ -165,7 +203,7 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
                 step=1,
                 mode=NumberSelectorMode.SLIDER,
                 unit_of_measurement="Results",
-            )
+            ),
         ),
         vol.Required(
             CONF_BRAVE_MAX_SNIPPETS_PER_URL,
@@ -177,7 +215,7 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
                 step=1,
                 mode=NumberSelectorMode.SLIDER,
                 unit_of_measurement="Snippets",
-            )
+            ),
         ),
     }
 
@@ -194,7 +232,7 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
                     step=256,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="Tokens",
-                )
+                ),
             ),
             vol.Optional(
                 CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
@@ -203,9 +241,9 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
                     options=options_to_selections_dict(
-                        CONF_BRAVE_CONTEXT_THRESHOLD_MODES
+                        CONF_BRAVE_CONTEXT_THRESHOLD_MODES,
                     ),
-                )
+                ),
             ),
         }
 
@@ -217,31 +255,53 @@ def get_brave_schema(hass, is_llm_context_search: bool) -> vol.Schema:
             SelectSelectorConfig(
                 mode=SelectSelectorMode.DROPDOWN,
                 options=options_to_selections_dict(CONF_BRAVE_COUNTRY_CODES),
-            )
+            ),
         ),
         vol.Optional(
-            CONF_BRAVE_LATITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE)
-        ): str,
+            CONF_BRAVE_LATITUDE,
+            default=SERVICE_DEFAULTS.get(CONF_BRAVE_LATITUDE),
+        ): NullableNumberSelector(
+            NumberSelectorConfig(
+                min=-90,
+                max=90,
+                step=0.001,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="Degrees",
+            ),
+        ),
         vol.Optional(
-            CONF_BRAVE_LONGITUDE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE)
-        ): str,
+            CONF_BRAVE_LONGITUDE,
+            default=SERVICE_DEFAULTS.get(CONF_BRAVE_LONGITUDE),
+        ): NullableNumberSelector(
+            NumberSelectorConfig(
+                min=-180,
+                max=180,
+                step=0.001,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="Degrees",
+            ),
+        ),
+        vol.Optional(CONF_BRAVE_TIMEZONE): SelectSelector(
+            SelectSelectorConfig(
+                mode=SelectSelectorMode.DROPDOWN,
+                options=iana_timezones,
+            ),
+        ),
         vol.Optional(
-            CONF_BRAVE_TIMEZONE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_TIMEZONE)
-        ): str,
-        vol.Optional(
-            CONF_BRAVE_POST_CODE, default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE)
+            CONF_BRAVE_POST_CODE,
+            default=SERVICE_DEFAULTS.get(CONF_BRAVE_POST_CODE),
         ): str,
     }
-
     return vol.Schema(schema)
 
 
-def get_searxng_schema(hass) -> vol.Schema:
+async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
             vol.Required(
-                CONF_SEARXNG_URL, default=SERVICE_DEFAULTS.get(CONF_SEARXNG_URL)
+                CONF_SEARXNG_URL,
+                default=SERVICE_DEFAULTS.get(CONF_SEARXNG_URL),
             ): str,
             vol.Required(
                 CONF_SEARXNG_NUM_RESULTS,
@@ -253,13 +313,13 @@ def get_searxng_schema(hass) -> vol.Schema:
                     step=1,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="Results",
-                )
+                ),
             ),
-        }
+        },
     )
 
 
-def get_google_places_schema(hass) -> vol.Schema:
+async def get_google_places_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
         {
@@ -277,16 +337,32 @@ def get_google_places_schema(hass) -> vol.Schema:
                     step=1,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="Results",
-                )
+                ),
             ),
             vol.Optional(
                 CONF_GOOGLE_PLACES_LATITUDE,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LATITUDE),
-            ): str,
+            ): NullableNumberSelector(
+                NumberSelectorConfig(
+                    min=-90,
+                    max=90,
+                    step=0.001,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Degrees",
+                ),
+            ),
             vol.Optional(
                 CONF_GOOGLE_PLACES_LONGITUDE,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_LONGITUDE),
-            ): str,
+            ): NullableNumberSelector(
+                NumberSelectorConfig(
+                    min=-180,
+                    max=180,
+                    step=0.001,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Degrees",
+                ),
+            ),
             vol.Required(
                 CONF_GOOGLE_PLACES_RADIUS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
@@ -297,7 +373,7 @@ def get_google_places_schema(hass) -> vol.Schema:
                     step=1,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="km",
-                )
+                ),
             ),
             vol.Required(
                 CONF_GOOGLE_PLACES_RANKING,
@@ -306,13 +382,13 @@ def get_google_places_schema(hass) -> vol.Schema:
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
                     options=["None", "Distance", "Relevance"],
-                )
+                ),
             ),
-        }
+        },
     )
 
 
-def get_youtube_schema(hass) -> vol.Schema:
+async def get_youtube_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
         {
@@ -320,11 +396,11 @@ def get_youtube_schema(hass) -> vol.Schema:
                 CONF_GOOGLE_API_KEY,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
             ): str,
-        }
+        },
     )
 
 
-def get_wikipedia_schema(hass) -> vol.Schema:
+async def get_wikipedia_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
         {
@@ -338,13 +414,13 @@ def get_wikipedia_schema(hass) -> vol.Schema:
                     step=1,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="Results",
-                )
+                ),
             ),
-        }
+        },
     )
 
 
-def get_basic_utilities_schema(hass) -> vol.Schema:
+async def get_basic_utilities_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
         {
@@ -360,11 +436,11 @@ def get_basic_utilities_schema(hass) -> vol.Schema:
                 CONF_DATE_INFO_ENABLED,
                 default=SERVICE_DEFAULTS.get(CONF_DATE_INFO_ENABLED, True),
             ): bool,
-        }
+        },
     )
 
 
-def get_weather_schema(hass) -> vol.Schema:
+async def get_weather_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = []
@@ -395,33 +471,49 @@ def get_weather_schema(hass) -> vol.Schema:
                 EntitySelectorConfig(
                     domain="weather",
                     include_entities=daily_entities,
-                )
+                ),
             ),
             vol.Optional(CONF_HOURLY_WEATHER_ENTITY): EntitySelector(
                 EntitySelectorConfig(
                     domain="weather",
                     include_entities=hourly_entities,
-                )
+                ),
             ),
             vol.Optional(CONF_WEATHER_TEMPERATURE_SENSOR): EntitySelector(
                 EntitySelectorConfig(
                     domain="sensor",
                     include_entities=temperature_sensors,
-                )
+                ),
             ),
-        }
+        },
     )
+
+
+async def get_brave_search_schema(
+    hass: HomeAssistant,
+    args: dict | None = None,
+) -> vol.Schema:
+    """Return the static schema for Brave Search configuration."""
+    return await get_brave_schema(hass, is_llm_context_search=False)
+
+
+async def get_brave_llm_schema(
+    hass: HomeAssistant,
+    args: dict | None = None,
+) -> vol.Schema:
+    """Return the static schema for Brave Search configuration."""
+    return await get_brave_schema(hass, is_llm_context_search=True)
 
 
 SEARCH_STEP_ORDER = {
     STEP_USER: [None, get_step_user_data_schema],
     STEP_BRAVE: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE,
-        lambda hass: get_brave_schema(hass, is_llm_context_search=False),
+        get_brave_search_schema,
     ],
     STEP_BRAVE_LLM: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_BRAVE_LLM,
-        lambda hass: get_brave_schema(hass, is_llm_context_search=True),
+        get_brave_llm_schema,
     ],
     STEP_SEARXNG: [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
@@ -450,7 +542,9 @@ INITIAL_CONFIG_STEP_ORDER = {
 
 
 def get_next_step(
-    current_step: str, config_data: dict, step_order: dict
+    current_step: str,
+    config_data: dict,
+    step_order: dict,
 ) -> tuple[str, Callable] | None:
     """Determine the next configuration step."""
     keys = list(step_order.keys())
@@ -475,14 +569,18 @@ def get_next_step(
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Tools for Assist integration."""
 
-    VERSION = 2
+    VERSION = CONFIG_VERSION_2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
         self.user_selections: dict[str, Any] = {}
         self.config_data: dict[str, Any] = {}
 
-    async def handle_step(self, current_step: str, user_input: dict[str, Any] | None):
+    async def handle_step(
+        self,
+        current_step: str,
+        user_input: dict[str, Any] | None,
+    ) -> FlowResult:
         """Handle a configuration step."""
         if user_input is None:
             return self.async_show_form(step_id=current_step)
@@ -491,13 +589,14 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         merge_provider_api_keys_from_input(self.config_data, user_input)
 
         # Check if we need to configure other services
-
         next_step = get_next_step(
-            current_step, self.user_selections, INITIAL_CONFIG_STEP_ORDER
+            current_step,
+            self.user_selections,
+            INITIAL_CONFIG_STEP_ORDER,
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
@@ -507,14 +606,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(title=ADDON_NAME, data=self.config_data)
 
     async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle the initial configuration step for the user."""
-        errors = {}
-
         # Check if entry already exists
         if self._async_current_entries():
-            # TODO: support a single instance of multiple LLM API types (diff tools)
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is None:
@@ -524,7 +621,6 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id=STEP_USER,
                 data_schema=schema,
-                errors=errors,
             )
         # Store user selections
         self.user_selections = user_input.copy()
@@ -539,7 +635,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         next_step = get_next_step(STEP_USER, user_input, INITIAL_CONFIG_STEP_ORDER)
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             return self.async_show_form(
                 step_id=step_id,
                 data_schema=schema,
@@ -547,54 +643,64 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # If no service is selected, create the entry with the selected data
         return self.async_create_entry(
-            title=ADDON_NAME, data=self.config_data, options={}
+            title=ADDON_NAME,
+            data=self.config_data,
+            options={},
         )
 
     async def async_step_brave(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Brave configuration step."""
         return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_brave_llm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Brave LLM Context Search configuration step."""
         return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
     async def async_step_searxng(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle SearXNG configuration step."""
         return await self.handle_step(STEP_SEARXNG, user_input)
 
     async def async_step_google_places(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Google Places configuration step."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_youtube(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle YouTube configuration step."""
         return await self.handle_step(STEP_YOUTUBE, user_input)
 
     async def async_step_wikipedia(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Wikipedia configuration step."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
 
     async def async_step_weather(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Weather configuration step."""
         return await self.handle_step(STEP_WEATHER, user_input)
 
     async def async_step_basic_utilities(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Basic Utilities configuration step."""
         return await self.handle_step(STEP_BASIC_UTILITIES, user_input)
 
@@ -624,8 +730,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self._config_entry
 
     async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Present a menu to configure services the integration."""
         if user_input is None:
             return self.async_show_menu(
@@ -639,8 +746,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return None
 
     async def async_step_configure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle the configure menu option."""
         if user_input is None:
             schema_dict = {
@@ -650,7 +758,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                     SelectSelectorConfig(
                         mode=SelectSelectorMode.DROPDOWN,
                         options=options_to_selections_dict(CONF_SEARCH_PROVIDERS),
-                    )
+                    ),
                 ),
                 vol.Optional(
                     CONF_GOOGLE_PLACES_ENABLED,
@@ -681,9 +789,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         next_step = get_next_step(STEP_USER, user_input, SEARCH_STEP_ORDER)
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
-                schema, expand_config_for_schema(self.config_data)
+                schema,
+                expand_config_for_schema(self.config_data),
             )
             return self.async_show_form(
                 step_id=step_id,
@@ -694,8 +803,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def async_step_configure_weather(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle the configure menu option."""
         data = self.config_entry.data
         opts = self.config_entry.options or {}
@@ -719,11 +829,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self.config_data.update(user_input)
 
         next_step = get_next_step(
-            STEP_CONFIGURE_WEATHER, user_input, WEATHER_STEP_ORDER
+            STEP_CONFIGURE_WEATHER,
+            user_input,
+            WEATHER_STEP_ORDER,
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(schema, defaults)
             return self.async_show_form(
                 step_id=step_id,
@@ -734,15 +846,18 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def handle_step(
-        self, current_step: str, user_input: dict[str, Any] | None = None
-    ):
+        self,
+        current_step: str,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle the current configuration step."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
             _, schema_func = SEARCH_STEP_ORDER[current_step]
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
-                schema, expand_config_for_schema(opts)
+                schema,
+                expand_config_for_schema(opts),
             )
             return self.async_show_form(
                 step_id=current_step,
@@ -756,9 +871,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         opts = {**self.config_entry.data, **(self.config_entry.options or {})}
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
-                schema, expand_config_for_schema(opts)
+                schema,
+                expand_config_for_schema(opts),
             )
             return self.async_show_form(
                 step_id=step_id,
@@ -768,48 +884,57 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def async_step_brave(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Brave configuration step in options flow."""
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
+
         return await self.handle_step(STEP_BRAVE, user_input)
 
     async def async_step_brave_llm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Brave LLM Context Search configuration step in options flow."""
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
+
         return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
     async def async_step_searxng(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle SearXNG configuration step in options flow."""
         return await self.handle_step(STEP_SEARXNG, user_input)
 
     async def async_step_google_places(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Google Places configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_youtube(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle YouTube configuration step in options flow."""
         return await self.handle_step(STEP_YOUTUBE, user_input)
 
     async def async_step_wikipedia(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Wikipedia configuration step in options flow."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
 
     async def async_step_configure_basic_utilities(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle the configure basic utilities menu option."""
         data = self.config_entry.data
         opts = self.config_entry.options or {}
@@ -822,7 +947,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                         CONF_BASIC_UTILITIES_ENABLED,
                         default=defaults.get(CONF_BASIC_UTILITIES_ENABLED, False),
                     ): bool,
-                }
+                },
             )
             return self.async_show_form(
                 step_id=STEP_CONFIGURE_BASIC_UTILITIES,
@@ -833,11 +958,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self.config_data.update(user_input)
 
         next_step = get_next_step(
-            STEP_CONFIGURE_BASIC_UTILITIES, user_input, BASIC_UTILITIES_STEP_ORDER
+            STEP_CONFIGURE_BASIC_UTILITIES,
+            user_input,
+            BASIC_UTILITIES_STEP_ORDER,
         )
         if next_step:
             step_id, schema_func = next_step
-            schema = schema_func(self.hass)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(schema, defaults)
             return self.async_show_form(
                 step_id=step_id,
@@ -847,12 +974,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def async_step_basic_utilities(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Basic Utilities tool toggles step in options flow."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = get_basic_utilities_schema(self.hass)
+            schema = await get_basic_utilities_schema(self.hass)
             schema = self.add_suggested_values_to_schema(schema, opts)
             return self.async_show_form(
                 step_id=STEP_BASIC_UTILITIES,
@@ -863,8 +991,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_create_entry(data=self.config_data)
 
     async def async_step_weather(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Handle Weather configuration step in options flow."""
         if user_input:
             # The config dict .update wont remove values where they arent present in the update data

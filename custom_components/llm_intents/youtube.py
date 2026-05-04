@@ -1,6 +1,7 @@
 """YouTube search tool for Home Assistant LLM integration."""
 
 import logging
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -24,41 +25,36 @@ class SearchYouTubeTool(BaseTool):
 
     name = "search_youtube"
 
-    description = "\n".join(
-        [
-            "Use this tool to search YouTube when the user requests or infers they want to:",
-            "- Find a video to watch",
-            "- Search for music, tutorials, or other video content",
-            "- Play something on a TV or media player",
-        ]
+    description = (
+        "Use this tool to search YouTube when the user requests or infers they want to:\n"
+        "- Find a video to watch\n"
+        "- Search for music, tutorials, or other video content\n"
+        "- Play something on a TV or media player"
     )
 
-    prompt_description = "\n".join(
-        [
-            "Use the `search_youtube` tool to find videos on YouTube:",
-            "- Returns video titles, URLs, channel names, and descriptions.",
-            "- Use this when the user wants to watch or play video content.",
-        ]
+    prompt_description = (
+        "Use the `search_youtube` tool to find videos on YouTube:\n"
+        "- Returns video titles, URLs, channel names, and descriptions.\n"
+        "- Use this when the user wants to watch or play video content."
     )
 
-    response_directive = "\n".join(
-        [
-            "Use the search results to answer the user's query.",
-            "If the user wants to play a video, use the play_video tool with the video URL.",
-        ]
+    response_directive = (
+        "Use the search results to answer the user's query.\n"
+        "If the user wants to play a video, use the play_video tool with the video URL."
     )
 
     parameters = vol.Schema(
         {
             vol.Required(
-                "query", description="The search query for YouTube videos"
+                "query",
+                description="The search query for YouTube videos",
             ): str,
             vol.Optional(
                 "num_results",
                 default=1,
                 description="Number of videos to return (1-25). Use more when the user wants multiple options.",
             ): vol.All(int, vol.Range(min=1, max=25)),
-        }
+        },
     )
 
     async def async_call(
@@ -102,7 +98,7 @@ class SearchYouTubeTool(BaseTool):
                 "https://www.googleapis.com/youtube/v3/search",
                 params=params,
             ) as resp:
-                if resp.status == 200:
+                if resp.status == HTTPStatus.OK:
                     data = await resp.json()
                     results = []
 
@@ -118,7 +114,7 @@ class SearchYouTubeTool(BaseTool):
                                     "channel": snippet.get("channelTitle"),
                                     "description": snippet.get("description"),
                                     "published_at": snippet.get("publishedAt"),
-                                }
+                                },
                             )
 
                     if results:
@@ -145,5 +141,5 @@ class SearchYouTubeTool(BaseTool):
                 return {"error": f"YouTube search error: {resp.status}"}
 
         except Exception:
-            _LOGGER.exception("YouTube search error")
+            _LOGGER.exception("YouTube search encountered an error")
             return {"error": "Error searching YouTube"}

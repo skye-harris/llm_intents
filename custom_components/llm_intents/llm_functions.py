@@ -85,7 +85,7 @@ class BaseAPI(llm.API):
     _TOOLS_CONF_MAP = None
     _API_PROMPT = ""
 
-    def __init__(self, hass: HomeAssistant, name: str, id: str | None = None) -> None:
+    def __init__(self, hass: HomeAssistant, name: str, id: str | None = None) -> None:  # noqa: A002
         """Initialize the API."""
         super().__init__(hass=hass, id=id or name.lower().replace(" ", "_"), name=name)
 
@@ -112,7 +112,8 @@ class BaseAPI(llm.API):
         return tools
 
     async def async_get_api_instance(
-        self, llm_context: llm.LLMContext
+        self,
+        llm_context: llm.LLMContext,
     ) -> llm.APIInstance:
         """Get API instance."""
         tools = self.get_enabled_tools()
@@ -196,25 +197,25 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
     try:
         if search_api.get_enabled_tools():
             hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, search_api)
+                llm.async_register_api(hass, search_api),
             )
 
         if weather_api.get_enabled_tools():
             hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, weather_api)
+                llm.async_register_api(hass, weather_api),
             )
 
         if media_api.get_enabled_tools():
             hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, media_api)
+                llm.async_register_api(hass, media_api),
             )
 
         if basic_utilities_api.get_enabled_tools():
             hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, basic_utilities_api)
+                llm.async_register_api(hass, basic_utilities_api),
             )
-    except Exception as e:
-        _LOGGER.error("Failed to register LLM API: %s", e)
+    except Exception:
+        _LOGGER.exception("Failed to register LLM API")
         raise
 
 

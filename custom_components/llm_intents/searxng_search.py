@@ -1,6 +1,7 @@
 """SearXNG web search tool."""
 
 import logging
+from http import HTTPStatus
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -14,6 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SearXngSearchTool(SearchWebTool):
+    """SearXNG web search tool."""
+
     async def async_search(
         self,
         query: str,
@@ -23,7 +26,8 @@ class SearXngSearchTool(SearchWebTool):
         num_results = int(self.config.get(CONF_SEARXNG_NUM_RESULTS, 2))
 
         if not url:
-            raise RuntimeError("SearXNG server url not configured")
+            msg = "SearXNG server url not configured"
+            raise RuntimeError(msg)
 
         session = async_get_clientsession(self.hass)
         headers = {
@@ -34,17 +38,17 @@ class SearXngSearchTool(SearchWebTool):
             f"{url}?format=json&q={query}",
             headers=headers,
         ) as resp:
-            if resp.status == 200:
-                data = await resp.json()
+            data = await resp.json()
+            if resp.status == HTTPStatus.OK:
                 results = []
                 for result in data.get("results", [])[0:num_results]:
                     title = result.get("title", "")
                     content = await self.cleanup_text(result.get("content", ""))
 
-                    result = {"title": title, "content": content}
-
-                    results.append(result)
+                    item = {"title": title, "content": content}
+                    results.append(item)
                 return results
-            raise RuntimeError(
-                f"Web search received a HTTP {resp.status} error from SearXNG"
+            err_msg = (
+                f"Web search received a HTTP {resp.status} error from SearXNG: {data}"
             )
+            raise RuntimeError(err_msg)

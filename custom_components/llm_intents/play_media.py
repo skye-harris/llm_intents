@@ -69,7 +69,8 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
 
 
 def get_video_capable_media_players(
-    hass: HomeAssistant, area_id: str | None
+    hass: HomeAssistant,
+    area_id: str | None,
 ) -> list[str]:
     """
     Find media players in an area that support video playback.
@@ -184,6 +185,7 @@ class PlayVideoTool(BaseTool):
     def update_args(hass: HomeAssistant) -> None:
         """
         Update the tool args with the currently available media players, in case this has changed since we were last called.
+
         This is called every time the LLM integration is about to query the model.
         """
         video_players = get_video_capable_media_players(hass, None)
@@ -200,7 +202,7 @@ class PlayVideoTool(BaseTool):
                     SelectSelectorConfig(
                         options=video_players,
                         multiple=True,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     "area",
@@ -210,7 +212,7 @@ class PlayVideoTool(BaseTool):
                     "device_id",
                     description="The device_id of the media player device",
                 ): str,
-            }
+            },
         )
 
     async def async_call(
@@ -244,7 +246,8 @@ class PlayVideoTool(BaseTool):
 
             if not area_id:
                 _LOGGER.warning(
-                    "Could not resolve area '%s' to a valid area_id", area_input
+                    "Could not resolve area '%s' to a valid area_id",
+                    area_input,
                 )
                 return {
                     "success": False,
@@ -257,7 +260,8 @@ class PlayVideoTool(BaseTool):
 
             if not video_players:
                 _LOGGER.warning(
-                    "No video-capable media players found in area '%s'", area_input
+                    "No video-capable media players found in area '%s'",
+                    area_input,
                 )
                 return {
                     "success": False,
@@ -267,7 +271,7 @@ class PlayVideoTool(BaseTool):
             if "entity_id" in target:
                 existing = target["entity_id"]
                 if isinstance(existing, str):
-                    target["entity_id"] = [existing] + video_players
+                    target["entity_id"] = [existing, *video_players]
                 else:
                     target["entity_id"] = list(existing) + video_players
             else:
@@ -323,7 +327,8 @@ class PlayVideoTool(BaseTool):
             )
 
             _LOGGER.debug(
-                "media_player.play_media completed successfully for %s", target_desc
+                "media_player.play_media completed successfully for %s",
+                target_desc,
             )
 
             return {
