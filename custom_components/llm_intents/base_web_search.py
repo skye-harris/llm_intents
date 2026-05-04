@@ -35,7 +35,7 @@ class SearchWebTool(BaseTool):
     parameters = vol.Schema(
         {
             vol.Required("query", description="The query to search for"): str,
-        }
+        },
     )
 
     def with_instructions(self, response: dict) -> dict:

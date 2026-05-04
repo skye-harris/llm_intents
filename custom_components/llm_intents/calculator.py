@@ -30,13 +30,13 @@ class CalculatorTool(BaseTool):
                 SelectSelectorConfig(
                     options=["expression", "min", "max", "avg"],
                     multiple=False,
-                )
+                ),
             ),
             vol.Required(
                 "data",
                 description="The data to evaluate. If using `expression`, pass the entire data in the first item of the array.",
             ): list[str],
-        }
+        },
     )
 
     async def async_call(

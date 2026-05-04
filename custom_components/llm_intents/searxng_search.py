@@ -1,6 +1,7 @@
 """SearXNG web search tool."""
 
 import logging
+from http import HTTPStatus
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -38,7 +39,7 @@ class SearXngSearchTool(SearchWebTool):
             headers=headers,
         ) as resp:
             data = await resp.json()
-            if resp.status == 200:
+            if resp.status == HTTPStatus.OK:
                 results = []
                 for result in data.get("results", [])[0:num_results]:
                     title = result.get("title", "")

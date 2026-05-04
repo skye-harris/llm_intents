@@ -12,30 +12,39 @@ from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.llm_intents.config_flow import (
     STEP_BRAVE,
+    STEP_BRAVE_LLM,
     STEP_GOOGLE_PLACES,
     STEP_INIT,
+    STEP_SEARXNG,
     STEP_USER,
+    STEP_WEATHER,
     STEP_WIKIPEDIA,
+    STEP_YOUTUBE,
     LlmIntentsConfigFlow,
     LlmIntentsOptionsFlow,
     get_brave_schema,
     get_google_places_schema,
     get_step_user_data_schema,
-    get_wikipedia_schema, STEP_YOUTUBE, STEP_WEATHER, STEP_BRAVE_LLM, STEP_SEARXNG,
+    get_wikipedia_schema,
 )
 from custom_components.llm_intents.const import (
     CONF_BRAVE_API_KEY,
     CONF_BRAVE_COUNTRY_CODE,
     CONF_BRAVE_LATITUDE,
     CONF_BRAVE_LONGITUDE,
+    CONF_BRAVE_MAX_SNIPPETS_PER_URL,
     CONF_BRAVE_NUM_RESULTS,
     CONF_BRAVE_POST_CODE,
     CONF_BRAVE_TIMEZONE,
-    CONF_GOOGLE_PLACES_API_KEY,
-    CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_API_KEY,
+    CONF_GOOGLE_PLACES_API_KEY,
+    CONF_GOOGLE_PLACES_LATITUDE,
+    CONF_GOOGLE_PLACES_LONGITUDE,
+    CONF_GOOGLE_PLACES_NUM_RESULTS,
+    CONF_GOOGLE_PLACES_RADIUS,
+    CONF_GOOGLE_PLACES_RANKING,
     CONF_WIKIPEDIA_NUM_RESULTS,
-    DOMAIN, CONF_BRAVE_MAX_SNIPPETS_PER_URL, CONF_GOOGLE_PLACES_LONGITUDE, CONF_GOOGLE_PLACES_LATITUDE, CONF_GOOGLE_PLACES_RADIUS, CONF_GOOGLE_PLACES_RANKING,
+    DOMAIN,
 )
 
 
@@ -104,7 +113,7 @@ class TestSchemaFunctions:
                 {
                     CONF_BRAVE_API_KEY: "key",
                     CONF_BRAVE_NUM_RESULTS: 1,  # Should be >= 1
-                    CONF_BRAVE_MAX_SNIPPETS_PER_URL: 0, # Should be >= 1
+                    CONF_BRAVE_MAX_SNIPPETS_PER_URL: 0,  # Should be >= 1
                 }
             )
 

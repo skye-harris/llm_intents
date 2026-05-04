@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from http import HTTPStatus
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -55,7 +56,8 @@ class BraveLlmContextSearchTool(SearchWebTool):
         country_code = self.config.get(CONF_BRAVE_COUNTRY_CODE)
         post_code = self.config.get(CONF_BRAVE_POST_CODE)
         context_threshold_mode = self.config.get(
-            CONF_BRAVE_CONTEXT_THRESHOLD_MODE, "disabled"
+            CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
+            "disabled",
         )
         max_tokens_per_url = int(self.config.get(CONF_BRAVE_MAX_TOKENS_PER_URL, 1024))
         max_snippets_per_url = int(self.config.get(CONF_BRAVE_MAX_SNIPPETS_PER_URL, 2))
@@ -102,7 +104,7 @@ class BraveLlmContextSearchTool(SearchWebTool):
             params=params,
         ) as resp:
             response_content = await resp.json()
-            if resp.status == 200:
+            if resp.status == HTTPStatus.OK:
                 results = []
                 for result in response_content.get("grounding", {}).get("generic", []):
                     title = result.get("title")
