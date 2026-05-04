@@ -145,9 +145,7 @@ class GetRouteTool(BaseTool):
             return cached or None
 
         field_mask = (
-            "places.displayName,"
-            "places.shortFormattedAddress,"
-            "places.formattedAddress"
+            "places.displayName,places.shortFormattedAddress,places.formattedAddress"
         )
         headers = {
             "Accept": "application/json",
@@ -204,9 +202,7 @@ class GetRouteTool(BaseTool):
         provider_keys = config_data.get(CONF_PROVIDER_API_KEYS) or {}
         api_key = provider_keys.get(PROVIDER_GOOGLE, "")
         home_address = config_data.get(CONF_GOOGLE_ROUTES_HOME_ADDRESS, "").strip()
-        default_mode = config_data.get(
-            CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE, "DRIVE"
-        )
+        default_mode = config_data.get(CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE, "DRIVE")
 
         if not api_key:
             return {"error": "Google API key not configured"}
@@ -222,9 +218,7 @@ class GetRouteTool(BaseTool):
         resolved = await self._resolve_destination_via_places(
             hass, api_key, destination_query
         )
-        destination_address = (
-            resolved["address"] if resolved else destination_query
-        )
+        destination_address = resolved["address"] if resolved else destination_query
 
         imperial = hass.config.units is US_CUSTOMARY_SYSTEM
         units = "IMPERIAL" if imperial else "METRIC"
