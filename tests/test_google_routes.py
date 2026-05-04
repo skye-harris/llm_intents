@@ -87,7 +87,10 @@ def routes_hass(mock_hass: HomeAssistant, config: dict) -> HomeAssistant:
     mock_hass.data = {DOMAIN: {"config": config}}
     entry = Mock(spec=ConfigEntry)
     entry.options = {}
+    mock_hass.config_entries = Mock()
     mock_hass.config_entries.async_entries = Mock(return_value=[entry])
+    # `hass.config` is not a class attribute on the HA spec, so attach our own.
+    mock_hass.config = Mock()
     mock_hass.config.language = "en"
     mock_hass.config.latitude = 40.0
     mock_hass.config.longitude = -74.0
