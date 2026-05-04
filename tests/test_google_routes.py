@@ -83,7 +83,7 @@ def config() -> dict:
 
 @pytest.fixture
 def routes_hass(mock_hass: HomeAssistant, config: dict) -> HomeAssistant:
-    """Configured HA instance for the routes tool."""
+    """Configure a mock HA instance for the routes tool."""
     mock_hass.data = {DOMAIN: {"config": config}}
     entry = Mock(spec=ConfigEntry)
     entry.options = {}
@@ -112,39 +112,49 @@ def cache_miss() -> Any:
         yield cache_cls
 
 
-class TestFormatDuration:
-    """Format-duration helper."""
-
-    def test_under_a_minute(self) -> None:
-        assert _format_duration(45) == "45 seconds"
-
-    def test_minutes_only(self) -> None:
-        assert _format_duration(180) == "3 min"
-
-    def test_minutes_and_seconds(self) -> None:
-        assert _format_duration(125) == "2 min 5 sec"
-
-    def test_hours_only(self) -> None:
-        assert _format_duration(7200) == "2 hr"
-
-    def test_hours_and_minutes(self) -> None:
-        assert _format_duration(7320) == "2 hr 2 min"
+def test_format_duration_under_a_minute() -> None:
+    """Sub-minute durations render in seconds."""
+    assert _format_duration(45) == "45 seconds"
 
 
-class TestFormatDistance:
-    """Format-distance helper."""
+def test_format_duration_minutes_only() -> None:
+    """Whole-minute durations render without trailing seconds."""
+    assert _format_duration(180) == "3 min"
 
-    def test_metric_meters(self) -> None:
-        assert _format_distance(450, imperial=False) == "450 m"
 
-    def test_metric_kilometers(self) -> None:
-        assert _format_distance(15000, imperial=False) == "15.0 km"
+def test_format_duration_minutes_and_seconds() -> None:
+    """Mixed minute/second durations render both parts."""
+    assert _format_duration(125) == "2 min 5 sec"
 
-    def test_imperial_feet(self) -> None:
-        assert _format_distance(50, imperial=True) == "164 ft"
 
-    def test_imperial_miles(self) -> None:
-        assert _format_distance(8000, imperial=True) == "5.0 mi"
+def test_format_duration_hours_only() -> None:
+    """Whole-hour durations render without trailing minutes."""
+    assert _format_duration(7200) == "2 hr"
+
+
+def test_format_duration_hours_and_minutes() -> None:
+    """Mixed hour/minute durations render both parts."""
+    assert _format_duration(7320) == "2 hr 2 min"
+
+
+def test_format_distance_metric_meters() -> None:
+    """Metric distances under 1 km render in meters."""
+    assert _format_distance(450, imperial=False) == "450 m"
+
+
+def test_format_distance_metric_kilometers() -> None:
+    """Metric distances at or above 1 km render in kilometers."""
+    assert _format_distance(15000, imperial=False) == "15.0 km"
+
+
+def test_format_distance_imperial_feet() -> None:
+    """Imperial distances under a tenth of a mile render in feet."""
+    assert _format_distance(50, imperial=True) == "164 ft"
+
+
+def test_format_distance_imperial_miles() -> None:
+    """Imperial distances at or above a tenth of a mile render in miles."""
+    assert _format_distance(8000, imperial=True) == "5.0 mi"
 
 
 async def test_returns_error_without_api_key(
@@ -180,7 +190,7 @@ async def test_returns_error_without_home_address(
 async def test_resolves_via_places_then_routes(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """Fuzzy destinations are resolved via Places before routing."""
     session = _make_session(
@@ -236,7 +246,7 @@ async def test_resolves_via_places_then_routes(
 async def test_places_locationbias_uses_ha_home_coordinates(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """Places lookup biases by HA home coordinates, not Places config."""
     session = _make_session(
@@ -266,7 +276,7 @@ async def test_places_locationbias_uses_ha_home_coordinates(
 async def test_falls_back_to_raw_destination_on_places_miss(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """An empty Places response leaves routing to use the raw destination."""
     session = _make_session(
@@ -298,7 +308,7 @@ async def test_uses_configured_default_mode_when_omitted(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
     config: dict,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """The configured default mode is used when the LLM omits one."""
     config[CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE] = "WALK"
@@ -330,7 +340,7 @@ async def test_explicit_mode_overrides_default(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
     config: dict,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """An LLM-supplied mode overrides the configured default."""
     config[CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE] = "WALK"
@@ -358,7 +368,7 @@ async def test_explicit_mode_overrides_default(
 async def test_routes_api_error_returns_error(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """Non-200 from Routes is surfaced as a structured error."""
     session = _make_session(
@@ -383,7 +393,7 @@ async def test_routes_api_error_returns_error(
 async def test_places_failure_falls_back_to_raw_destination(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """When Places returns an HTTP error, routing proceeds with raw input."""
     session = _make_session(
@@ -447,7 +457,7 @@ async def test_places_cache_hit_skips_places_call(
 async def test_imperial_units_render_in_miles(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """When HA is set to US units, distances render in miles."""
     routes_hass.config.units = US_CUSTOMARY_SYSTEM
@@ -478,7 +488,7 @@ async def test_imperial_units_render_in_miles(
 async def test_traffic_duration_emitted_when_different(
     tool: GetRouteTool,
     routes_hass: HomeAssistant,
-    cache_miss: Any,  # noqa: ARG001
+    cache_miss: Any,
 ) -> None:
     """`duration_without_traffic` appears for DRIVE when static differs."""
     session = _make_session(
