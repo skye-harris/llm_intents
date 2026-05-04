@@ -641,6 +641,7 @@ async def test_get_hourly_forecast_no_forecast(
 
 
 @pytest.mark.asyncio
+@pytest.mark.freeze_time("2026-05-03")
 async def test_async_call_daily_forecast(
     tool: WeatherForecastTool, mock_hass: HomeAssistant
 ) -> None:
