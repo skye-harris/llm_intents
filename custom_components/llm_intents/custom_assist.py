@@ -97,15 +97,7 @@ class CustomAssistAPI(AssistAPI):
 
         tools = super()._async_get_tools(llm_context, exposed_entities)
 
-        # Swap out real live context tool for our filterable replacement tool
-        tools = [
-            tool
-            for tool in tools
-            if tool.name != "GetLiveContext"
-        ]
-        tools.append(GetFilterableLiveContextTool())
-
-        # Now filter by the disabled tools rule
+        # Filter by the disabled tools rule
         tools = [
             tool
             for tool in tools
@@ -113,75 +105,3 @@ class CustomAssistAPI(AssistAPI):
         ]
 
         return tools
-
-
-class GetFilterableLiveContextTool(Tool):
-    """Tool for getting the current state of exposed entities.
-
-    This returns state for all entities that have been exposed to
-    the assistant. This is different than the GetState intent, which
-    returns state for entities based on intent parameters.
-    """
-
-    name = "GetLiveContext"
-    description = (
-        "Provides real-time information about the CURRENT state, value, or mode of devices, sensors, entities, or areas.\n"
-        "Use this tool for:\n"
-        "1. Answering questions about current conditions (e.g., 'Is the light on?').\n"
-        "2. As the first step in conditional actions (e.g., 'If the weather is rainy, turn off sprinklers' requires checking the weather first).\n"
-        "You may filter for devices by any combination of arguments from the static context.\n"
-        " - Prefer filtering by domain when searching for multiple devices of the same type"
-    )
-
-    parameters = vol.Schema(
-        {
-            vol.Optional("name", description="Filter details to a particular device"): str,
-            vol.Optional("area", description="Filter details to a particular area"): str,
-            vol.Optional("domain", description="Filter details to a particular domain"): str,
-        }
-    )
-
-    async def async_call(
-        self,
-        hass: HomeAssistant,
-        tool_input: ToolInput,
-        llm_context: LLMContext,
-    ) -> JsonObjectType:
-        """Get the current state of exposed entities."""
-        if llm_context.assistant is None:
-            # Note this doesn't happen in practice since this tool won't be
-            # exposed if no assistant is configured.
-            return {"success": False, "error": "No assistant configured"}
-
-        filter_name = tool_input.tool_args.get("name")
-        filter_area = tool_input.tool_args.get("area")
-        filter_domain = tool_input.tool_args.get("domain")
-
-        exposed_entities = _get_exposed_entities(hass, llm_context.assistant)
-        if not exposed_entities["entities"]:
-            return {"success": False, "error": NO_ENTITIES_PROMPT}
-
-        def filter_entity(entity: dict) -> bool:
-            areas = entity.get("areas","").split(", ")
-            names = entity.get("names", "").split(", ")
-            domain = entity.get("domain")
-
-            if filter_name and filter_name not in names:
-                return False
-            if filter_area and filter_area not in areas:
-                return False
-            if filter_domain and filter_domain != domain:
-                return False
-            return True
-
-        exposed_entities = list(exposed_entities["entities"].values())
-        exposed_entities = [entity for entity in exposed_entities if filter_entity(entity)]
-
-        prompt = [
-            "Live Context: An overview of the areas and the devices in this smart home:",
-            yaml.dump(exposed_entities),
-        ]
-        return {
-            "success": True,
-            "result": "\n".join(prompt),
-        }
