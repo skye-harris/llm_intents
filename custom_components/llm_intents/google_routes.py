@@ -2,6 +2,7 @@
 
 import logging
 from datetime import UTC, datetime, timedelta
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -26,8 +27,13 @@ _LOGGER = logging.getLogger(__name__)
 
 _TRAVEL_MODES = list(CONF_GOOGLE_ROUTES_TRAVEL_MODES.keys())
 
-# Soft-bias radius (meters) applied to internal Places lookups.
 _PLACES_LOCATION_BIAS_RADIUS_M = 50_000
+_SECONDS_PER_MINUTE = 60
+_MINUTES_PER_HOUR = 60
+_METERS_PER_KILOMETER = 1000
+_METERS_PER_MILE = 1609.344
+_FEET_PER_METER = 3.28084
+_MILES_FEET_THRESHOLD = 0.1
 
 
 class GetRouteTool(BaseTool):
@@ -157,7 +163,7 @@ class GetRouteTool(BaseTool):
                 json=body,
                 headers=headers,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTPStatus.OK:
                     _LOGGER.warning(
                         "Places resolution HTTP %s for '%s'", resp.status, query
                     )
@@ -260,7 +266,7 @@ class GetRouteTool(BaseTool):
                 json=body,
                 headers=headers,
             ) as resp:
-                if resp.status != 200:
+                if resp.status != HTTPStatus.OK:
                     error_text = await resp.text()
                     _LOGGER.error("Routes API HTTP %s: %s", resp.status, error_text)
                     return {"error": f"Routes API error: {resp.status}"}
@@ -316,23 +322,23 @@ class GetRouteTool(BaseTool):
 
 def _format_duration(seconds: int) -> str:
     """Format a duration in seconds as a human-readable string."""
-    if seconds < 60:
+    if seconds < _SECONDS_PER_MINUTE:
         return f"{seconds} seconds"
-    minutes, secs = divmod(seconds, 60)
-    if minutes < 60:
+    minutes, secs = divmod(seconds, _SECONDS_PER_MINUTE)
+    if minutes < _MINUTES_PER_HOUR:
         return f"{minutes} min" + (f" {secs} sec" if secs else "")
-    hours, minutes = divmod(minutes, 60)
+    hours, minutes = divmod(minutes, _MINUTES_PER_HOUR)
     return f"{hours} hr" + (f" {minutes} min" if minutes else "")
 
 
 def _format_distance(meters: int, *, imperial: bool) -> str:
     """Format a distance in meters using metric or US units."""
     if imperial:
-        miles = meters / 1609.344
-        if miles < 0.1:
-            feet = round(meters * 3.28084)
+        miles = meters / _METERS_PER_MILE
+        if miles < _MILES_FEET_THRESHOLD:
+            feet = round(meters * _FEET_PER_METER)
             return f"{feet} ft"
         return f"{miles:.1f} mi"
-    if meters < 1000:
+    if meters < _METERS_PER_KILOMETER:
         return f"{meters} m"
-    return f"{meters / 1000:.1f} km"
+    return f"{meters / _METERS_PER_KILOMETER:.1f} km"
