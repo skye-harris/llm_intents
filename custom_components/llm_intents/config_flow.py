@@ -58,8 +58,10 @@ from .const import (
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
+    CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
     CONF_GOOGLE_ROUTES_ENABLED,
     CONF_GOOGLE_ROUTES_HOME_ADDRESS,
+    CONF_GOOGLE_ROUTES_TRAVEL_MODES,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
@@ -404,6 +406,20 @@ async def get_google_routes_schema(hass: HomeAssistant) -> vol.Schema:
                 CONF_GOOGLE_ROUTES_HOME_ADDRESS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_ROUTES_HOME_ADDRESS, ""),
             ): str,
+            vol.Required(
+                CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
+                default=SERVICE_DEFAULTS.get(
+                    CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
+                    "DRIVE",
+                ),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=options_to_selections_dict(
+                        CONF_GOOGLE_ROUTES_TRAVEL_MODES,
+                    ),
+                ),
+            ),
         }
     )
 
