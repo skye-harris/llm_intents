@@ -2,6 +2,7 @@
 
 import logging
 import re
+from http import HTTPStatus
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -32,36 +33,31 @@ class FindPlacesTool(BaseTool):
 
     name = "find_places"
 
-    description = "\n".join(
-        [
-            "Use this tool to search Google Places when the user requests or infers they are after any of the following information for a business or location:",
-            "- Address",
-            "- Contact telephone number",
-            "- Regular Open & Close times",
-            "- Average user rating",
-        ]
+    description = (
+        "Use this tool to search Google Places when the user requests or infers they are after any of the following information for a business or location:\n"
+        "- Address\n"
+        "- Contact telephone number\n"
+        "- Regular Open & Close times\n"
+        "- Average user rating"
     )
 
-    prompt_description = "\n".join(
-        [
-            "Use the `find_places` tool to search for information about a business or public location:",
-            "- This includes address, phone number, and opening hours.",
-        ]
+    prompt_description = (
+        f"Use the `{name}` tool to search for information about a business or public location:\n"
+        "- This includes address, phone number, and opening hours."
     )
 
-    response_directive = "\n".join(
-        [
-            "Use the search results to answer the users query.",
-            "Focus on answering the users request directly, rather than repeating the entirety of the results to them.",
-        ]
+    response_directive = (
+        "Use the search results to answer the users query.\n"
+        "Focus on answering the users request directly, rather than repeating the entirety of the results to them."
     )
 
     parameters = vol.Schema(
         {
             vol.Required(
-                "query", description="The place or location to search for"
+                "query",
+                description="The place or location to search for",
             ): str,
-        }
+        },
     )
 
     def wrap_response(self, response: dict) -> dict:
@@ -88,15 +84,17 @@ class FindPlacesTool(BaseTool):
             config_data.get(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
                 SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
-            )
+            ),
         )
         latitude = config_data.get(CONF_GOOGLE_PLACES_LATITUDE)
         longitude = config_data.get(CONF_GOOGLE_PLACES_LONGITUDE)
         radius = config_data.get(
-            CONF_GOOGLE_PLACES_RADIUS, SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS)
+            CONF_GOOGLE_PLACES_RADIUS,
+            SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
         )
         rank_pref = config_data.get(
-            CONF_GOOGLE_PLACES_RANKING, SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RANKING)
+            CONF_GOOGLE_PLACES_RANKING,
+            SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RANKING),
         ).upper()
 
         if not api_key:
@@ -128,15 +126,13 @@ class FindPlacesTool(BaseTool):
             if cached_response:
                 return cached_response
 
-            field_mask = ",".join(
-                [
-                    "places.displayName",
-                    "places.location",
-                    "places.rating",
-                    "places.nationalPhoneNumber",
-                    "places.regularOpeningHours",
-                    "places.shortFormattedAddress",
-                ]
+            field_mask = (
+                "places.displayName,"
+                "places.location,"
+                "places.rating,"
+                "places.nationalPhoneNumber,"
+                "places.regularOpeningHours,"
+                "places.shortFormattedAddress"
             )
 
             headers = {
@@ -151,7 +147,7 @@ class FindPlacesTool(BaseTool):
                 json=params,
                 headers=headers,
             ) as resp:
-                if resp.status == 200:
+                if resp.status == HTTPStatus.OK:
                     data = await resp.json()
                     results = []
 
@@ -171,20 +167,20 @@ class FindPlacesTool(BaseTool):
                             next_closes = opening_hours.get("nextCloseTime")
                             next_opens = opening_hours.get("nextOpenTime")
                             weekday_descriptions = opening_hours.get(
-                                "weekdayDescriptions"
+                                "weekdayDescriptions",
                             )
 
                             if next_closes:
                                 utc_time = dt.parse_datetime(next_closes)
                                 local_time = dt.as_local(utc_time).strftime(
-                                    "%Y-%m-%d %H:%M"
+                                    "%Y-%m-%d %H:%M",
                                 )
                                 this_place["next_closes_at"] = local_time
 
                             if next_opens:
                                 utc_time = dt.parse_datetime(next_opens)
                                 local_time = dt.as_local(utc_time).strftime(
-                                    "%Y-%m-%d %H:%M"
+                                    "%Y-%m-%d %H:%M",
                                 )
                                 this_place["next_opens_at"] = local_time
 
@@ -212,11 +208,10 @@ class FindPlacesTool(BaseTool):
                         else {"result": "No places found"}
                     )
 
-                _LOGGER.error(
-                    f"Places search received a HTTP {resp.status} error from Google: {await resp.text()}"
-                )
+                error_msg = f"Places search received a HTTP {resp.status} error from Google: {await resp.text()}"
+                _LOGGER.error(error_msg)
                 return {"error": f"Places search error: {resp.status}"}
 
         except Exception as e:
-            _LOGGER.error("Places search error: %s", e)
+            _LOGGER.exception("Places search encountered an error")
             return {"error": f"Error finding places: {e!s}"}

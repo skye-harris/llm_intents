@@ -30,13 +30,13 @@ class CalculatorTool(BaseTool):
                 SelectSelectorConfig(
                     options=["expression", "min", "max", "avg"],
                     multiple=False,
-                )
+                ),
             ),
             vol.Required(
                 "data",
                 description="The data to evaluate. If using `expression`, pass the entire data in the first item of the array.",
             ): list[str],
-        }
+        },
     )
 
     async def async_call(
@@ -54,7 +54,7 @@ class CalculatorTool(BaseTool):
         try:
             result = _calculate(operation, data)
         except Exception as e:
-            _LOGGER.error("Calculator error: %s", e)
+            _LOGGER.exception(msg="Calculator encountered an error")
             return {"error": str(e)}
 
         return {"value": result}
@@ -80,4 +80,5 @@ def _calculate(operation: str, data: list[str]) -> float:
     if operation == "avg":
         return sum(data) / len(data)
 
-    raise ValueError(f"Unknown operation: {operation}")
+    error_msg = f"Unknown operation: {operation}"
+    raise ValueError(error_msg)

@@ -1,6 +1,7 @@
 """Brave Web search tool."""
 
 import logging
+from http import HTTPStatus
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -21,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class BraveSearchTool(SearchWebTool):
+    """Tool for searching the web via Brave Web Search API."""
+
     async def async_search(
         self,
         query: str,
@@ -37,7 +40,8 @@ class BraveSearchTool(SearchWebTool):
         post_code = self.config.get(CONF_BRAVE_POST_CODE)
 
         if not api_key:
-            raise RuntimeError("Brave API key not configured")
+            error_msg = "Brave API key not configured"
+            raise RuntimeError(error_msg)
 
         session = async_get_clientsession(self.hass)
         headers = {
@@ -74,10 +78,10 @@ class BraveSearchTool(SearchWebTool):
             headers=headers,
             params=params,
         ) as resp:
-            if resp.status == 200:
-                data = await resp.json()
+            response_content = await resp.json()
+            if resp.status == HTTPStatus.OK:
                 results = []
-                for result in data.get("web", {}).get("results", []):
+                for result in response_content.get("web", {}).get("results", []):
                     title = result.get("title", "")
                     content = result.get("description", "")
                     extra_snippets = result.get("extra_snippets", [])[
@@ -95,6 +99,5 @@ class BraveSearchTool(SearchWebTool):
                     results.append({"title": title, "content": result_content})
 
                 return results
-            raise RuntimeError(
-                f"Web search received a HTTP {resp.status} error from Brave"
-            )
+            error_msg = f"Web search received a HTTP {resp.status} error from Brave: {response_content}"
+            raise RuntimeError(error_msg)
