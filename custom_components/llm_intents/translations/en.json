@@ -54,6 +54,14 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "tavily": {
+        "title": "Configure Tavily Web Search",
+        "description": "Configure Tavily Web Search API settings.",
+        "data": {
+          "tavily_api_key": "API Key",
+          "tavily_num_results": "Number of Results"
+        }
+      },
       "google_places": {
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
@@ -175,6 +183,14 @@
         },
         "data_description": {
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
+        }
+      },
+      "tavily": {
+        "title": "Configure Tavily Web Search",
+        "description": "Configure Tavily Web Search API settings.",
+        "data": {
+          "tavily_api_key": "API Key",
+          "tavily_num_results": "Number of Results"
         }
       },
       "google_places": {
