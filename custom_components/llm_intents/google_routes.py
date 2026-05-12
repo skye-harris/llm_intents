@@ -54,43 +54,70 @@ class GetRouteTool(BaseTool):
         "the requested arrival time."
     )
 
-    response_directive = (
-        "Use the route information to answer the user's question directly. "
-        "Report distance and duration concisely. "
-        "If `departure_time` is present in the result, the duration is for "
-        "that future departure - phrase it as 'with expected traffic'. "
-        "If `departure_time` is NOT present, the duration is for leaving now - "
-        "phrase it as 'with current traffic'. "
-        "If the user asked when to leave, subtract the duration from their "
-        "target arrival time."
-    )
+    parameters: vol.Schemable
 
-    parameters = vol.Schema(
-        {
-            vol.Required(
-                "destination",
-                description=(
-                    "Destination address, place name, or business name as the "
-                    "user described it. Pass the user's wording verbatim - do "
-                    "not invent a specific address."
-                ),
-            ): str,
-            vol.Optional(
-                "departure_time",
-                description=(
-                    "Departure time in ISO 8601 format. Omit for an immediate "
-                    "departure."
-                ),
-            ): str,
-            vol.Optional(
-                "mode",
-                description=(
-                    "Travel mode. One of: DRIVE, WALK, BICYCLE, TRANSIT, "
-                    "TWO_WHEELER. Defaults to user's preferred mode of travel."
-                ),
-            ): vol.In(_TRAVEL_MODES),
-        }
-    )
+    def __init__(self, config: dict, hass: HomeAssistant) -> None:
+        """Initialize the tool."""
+        # Inject the default travel mode into the description
+        super().__init__(config, hass)
+        default_mode = self._get_default_travel_mode()
+        self.parameters = vol.Schema(
+            {
+                vol.Required(
+                    "destination",
+                    description=(
+                        "Destination address, place name, or business name as the "
+                        "user described it. Pass the user's wording verbatim - do "
+                        "not invent a specific address."
+                    ),
+                ): str,
+                vol.Optional(
+                    "departure_time",
+                    description=(
+                        "Departure time in ISO 8601 format. Omit for an immediate "
+                        "departure."
+                    ),
+                ): str,
+                vol.Optional(
+                    "mode",
+                    description=(
+                        "Travel mode. One of: DRIVE, WALK, BICYCLE, TRANSIT, "
+                        f"TWO_WHEELER. Defaults to {default_mode}"
+                    ),
+                ): vol.In(_TRAVEL_MODES),
+            },
+        )
+
+    @staticmethod
+    def response_directive(travel_mode: str) -> str:
+        """Return the response directive for a travel mode."""
+        response_directive = (
+            "Use the route information to answer the user's question directly. "
+            "Report distance and duration concisely. "
+        )
+
+        # Walking is unlikely to be affected by traffic
+        if travel_mode.upper() != "WALK":
+            response_directive += (
+                "If `departure_time` is present in the result, the duration is for "
+                "that future departure - phrase it as 'with expected traffic'. "
+                "If `departure_time` is NOT present, the duration is for leaving now - "
+                "phrase it as 'with current traffic'. "
+            )
+
+        response_directive += (
+            "If the user asked when to leave, subtract the duration from their "
+            "target arrival time."
+        )
+
+        return response_directive
+
+    def _get_default_travel_mode(self) -> str:
+        """Return the default travel mode."""
+        config_data = self.hass.data[DOMAIN].get("config", {})
+        entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
+        config_data = {**config_data, **entry.options}
+        return config_data.get(CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE)
 
     def _resolve_departure_time(self, value: str | None) -> str | None:
         """Convert an LLM-supplied departure time into an RFC3339 UTC string."""
@@ -163,7 +190,9 @@ class GetRouteTool(BaseTool):
             ) as resp:
                 if resp.status != HTTPStatus.OK:
                     _LOGGER.warning(
-                        "Places resolution HTTP %s for '%s'", resp.status, query
+                        "Places resolution HTTP %s for '%s'",
+                        resp.status,
+                        query,
                     )
                     return None
                 data = await resp.json()
@@ -212,11 +241,13 @@ class GetRouteTool(BaseTool):
         destination_query = tool_input.tool_args["destination"]
         mode = tool_input.tool_args.get("mode", default_mode).upper()
         departure_time = self._resolve_departure_time(
-            tool_input.tool_args.get("departure_time")
+            tool_input.tool_args.get("departure_time"),
         )
 
         resolved = await self._resolve_destination_via_places(
-            hass, api_key, destination_query
+            hass,
+            api_key,
+            destination_query,
         )
         destination_address = resolved["address"] if resolved else destination_query
 
@@ -301,13 +332,14 @@ class GetRouteTool(BaseTool):
             if departure_time:
                 result["departure_time"] = departure_time
                 arrival = datetime.strptime(
-                    departure_time, "%Y-%m-%dT%H:%M:%SZ"
+                    departure_time,
+                    "%Y-%m-%dT%H:%M:%SZ",
                 ).replace(tzinfo=UTC) + timedelta(seconds=duration_seconds)
                 result["estimated_arrival"] = dt_util.as_local(arrival).strftime(
-                    "%Y-%m-%d %H:%M"
+                    "%Y-%m-%d %H:%M",
                 )
 
-            return {"result": result, "instruction": self.response_directive}
+            return {"result": result, "instruction": self.response_directive(mode)}
 
         except Exception:
             _LOGGER.exception("Routes API error")
