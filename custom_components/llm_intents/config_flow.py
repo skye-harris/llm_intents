@@ -58,6 +58,10 @@ from .const import (
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
+    CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
+    CONF_GOOGLE_ROUTES_ENABLED,
+    CONF_GOOGLE_ROUTES_HOME_ADDRESS,
+    CONF_GOOGLE_ROUTES_TRAVEL_MODES,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
@@ -91,6 +95,7 @@ STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
 STEP_GOOGLE_PLACES = "google_places"
+STEP_GOOGLE_ROUTES = "google_routes"
 STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
 STEP_WEATHER = "weather"
@@ -134,6 +139,7 @@ def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
             ),
         ),
         vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
+        vol.Optional(CONF_GOOGLE_ROUTES_ENABLED, default=False): bool,
         vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
@@ -388,6 +394,36 @@ async def get_google_places_schema(hass: HomeAssistant) -> vol.Schema:
     )
 
 
+async def get_google_routes_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the static schema for Google Routes service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_GOOGLE_API_KEY,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
+            ): str,
+            vol.Required(
+                CONF_GOOGLE_ROUTES_HOME_ADDRESS,
+                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_ROUTES_HOME_ADDRESS, ""),
+            ): str,
+            vol.Required(
+                CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
+                default=SERVICE_DEFAULTS.get(
+                    CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
+                    "DRIVE",
+                ),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=options_to_selections_dict(
+                        CONF_GOOGLE_ROUTES_TRAVEL_MODES,
+                    ),
+                ),
+            ),
+        }
+    )
+
+
 async def get_youtube_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
@@ -520,6 +556,7 @@ SEARCH_STEP_ORDER = {
         get_searxng_schema,
     ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
+    STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
@@ -676,6 +713,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Google Places configuration step."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
+    async def async_step_google_routes(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Google Routes configuration step."""
+        return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
+
     async def async_step_youtube(
         self,
         user_input: dict[str, Any] | None = None,
@@ -762,6 +805,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 ),
                 vol.Optional(
                     CONF_GOOGLE_PLACES_ENABLED,
+                    default=False,
+                ): bool,
+                vol.Optional(
+                    CONF_GOOGLE_ROUTES_ENABLED,
                     default=False,
                 ): bool,
                 vol.Optional(
@@ -916,6 +963,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> FlowResult:
         """Handle Google Places configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
+
+    async def async_step_google_routes(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Google Routes configuration step in options flow."""
+        return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
 
     async def async_step_youtube(
         self,
