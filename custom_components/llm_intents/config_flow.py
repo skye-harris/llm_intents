@@ -68,9 +68,12 @@ from .const import (
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
+    CONF_SEARCH_PROVIDER_TAVILY,
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
+    CONF_TAVILY_API_KEY,
+    CONF_TAVILY_NUM_RESULTS,
     CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
@@ -80,6 +83,7 @@ from .const import (
     DOMAIN,
     PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
+    PROVIDER_TAVILY,
     SERVICE_DEFAULTS,
 )
 
@@ -94,6 +98,7 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
+STEP_TAVILY = "tavily"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_GOOGLE_ROUTES = "google_routes"
 STEP_YOUTUBE = "youtube"
@@ -159,6 +164,7 @@ def expand_config_for_schema(config: dict) -> dict:
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
+    result[CONF_TAVILY_API_KEY] = provider_keys.get(PROVIDER_TAVILY, "")
     return result
 
 
@@ -170,6 +176,8 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
         provider_keys[PROVIDER_BRAVE] = user_input[CONF_BRAVE_API_KEY]
     if CONF_GOOGLE_API_KEY in user_input:
         provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
+    if CONF_TAVILY_API_KEY in user_input:
+        provider_keys[PROVIDER_TAVILY] = user_input[CONF_TAVILY_API_KEY]
 
     if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
         provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
@@ -184,6 +192,7 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     config_data.pop(CONF_BRAVE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
+    config_data.pop(CONF_TAVILY_API_KEY, None)
 
 
 async def get_brave_schema(
@@ -312,6 +321,33 @@ async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
             vol.Required(
                 CONF_SEARXNG_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_SEARXNG_NUM_RESULTS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                ),
+            ),
+        },
+    )
+
+
+async def get_tavily_schema(
+    hass: HomeAssistant,
+    args: dict | None = None,
+) -> vol.Schema:
+    """Return the static schema for Tavily service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_TAVILY_API_KEY,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_API_KEY),
+            ): str,
+            vol.Required(
+                CONF_TAVILY_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_NUM_RESULTS),
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
@@ -555,6 +591,10 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         get_searxng_schema,
     ],
+    STEP_TAVILY: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_TAVILY,
+        get_tavily_schema,
+    ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
@@ -705,6 +745,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle SearXNG configuration step."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_tavily(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Tavily configuration step."""
+        return await self.handle_step(STEP_TAVILY, user_input)
 
     async def async_step_google_places(
         self,
@@ -956,6 +1003,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> FlowResult:
         """Handle SearXNG configuration step in options flow."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_tavily(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Tavily configuration step in options flow."""
+        return await self.handle_step(STEP_TAVILY, user_input)
 
     async def async_step_google_places(
         self,

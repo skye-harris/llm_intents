@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
-from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
+from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE, CONF_SEARCH_PROVIDER_TAVILY
 from .brave_llm_context_search import BraveLlmContextSearchTool
 from .brave_web_search import BraveSearchTool
 from .calculator import CalculatorTool
@@ -37,6 +37,7 @@ from .google_places import FindPlacesTool
 from .google_routes import GetRouteTool
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
+from .tavily_search import TavilySearchTool
 from .unit_converter import UnitConverterTool
 from .weather import WeatherForecastTool
 from .wikipedia import SearchWikipediaTool
@@ -56,6 +57,10 @@ SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         SearXngSearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_TAVILY,
+        TavilySearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_GOOGLE_ROUTES_ENABLED, GetRouteTool),

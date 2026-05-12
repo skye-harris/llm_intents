@@ -15,7 +15,8 @@
     "custom_components.llm_intents"
   ],
   "requirements": [
-    "sympy>=1.14.0"
+    "sympy>=1.14.0",
+    "tavily-python>=0.3"
   ],
   "version": "1.7.2"
 }
