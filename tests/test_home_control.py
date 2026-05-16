@@ -79,7 +79,7 @@ async def test_get_tools_filters_disabled_tools(
 
     with patch(
         "custom_components.llm_intents.home_control.AssistAPI._async_get_tools",
-        AsyncMock(
+        MagicMock(
             return_value=[
                 mock_tool_timer_start,
                 mock_tool_hass_turn_on,
@@ -87,7 +87,7 @@ async def test_get_tools_filters_disabled_tools(
         ),
     ):
         api = HomeControlAPI(mock_hass)
-        result = await api._async_get_tools(mock_llm_context_no_device, None)
+        result = api._async_get_tools(mock_llm_context_no_device, None)
 
         assert len(result) == 1
         assert result[0].name == "HassTurnOn"
