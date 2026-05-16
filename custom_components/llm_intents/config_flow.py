@@ -61,14 +61,14 @@ from .const import (
     CONF_GOOGLE_PLACES_NUM_RESULTS,
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
-    CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
-    CONF_HOME_CONTROL_DISABLED_TOOLS,
-    CONF_HOME_CONTROL_ENABLED,
-    CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
     CONF_GOOGLE_ROUTES_ENABLED,
     CONF_GOOGLE_ROUTES_HOME_ADDRESS,
     CONF_GOOGLE_ROUTES_TRAVEL_MODES,
+    CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
+    CONF_HOME_CONTROL_DISABLED_TOOLS,
+    CONF_HOME_CONTROL_ENABLED,
+    CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
@@ -407,7 +407,9 @@ async def get_google_places_schema(
     )
 
 
-async def get_google_routes_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_google_routes_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for Google Routes service configuration."""
     return vol.Schema(
         {
@@ -437,7 +439,9 @@ async def get_google_routes_schema(hass: HomeAssistant, args: dict | None = None
     )
 
 
-async def get_youtube_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_youtube_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
         {
