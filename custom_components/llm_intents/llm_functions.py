@@ -18,6 +18,7 @@ from .const import (
     CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_HOME_CONTROL_ENABLED,
+    CONF_GOOGLE_ROUTES_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_UNIT_CONVERTER_ENABLED,
@@ -35,6 +36,7 @@ from .const import (
 from .custom_assist import CustomAssistAPI
 from .date_info import DateInfoTool
 from .google_places import FindPlacesTool
+from .google_routes import GetRouteTool
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
 from .unit_converter import UnitConverterTool
@@ -58,6 +60,7 @@ SEARCH_CONF_ENABLED_MAP = [
         SearXngSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
+    (CONF_GOOGLE_ROUTES_ENABLED, GetRouteTool),
     (CONF_YOUTUBE_ENABLED, SearchYouTubeTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),
 ]
