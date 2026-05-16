@@ -16,6 +16,7 @@ A caching layer is utilised in order to reduce both API usage and latency on rep
 Additionally, a customisable clone of Home Assistants inbuilt `Assist` tooling API can be enabled and used with your Conversation Agents:
 - Edit the hidden prompt that the Assist API injects into your system prompt, if this is not to your liking, or conflicts with instructions that you have provided in your own prompt.
 - Disable any of the default Assist API tools that you don't want your Conversation Agents to have access to.
+- This is named `Home Control` in the list of tools.
 
 ---
 
@@ -381,7 +382,8 @@ Additionally, the inbuilt Assist tools can be disabled on a per-tool basis, in c
 
 ## Acknowledgements
 
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+- [@NickM-27](https://github.com/NickM-27) for his contributions both in additions to the integration itself, and providing support and assistance with reported issues
+- [@JonahMMay](https://github.com/JonahMMay) for his early refactor of this project to support UI/config-flow configuration
 
 ---
 
