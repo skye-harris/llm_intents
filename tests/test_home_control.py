@@ -1,6 +1,6 @@
 """Tests for HomeControlAPI."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntry
