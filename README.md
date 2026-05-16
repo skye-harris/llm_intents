@@ -13,6 +13,11 @@ Additional tools for LLM-backed Assist for Home Assistant:
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
 A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 2-hour period.
 
+Additionally, a customisable clone of Home Assistants inbuilt `Assist` tooling API can be enabled and used with your Conversation Agents:
+- Edit the hidden prompt that the Assist API injects into your system prompt, if this is not to your liking, or conflicts with instructions that you have provided in your own prompt.
+- Disable any of the default Assist API tools that you don't want your Conversation Agents to have access to.
+- This is named `Home Control` in the list of tools.
+
 ---
 
 ## Installation
@@ -363,9 +368,22 @@ Returns the day of the week and a formatted date string for a given day, month, 
 
 ---
 
+### 🏡 Home Control API
+
+The Home Control API is a direct clone of Home Assistants inbuilt Assist API, but with some customisation exposed.
+
+The Assist API, much like this and other tool API providers, injects some instructional directives into the system prompt on how to use the tools provided to them.
+In some situations, you may find that these conflict with instructions that you have provided your agent directly via your own system prompt.
+
+The Home Control API exposes Assists hidden prompt as a Jinja2 template that can be freely modified.
+Additionally, the inbuilt Assist tools can be disabled on a per-tool basis, in case there are tools that you do not wish your agent to have access to, but still see the exposed entities related to them.
+
+**As the Home Control API is a direct clone of the Assist API, it is strongly recommended to only use either `Assist` OR `Home Control` in your Conversation Agents, and not both together.**
+
 ## Acknowledgements
 
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+- [@NickM-27](https://github.com/NickM-27) for his contributions both in additions to the integration itself, and providing support and assistance with reported issues
+- [@JonahMMay](https://github.com/JonahMMay) for his early refactor of this project to support UI/config-flow configuration
 
 ---
 

@@ -12,6 +12,7 @@ SEARCH_API_NAME = "Search Services"
 WEATHER_API_NAME = "Weather Forecast"
 MEDIA_API_NAME = "Media Services"
 BASIC_UTILITIES_API_NAME = "Basic Utilities"
+HOME_CONTROL_API_NAME = "Home Control"
 
 # SQLite Cache
 
@@ -169,6 +170,53 @@ CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
+# Home Control constants
+CONF_HOME_CONTROL_ENABLED = "home_control_enabled"
+CONF_HOME_CONTROL_PROMPT_TEMPLATE = "home_control_prompt"
+CONF_HOME_CONTROL_DISABLED_TOOLS = "home_control_disabled_tools"
+CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE = """
+{%- if not exposed_entities %}
+Only if the user wants to control a device, tell them to expose entities to their voice assistant in Home Assistant.
+{%- else %}
+When controlling Home Assistant always call the intent tools.
+Use HassTurnOn to lock and HassTurnOff to unlock a lock.
+When controlling a device, prefer passing just name and domain.
+When controlling an area, prefer passing just area name and domain.
+
+You ARE equipped to answer questions about the current state of the home using the `GetLiveContext` tool.
+This is a primary function. Do not state you lack the functionality if the question requires live data.
+If the user asks about device existence/type (e.g., "Do I have lights in the bedroom?"): Answer from the static context below.
+If the user asks about the CURRENT state, value, or mode (e.g., "Is the lock locked?", "Is the fan on?", "What mode is the thermostat in?", "What is the temperature outside?"):
+    1.  Recognize this requires live data.
+    2.  You MUST call `GetLiveContext`. This tool will provide the needed real-time information (like temperature from the local weather, lock status, etc.).
+    3.  Use the tool's response** to answer the user accurately (e.g., "The temperature outside is [value from tool].").
+For general knowledge questions not about the home: Answer truthfully from internal knowledge.
+
+{% if exposed_entities -%}
+Static Context: An overview of the areas and the devices in this smart home:
+{%- for entity in exposed_entities %}
+  {{- "\n- names: " + entity.names }}
+  {%- for key, value in entity.items() %}
+    {%- if key != 'names' %}
+      {{- "\n  " + key + ": " + value }}
+    {%- endif %}
+  {%- endfor %}
+{%- endfor %}
+{% endif %}
+
+{%- set area_extra = "and all generic commands like 'turn on the lights' should target this area." %}
+{%- if floor and area %}
+    {{- "\nYou are in area " ~ area.name ~ " (floor " ~ floor.name ~ ") " ~ area_extra }}
+{%- elif area %}
+    {{- "\nYou are in area " ~ area.name ~ " " ~ area_extra }}
+{%- else %}
+    {{- "\nWhen a user asks to turn on all devices of a specific type, ask user to specify an area, unless there is only one device of that type." }}
+{%- endif %}
+{%- if not supports_timers %}
+    {{- "\nThis device is not able to start timers." }}
+{%- endif %}
+{%- endif %}
+""".strip()
 
 # Service defaults
 

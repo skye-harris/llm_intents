@@ -18,6 +18,7 @@ from .const import (
     CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_ROUTES_ENABLED,
+    CONF_HOME_CONTROL_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_UNIT_CONVERTER_ENABLED,
@@ -35,6 +36,7 @@ from .const import (
 from .date_info import DateInfoTool
 from .google_places import FindPlacesTool
 from .google_routes import GetRouteTool
+from .home_control import HomeControlAPI
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
 from .unit_converter import UnitConverterTool
@@ -185,11 +187,13 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
     weather_api = WeatherAPI(hass, WEATHER_API_NAME)
     media_api = MediaAPI(hass, MEDIA_API_NAME)
     basic_utilities_api = BasicUtilitiesAPI(hass, BASIC_UTILITIES_API_NAME)
+    home_control_api = HomeControlAPI(hass)
 
     hass.data[DOMAIN]["api"] = search_api
     hass.data[DOMAIN]["weather_api"] = weather_api
     hass.data[DOMAIN]["media_api"] = media_api
     hass.data[DOMAIN]["basic_utilities_api"] = basic_utilities_api
+    hass.data[DOMAIN]["customised_assist"] = home_control_api
     hass.data[DOMAIN]["config"] = config_data.copy()
     hass.data[DOMAIN]["unregister_api"] = []
 
@@ -213,6 +217,11 @@ async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) 
         if basic_utilities_api.get_enabled_tools():
             hass.data[DOMAIN]["unregister_api"].append(
                 llm.async_register_api(hass, basic_utilities_api),
+            )
+
+        if config_data.get(CONF_HOME_CONTROL_ENABLED, False):
+            hass.data[DOMAIN]["unregister_api"].append(
+                llm.async_register_api(hass, home_control_api)
             )
     except Exception:
         _LOGGER.exception("Failed to register LLM API")

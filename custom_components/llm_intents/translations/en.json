@@ -116,6 +116,19 @@
           "unit_converter_enabled": "Enable Unit Converter",
           "date_info_enabled": "Enable Calendar Day Info"
         }
+      },
+      "home_control": {
+        "title": "Configure Home Control API",
+        "description": "Take control of Home Assistants inbuilt **Assist** platform by customising the hidden prompt and disabling any unwanted tools. You must disable the **Assist** tools from your Conversation Agents when utilising this.",
+        "data": {
+          "home_control_prompt": "System Prompt",
+          "home_control_enabled": "Enable Home Control API",
+          "home_control_disabled_tools": "Disabled Tools"
+        },
+        "data_description": {
+          "home_control_prompt": "Override the hidden tooling prompt that is injected by the Assist API. This can be useful if this contains conflicts with your Conversation Agents prompt",
+          "home_control_disabled_tools": "Disable any of the standard Assist platform tools that you do not wish your model to have access to."
+        }
       }
     },
     "abort": {
@@ -130,7 +143,8 @@
         "menu_options": {
           "configure": "Configure Search Services",
           "configure_weather": "Configure Weather Forecast",
-          "configure_basic_utilities": "Configure Basic Utilities"
+          "configure_basic_utilities": "Configure Basic Utilities",
+          "home_control": "Configure Home Control API"
         }
       },
       "configure": {
@@ -259,6 +273,19 @@
           "calculator_enabled": "Enable Calculator",
           "unit_converter_enabled": "Enable Unit Converter",
           "date_info_enabled": "Enable Calendar Day Info"
+        }
+      },
+      "home_control": {
+        "title": "Configure Home Control API",
+        "description": "Take control of Home Assistants inbuilt **Assist** platform by customising the hidden prompt and disabling any unwanted tools. You must disable the **Assist** tools from your Conversation Agents when utilising this.",
+        "data": {
+          "home_control_prompt": "Tooling Prompt",
+          "home_control_enabled": "Enable Home Control API",
+          "home_control_disabled_tools": "Disabled Tools"
+        },
+        "data_description": {
+          "home_control_prompt": "Override the hidden tooling prompt that is injected by the Assist API. This can be useful if this contains conflicts with your Conversation Agents prompt",
+          "home_control_disabled_tools": "Disable any of the standard Assist platform tools that you do not wish your model to have access to."
         }
       }
     }
