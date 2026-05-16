@@ -88,7 +88,7 @@ class HomeControlAPI(AssistAPI):
             .strip()
         )
 
-    async def _async_get_tools(
+    def _async_get_tools(
         self, llm_context: LLMContext, exposed_entities: dict | None
     ) -> list[Tool]:
         """Return a list of tools, filtered per our config settings."""
@@ -96,7 +96,7 @@ class HomeControlAPI(AssistAPI):
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}
 
-        tools = await super()._async_get_tools(llm_context, exposed_entities)
+        tools = super()._async_get_tools(llm_context, exposed_entities)
 
         # Filter by the disabled tools rule
         return [
