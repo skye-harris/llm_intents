@@ -19,10 +19,9 @@ from zoneinfo import available_timezones
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.weather import WeatherEntityFeature
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import llm
 from homeassistant.helpers.llm import LLMContext
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -305,7 +304,9 @@ async def get_brave_schema(
     return vol.Schema(schema)
 
 
-async def get_searxng_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_searxng_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
@@ -329,7 +330,9 @@ async def get_searxng_schema(hass: HomeAssistant, args: dict | None = None) -> v
     )
 
 
-async def get_google_places_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_google_places_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
         {
@@ -398,7 +401,9 @@ async def get_google_places_schema(hass: HomeAssistant, args: dict | None = None
     )
 
 
-async def get_youtube_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_youtube_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
         {
@@ -410,7 +415,9 @@ async def get_youtube_schema(hass: HomeAssistant, args: dict | None = None) -> v
     )
 
 
-async def get_wikipedia_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_wikipedia_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
         {
@@ -430,7 +437,9 @@ async def get_wikipedia_schema(hass: HomeAssistant, args: dict | None = None) ->
     )
 
 
-async def get_basic_utilities_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_basic_utilities_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
         {
@@ -450,7 +459,9 @@ async def get_basic_utilities_schema(hass: HomeAssistant, args: dict | None = No
     )
 
 
-async def get_weather_schema(hass: HomeAssistant, args: dict | None = None) -> vol.Schema:
+async def get_weather_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = []
@@ -515,8 +526,8 @@ async def get_brave_llm_schema(
     return await get_brave_schema(hass, is_llm_context_search=True)
 
 
-async def enumerate_tools(hass) -> list[llm.Tool]:
-    """Enumerate available tools for the Assist API"""
+async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
+    """Enumerate available tools for the Assist API."""
     tools = []
     apis = llm.async_get_apis(hass)
     for api in apis:
@@ -525,13 +536,14 @@ async def enumerate_tools(hass) -> list[llm.Tool]:
             api_instance = await api.async_get_api_instance(
                 LLMContext(DOMAIN, None, None, None, None)
             )
-            for tool in api_instance.tools:
-                tools.append(tool)
+            tools.extend(api_instance.tools)
 
     return tools
 
 
-async def get_home_control_schema(hass, args: dict[str, Any]) -> vol.Schema:
+async def get_home_control_schema(
+    hass: HomeAssistant, args: dict[str, Any]
+) -> vol.Schema:
     """Return the static schema for Home Control configuration."""
     return vol.Schema(
         {

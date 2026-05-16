@@ -1,7 +1,7 @@
-import logging
-import voluptuous as vol
+"""Subclass of AssistAPI with additional customisation."""
 
-from homeassistant.util import yaml
+import logging
+
 from homeassistant.components.intent import async_device_supports_timers
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import (
@@ -17,8 +17,7 @@ from homeassistant.helpers import (
     llm,
     template,
 )
-from homeassistant.helpers.llm import AssistAPI, LLMContext, Tool, _get_exposed_entities, NO_ENTITIES_PROMPT, ToolInput
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.llm import AssistAPI, LLMContext, Tool
 
 from .const import (
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
@@ -30,8 +29,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class CustomAssistAPI(AssistAPI):
-    """Subclass and modify Assist"""
+class HomeControlAPI(AssistAPI):
+    """Subclass and modify Assist."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Init the class."""
@@ -43,6 +42,7 @@ class CustomAssistAPI(AssistAPI):
     def _async_get_api_prompt(
         self, llm_context: llm.LLMContext, exposed_entities: dict | None
     ) -> str:
+        """Build the prompt with a jinja template."""
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}
@@ -88,20 +88,19 @@ class CustomAssistAPI(AssistAPI):
             .strip()
         )
 
-    def _async_get_tools(
+    async def _async_get_tools(
         self, llm_context: LLMContext, exposed_entities: dict | None
     ) -> list[Tool]:
+        """Return a list of tools, filtered per our config settings."""
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
         config_data = {**config_data, **entry.options}
 
-        tools = super()._async_get_tools(llm_context, exposed_entities)
+        tools = await super()._async_get_tools(llm_context, exposed_entities)
 
         # Filter by the disabled tools rule
-        tools = [
+        return [
             tool
             for tool in tools
             if tool.name not in config_data.get(CONF_HOME_CONTROL_DISABLED_TOOLS, [])
         ]
-
-        return tools
