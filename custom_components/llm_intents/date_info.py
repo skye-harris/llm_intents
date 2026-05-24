@@ -1,7 +1,7 @@
 """Date information tool."""
 
 import logging
-from datetime import date
+from datetime import date, datetime
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -37,7 +37,7 @@ class DateInfoTool(BaseTool):
                 "year",
                 description="The year (optional, defaults to the current year).",
             ): int,
-        }
+        },
     )
 
     async def async_call(
@@ -49,7 +49,7 @@ class DateInfoTool(BaseTool):
         """Return day-of-week and formatted date for the given date."""
         day = tool_input.tool_args["day"]
         month = tool_input.tool_args["month"]
-        year = tool_input.tool_args.get("year") or date.now().astimezone().year
+        year = tool_input.tool_args.get("year") or datetime.now().astimezone().year
 
         _LOGGER.debug("DateInfo: %s/%s/%s", month, day, year)
 

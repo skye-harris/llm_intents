@@ -5,6 +5,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Web Search** powered by your choice of _Brave_ or _SearXNG_
 * **Web Fetch** — extracts and cleans text content from specific URLs
 * **Location Search** powered by Google Places
+* **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
 * **Weather Forecast**
 * **YouTube Search and Playback**
@@ -12,6 +13,11 @@ Additional tools for LLM-backed Assist for Home Assistant:
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
 A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 2-hour period.
+
+Additionally, a customisable clone of Home Assistants inbuilt `Assist` tooling API can be enabled and used with your Conversation Agents:
+- Edit the hidden prompt that the Assist API injects into your system prompt, if this is not to your liking, or conflicts with instructions that you have provided in your own prompt.
+- Disable any of the default Assist API tools that you don't want your Conversation Agents to have access to.
+- This is named `Home Control` in the list of tools.
 
 ---
 
@@ -203,6 +209,48 @@ Search results include the location name, address, rating score, current open st
 
 ---
 
+### 🗺️ Google Routes
+
+Computes travel distance and duration from a configured home address to any destination, using the Google Routes API. The duration includes live traffic for driving and motorcycle/scooter trips, making it suitable for questions like:
+
+* `"how far of a drive is it to the airport"`
+* `"how long would it take to drive to X"`
+* `"when should I leave to get to X by 6pm"` — the LLM uses the returned duration to work backwards from the target arrival time.
+
+When a future departure time is supplied, the API returns predicted traffic for that time window rather than current conditions.
+
+#### Requirements
+
+* Requires a [Google API key](https://console.cloud.google.com/apis/credentials) with **both** the **Routes API** and the **Places API (New)** enabled. The Places API is used to improve destination accuracy; you do not need to enable the Google Places tool in this integration.
+* The same Google API key can be shared with the Google Places and YouTube tools if those are configured.
+
+#### Configuration Steps
+
+1. Enable "Google Routes" during setup.
+2. Enter your Google API key (the same key used for Google Places / YouTube if configured).
+3. Enter your home address — this is used as the starting point for all route lookups.
+4. Choose a default travel mode — used whenever the LLM doesn't specify one (e.g. select `WALK` if you don't drive).
+
+#### LLM-provided arguments
+
+| Argument         | Required | Default            | Description                                                            |
+|------------------|----------|--------------------|------------------------------------------------------------------------|
+| `destination`    | ✅        | —                  | Destination address, place name, or business name in the user's words. |
+| `departure_time` | ❌        | `now`              | ISO 8601 departure time. Omit for an immediate departure.              |
+| `mode`           | ❌        | configured default | One of `DRIVE`, `WALK`, `BICYCLE`, `TRANSIT`, `TWO_WHEELER`.           |
+
+#### Options
+
+| Setting                | Required | Default | Description                                                             |
+|------------------------|----------|---------|-------------------------------------------------------------------------|
+| `API Key`              | ✅        | —       | Google API key with both Routes API and Places API (New) enabled        |
+| `Home Address`         | ✅        | —       | Starting point for route calculations (e.g. `123 Main St, Springfield`) |
+| `Default Travel Mode`  | ✅        | `DRIVE` | Travel mode used when the LLM doesn't specify one                       |
+
+Distance is reported in miles or kilometres based on your Home Assistant unit system.
+
+---
+
 ### 📚 Wikipedia
 
 Looks up Wikipedia articles and returns summaries of the top results.
@@ -348,9 +396,22 @@ Returns the day of the week and a formatted date string for a given day, month, 
 
 ---
 
+### 🏡 Home Control API
+
+The Home Control API is a direct clone of Home Assistants inbuilt Assist API, but with some customisation exposed.
+
+The Assist API, much like this and other tool API providers, injects some instructional directives into the system prompt on how to use the tools provided to them.
+In some situations, you may find that these conflict with instructions that you have provided your agent directly via your own system prompt.
+
+The Home Control API exposes Assists hidden prompt as a Jinja2 template that can be freely modified.
+Additionally, the inbuilt Assist tools can be disabled on a per-tool basis, in case there are tools that you do not wish your agent to have access to, but still see the exposed entities related to them.
+
+**As the Home Control API is a direct clone of the Assist API, it is strongly recommended to only use either `Assist` OR `Home Control` in your Conversation Agents, and not both together.**
+
 ## Acknowledgements
 
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+- [@NickM-27](https://github.com/NickM-27) for his contributions both in additions to the integration itself, and providing support and assistance with reported issues
+- [@JonahMMay](https://github.com/JonahMMay) for his early refactor of this project to support UI/config-flow configuration
 
 ---
 

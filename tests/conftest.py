@@ -2,9 +2,10 @@
 
 from unittest.mock import AsyncMock, MagicMock
 
+import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, StateMachine
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
 
 from custom_components.llm_intents.const import (
@@ -18,15 +19,16 @@ from custom_components.llm_intents.const import (
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass() -> HomeAssistant:
     """Mock HomeAssistant instance."""
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = AsyncMock()
+    hass.data = {DOMAIN: {"config": {}}}
     return hass
 
 
 @pytest.fixture
-def mock_config_entry_brave():
+def mock_config_entry_brave() -> ConfigEntry:
     """Mock ConfigEntry for Brave Search."""
     entry = MagicMock(spec=ConfigEntry)
     entry.domain = DOMAIN
@@ -40,7 +42,7 @@ def mock_config_entry_brave():
 
 
 @pytest.fixture
-def mock_config_entry_google_places():
+def mock_config_entry_google_places() -> ConfigEntry:
     """Mock ConfigEntry for Google Places."""
     entry = MagicMock(spec=ConfigEntry)
     entry.domain = DOMAIN
@@ -54,7 +56,7 @@ def mock_config_entry_google_places():
 
 
 @pytest.fixture
-def mock_config_entry_wikipedia():
+def mock_config_entry_wikipedia() -> ConfigEntry:
     """Mock ConfigEntry for Wikipedia."""
     entry = MagicMock(spec=ConfigEntry)
     entry.domain = DOMAIN
@@ -67,7 +69,7 @@ def mock_config_entry_wikipedia():
 
 
 @pytest.fixture
-def mock_intent_obj():
+def mock_intent_obj() -> intent.Intent:
     """Mock Intent object."""
     intent_obj = MagicMock(spec=intent.Intent)
     intent_obj.slots = {"query": {"value": "test query"}}
@@ -83,10 +85,10 @@ def mock_intent_obj():
 
 
 @pytest.fixture
-def mock_aiohttp_session():
+def mock_aiohttp_session() -> tuple[aiohttp.ClientSession, aiohttp.ClientResponse]:
     """Mock aiohttp ClientSession."""
-    session = AsyncMock()
-    response = AsyncMock()
+    session = AsyncMock(spec=aiohttp.ClientSession)
+    response = AsyncMock(spec=aiohttp.ClientResponse)
     response.raise_for_status = AsyncMock()
     response.json = AsyncMock()
     session.get.return_value.__aenter__.return_value = response
@@ -95,7 +97,7 @@ def mock_aiohttp_session():
 
 
 @pytest.fixture
-def brave_search_results():
+def brave_search_results() -> dict:
     """Sample Brave search results."""
     return {
         "web": {
@@ -118,7 +120,7 @@ def brave_search_results():
 
 
 @pytest.fixture
-def google_places_results():
+def google_places_results() -> dict:
     """Sample Google Places results."""
     return {
         "places": [
@@ -137,7 +139,7 @@ def google_places_results():
 
 
 @pytest.fixture
-def wikipedia_search_results():
+def wikipedia_search_results() -> dict:
     """Sample Wikipedia search results."""
     return {
         "query": {
@@ -150,7 +152,7 @@ def wikipedia_search_results():
 
 
 @pytest.fixture
-def wikipedia_summary_result():
+def wikipedia_summary_result() -> dict:
     """Sample Wikipedia summary result."""
     return {
         "extract": "This is a test summary of the Wikipedia article.",

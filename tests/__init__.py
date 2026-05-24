@@ -1,5 +1,6 @@
 """Tests for LLM Intents Custom Integration."""
 
+from contextlib import AbstractContextManager
 from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
@@ -15,7 +16,7 @@ async def async_init_integration(
     await hass.async_block_till_done()
 
 
-def patch_async_setup_entry(return_value=True):
+def patch_async_setup_entry(return_value: bool = True) -> AbstractContextManager:  # noqa: FBT002
     """Patch async setup entry to return True."""
     return patch(
         "custom_components.llm_intents.async_setup_entry",

@@ -1,40 +1,26 @@
 # The contents of this file is based on https://github.com/home-assistant/core/blob/dev/pyproject.toml
 
 target-version = "py312"
-exclude = ["./tests"]
+exclude = ["./tests/_test*"]
 
 [lint]
 select = ["ALL"]
 
 ignore = [
     "ARG001", # "unused-argument"
-    "ARG004",
     "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
-    "D203",   # no-blank-line-before-class (incompatible with formatter)
-    "D212",   # multi-line-summary-first-line (incompatible with formatter)
+    "D203", # no-blank-line-before-class (incompatible with formatter)
+    "D212", # multi-line-summary-first-line (incompatible with formatter)
     "COM812", # incompatible with formatter
-    "ISC001", # incompatible with formatter
 
     # Temporary exceptions for Ruff implementation
     "PERF401", # manual-list-comprehension
     "EXE002",
     "PLR0912",
-    "DTZ005",
-    "PLR2004",
-    "E722",
-    "F821",
     "E501",
     "PLR0915",
-    "FBT002",
-    "PLR0913",
-    "ANN001",
-    "SIM102",
-    "S105",
     "ARG002",
     "BLE001",
-    "PERF402",
-    "S101",
-    "ANN201",
     "TRY300",
     "FBT001",
     "PLR0911", # too many return statements
@@ -50,3 +36,10 @@ keep-runtime-typing = true
 
 [lint.mccabe]
 max-complexity = 25
+
+[lint.per-file-ignores]
+"**/{tests,docs,tools}/*" = [
+    "S101", # Use of assert
+    "PLR2004", # Magic numbers
+    "SLF001", # Private member accessed
+]
