@@ -3,6 +3,7 @@
 import logging
 import re
 from html.parser import HTMLParser
+from http import HTTPStatus
 from typing import ClassVar
 
 import voluptuous as vol
@@ -156,7 +157,7 @@ class WebFetchTool(BaseTool):
             }
 
             async with session.get(url, headers=headers) as resp:
-                if resp.status != 200:
+                if resp.status != HTTPStatus.OK:
                     _LOGGER.error(
                         "Web fetch received HTTP %s for URL: %s", resp.status, url
                     )

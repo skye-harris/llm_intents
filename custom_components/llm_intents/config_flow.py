@@ -140,7 +140,9 @@ class NullableNumberSelector(NumberSelector):
         return value
 
 
-def get_step_user_data_schema(hass) -> vol.Schema:
+def get_step_user_data_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
         vol.Optional(
@@ -174,10 +176,9 @@ def expand_config_for_schema(config: dict) -> dict:
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
-    result[CONF_WEB_FETCH_MAX_CONTENT_LENGTH] = (
-        config.get(CONF_WEB_FETCH_MAX_CONTENT_LENGTH)
-        or SERVICE_DEFAULTS.get(CONF_WEB_FETCH_MAX_CONTENT_LENGTH)
-    )
+    result[CONF_WEB_FETCH_MAX_CONTENT_LENGTH] = config.get(
+        CONF_WEB_FETCH_MAX_CONTENT_LENGTH,
+    ) or SERVICE_DEFAULTS.get(CONF_WEB_FETCH_MAX_CONTENT_LENGTH)
     return result
 
 
@@ -321,7 +322,8 @@ async def get_brave_schema(
 
 
 async def get_searxng_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
@@ -347,7 +349,8 @@ async def get_searxng_schema(
 
 
 async def get_google_places_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
@@ -418,7 +421,8 @@ async def get_google_places_schema(
 
 
 async def get_google_routes_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Google Routes service configuration."""
     return vol.Schema(
@@ -445,12 +449,13 @@ async def get_google_routes_schema(
                     ),
                 ),
             ),
-        }
+        },
     )
 
 
 async def get_youtube_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
@@ -464,7 +469,8 @@ async def get_youtube_schema(
 
 
 async def get_wikipedia_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
@@ -485,7 +491,10 @@ async def get_wikipedia_schema(
     )
 
 
-async def get_web_fetch_schema(hass) -> vol.Schema:
+async def get_web_fetch_schema(
+    hass: HomeAssistant,
+    args: dict | None = None,
+) -> vol.Schema:
     """Return the static schema for Web Fetch service configuration."""
     return vol.Schema(
         {
@@ -499,14 +508,15 @@ async def get_web_fetch_schema(hass) -> vol.Schema:
                     step=500,
                     mode=NumberSelectorMode.BOX,
                     unit_of_measurement="Characters",
-                )
+                ),
             ),
-        }
+        },
     )
 
 
 async def get_basic_utilities_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
@@ -528,7 +538,8 @@ async def get_basic_utilities_schema(
 
 
 async def get_weather_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
@@ -602,7 +613,7 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
         # For simplicity lets just enumerate directly from assist, as otherwise our own internal filtering may get in the way of this
         if api.name == "Assist":
             api_instance = await api.async_get_api_instance(
-                LLMContext(DOMAIN, None, None, None, None)
+                LLMContext(DOMAIN, None, None, None, None),
             )
             tools.extend(api_instance.tools)
 
@@ -610,7 +621,8 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
 
 
 async def get_home_control_schema(
-    hass: HomeAssistant, args: dict[str, Any]
+    hass: HomeAssistant,
+    args: dict[str, Any],
 ) -> vol.Schema:
     """Return the static schema for Home Control configuration."""
     return vol.Schema(
@@ -628,9 +640,9 @@ async def get_home_control_schema(
                     options=[tool.name for tool in args.get("tools", [])],
                     multiple=True,
                     mode=SelectSelectorMode.DROPDOWN,
-                )
+                ),
             ),
-        }
+        },
     )
 
 
@@ -812,7 +824,8 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_google_routes(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Google Routes configuration step."""
         return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
@@ -832,7 +845,8 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
 
     async def async_step_web_fetch(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Web Fetch configuration step."""
         return await self.handle_step(STEP_WEB_FETCH, user_input)
@@ -1075,7 +1089,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_google_routes(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Google Routes configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
@@ -1095,7 +1110,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
 
     async def async_step_web_fetch(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Web Fetch configuration step in options flow."""
         return await self.handle_step(STEP_WEB_FETCH, user_input)
@@ -1172,9 +1188,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_WEATHER, user_input)
 
     async def async_step_home_control(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Home Control (override Assist) configuration step in options flow."""
         return await self.handle_step(
-            STEP_HOME_CONTROL, user_input, {"tools": await enumerate_tools(self.hass)}
+            STEP_HOME_CONTROL,
+            user_input,
+            {"tools": await enumerate_tools(self.hass)},
         )
