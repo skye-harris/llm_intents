@@ -1,0 +1,254 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Настройка Tools for Assist",
+        "description": "Выберите сервисы, которые вы хотите включить.",
+        "data": {
+          "search_provider": "Поисковый провайдер",
+          "google_places_enabled": "Включить Google Places",
+          "youtube_enabled": "Включить поиск по YouTube",
+          "wikipedia_enabled": "Включить поиск по Wikipedia",
+          "web_fetch_enabled": "Включить парсинг веб-страниц",
+          "weather_enabled": "Включить прогноз погоды",
+          "basic_utilities_enabled": "Включить базовые утилиты"
+        }
+      },
+      "brave": {
+        "title": "Настройка Brave Web Search",
+        "description": "Настройка параметров Brave Web Search API.",
+        "data": {
+          "brave_api_key": "Ключ API",
+          "brave_num_results": "Количество результатов",
+          "brave_country_code": "Код страны (необязательно)",
+          "brave_latitude": "Широта (необязательно)",
+          "brave_longitude": "Долгота (необязательно)",
+          "brave_timezone": "Часовой пояс (необязательно)",
+          "brave_post_code": "Почтовый индекс (необязательно)",
+          "brave_max_snippets_per_url": "Макс. фрагментов на результат"
+        }
+      },
+      "brave_llm": {
+        "title": "Настройка Brave LLM Context Search",
+        "description": "Настройка параметров Brave LLM Context API.",
+        "data": {
+          "brave_api_key": "Ключ API",
+          "brave_num_results": "Количество результатов",
+          "brave_country_code": "Код страны (необязательно)",
+          "brave_latitude": "Широта (необязательно)",
+          "brave_longitude": "Долгота (необязательно)",
+          "brave_timezone": "Часовой пояс (необязательно)",
+          "brave_post_code": "Почтовый индекс (необязательно)",
+          "brave_max_snippets_per_url": "Макс. фрагментов на результат",
+          "brave_max_tokens_per_url": "Макс. токенов на результат",
+          "brave_context_threshold_mode": "Режим порогового значения контекста"
+        }
+      },
+      "searxng": {
+        "title": "Настройка SearXNG Web Search",
+        "description": "Настройка параметров SearXNG Web Search API.",
+        "data": {
+          "searxng_server_url": "URL сервера",
+          "searxng_num_results": "Количество результатов"
+        },
+        "data_description": {
+          "searxng_server_url": "Протокол, хост и порт, например: http://localhost:8080"
+        }
+      },
+      "google_places": {
+        "title": "Настройка Google Places",
+        "description": "Настройка параметров Google Places API.",
+        "data": {
+          "google_api_key": "Ключ Google API",
+          "google_places_rank_preference": "Предпочтение ранжированию",
+          "google_places_num_results": "Количество результатов",
+          "google_places_latitude": "Широта смещения (необязательно)",
+          "google_places_longitude": "Долгота смещения (необязательно)",
+          "google_places_radius": "Радиус смещения (км)"
+        }
+      },
+      "youtube": {
+        "title": "Настройка поиска по YouTube",
+        "description": "Настройка поиска по YouTube. Использует тот же ключ Google API, что и Google Places.",
+        "data": {
+          "google_api_key": "Ключ Google API"
+        }
+      },
+      "wikipedia": {
+        "title": "Настройка Wikipedia",
+        "description": "Настройка поиска по Wikipedia.",
+        "data": {
+          "wikipedia_num_results": "Количество результатов"
+        }
+      },
+      "web_fetch": {
+        "title": "Настройка Web Fetch",
+        "description": "Настройка параметров парсинга веб-страниц.",
+        "data": {
+          "web_fetch_max_content_length": "Максимальная длина контента"
+        }
+      },
+      "weather": {
+        "title": "Настройка погоды",
+        "description": "Настройка источников погоды.",
+        "data": {
+          "weather_daily_entity": "Сущность дневного прогноза",
+          "weather_hourly_entity": "Сущность почасового прогноза",
+          "current_temperature_entity": "Датчик текущей температуры"
+        },
+        "data_description": {
+          "weather_daily_entity": "Сущность погоды для получения данных дневного прогноза",
+          "weather_hourly_entity": "Сущность погоды для почасового прогноза (необязательно)",
+          "current_temperature_entity": "Датчик для текущей температуры (необязательно)"
+        }
+      },
+      "basic_utilities": {
+        "title": "Настройка базовых утилит",
+        "description": "Выберите, какие базовые утилиты включить.",
+        "data": {
+          "calculator_enabled": "Включить калькулятор",
+          "unit_converter_enabled": "Включить конвертер единиц",
+          "date_info_enabled": "Включить информацию о дате"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Допускается только один экземпляр Tools for Assist"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Опции Tools for Assist",
+        "description": "Выберите, что вы хотите сделать:",
+        "menu_options": {
+          "configure": "Настроить поисковые сервисы",
+          "configure_weather": "Настроить прогноз погоды",
+          "configure_basic_utilities": "Настроить базовые утилиты"
+        }
+      },
+      "configure": {
+        "title": "Настройка поисковых сервисов",
+        "description": "Выберите сервисы, которые вы хотите использовать.",
+        "data": {
+          "search_provider": "Поисковый провайдер",
+          "google_places_enabled": "Включить Google Places",
+          "youtube_enabled": "Включить поиск по YouTube",
+          "wikipedia_enabled": "Включить поиск по Wikipedia",
+          "web_fetch_enabled": "Включить парсинг веб-страниц"
+        }
+      },
+      "configure_weather": {
+        "title": "Настройка прогноза погоды",
+        "description": "Выберите сервисы, которые вы хотите использовать.",
+        "data": {
+          "weather_enabled": "Включить прогноз погоды"
+        }
+      },
+      "brave": {
+        "title": "Настройка Brave Web Search",
+        "description": "Настройка параметров Brave Web Search API.",
+        "data": {
+          "brave_api_key": "Ключ API",
+          "brave_num_results": "Количество результатов",
+          "brave_country_code": "Код страны (необязательно)",
+          "brave_latitude": "Широта (необязательно)",
+          "brave_longitude": "Долгота (необязательно)",
+          "brave_timezone": "Часовой пояс (необязательно)",
+          "brave_post_code": "Почтовый индекс (необязательно)",
+          "brave_max_snippets_per_url": "Макс. фрагментов на результат"
+        }
+      },
+      "brave_llm": {
+        "title": "Настройка Brave LLM Context Search",
+        "description": "Настройка параметров Brave LLM Context API.",
+        "data": {
+          "brave_api_key": "Ключ API",
+          "brave_num_results": "Количество результатов",
+          "brave_country_code": "Код страны (необязательно)",
+          "brave_latitude": "Широта (необязательно)",
+          "brave_longitude": "Долгота (необязательно)",
+          "brave_timezone": "Часовой пояс (необязательно)",
+          "brave_post_code": "Почтовый индекс (необязательно)",
+          "brave_max_snippets_per_url": "Макс. фрагментов на результат",
+          "brave_max_tokens_per_url": "Макс. токенов на результат",
+          "brave_context_threshold_mode": "Режим порогового значения контекста"
+        }
+      },
+      "searxng": {
+        "title": "Настройка SearXNG Web Search",
+        "description": "Настройка параметров SearXNG Web Search API.",
+        "data": {
+          "searxng_server_url": "URL сервера",
+          "searxng_num_results": "Количество результатов"
+        },
+        "data_description": {
+          "searxng_server_url": "Протокол, хост и порт, например: http://localhost:8080"
+        }
+      },
+      "google_places": {
+        "title": "Настройка Google Places",
+        "description": "Настройка параметров Google Places API.",
+        "data": {
+          "google_api_key": "Ключ Google API",
+          "google_places_rank_preference": "Предпочтение ранжированию",
+          "google_places_num_results": "Количество результатов",
+          "google_places_latitude": "Широта смещения (необязательно)",
+          "google_places_longitude": "Долгота смещения (необязательно)",
+          "google_places_radius": "Радиус смещения (км)"
+        }
+      },
+      "youtube": {
+        "title": "Настройка поиска по YouTube",
+        "description": "Настройка поиска по YouTube. Использует тот же ключ Google API, что и Google Places.",
+        "data": {
+          "google_api_key": "Ключ Google API"
+        }
+      },
+      "wikipedia": {
+        "title": "Настройка Wikipedia",
+        "description": "Настройка поиска по Wikipedia.",
+        "data": {
+          "wikipedia_num_results": "Количество результатов"
+        }
+      },
+      "web_fetch": {
+        "title": "Настройка парсинга веб-страниц",
+        "description": "Настройка параметров парсинга веб-страниц.",
+        "data": {
+          "web_fetch_max_content_length": "Максимальная длина контента"
+        }
+      },
+      "weather": {
+        "title": "Настройка погоды",
+        "description": "Настройка источников погоды.",
+        "data": {
+          "weather_daily_entity": "Сущность дневного прогноза",
+          "weather_hourly_entity": "Сущность почасового прогноза",
+          "current_temperature_entity": "Датчик текущей температуры"
+        },
+        "data_description": {
+          "weather_daily_entity": "Сущность погоды для получения данных дневного прогноза",
+          "weather_hourly_entity": "Сущность погоды для почасового прогноза (необязательно)",
+          "current_temperature_entity": "Датчик для текущей температуры (необязательно)"
+        }
+      },
+      "configure_basic_utilities": {
+        "title": "Настройка базовых утилит",
+        "description": "Включение или отключение базовых утилит.",
+        "data": {
+          "basic_utilities_enabled": "Включить базовые утилиты"
+        }
+      },
+      "basic_utilities": {
+        "title": "Настройка базовых утилит",
+        "description": "Выберите, какие базовые утилиты включить.",
+        "data": {
+          "calculator_enabled": "Включить калькулятор",
+          "unit_converter_enabled": "Включить конвертер единиц",
+          "date_info_enabled": "Включить информацию о дате"
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 """Test configuration for LLM Intents integration."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
@@ -158,3 +158,21 @@ def wikipedia_summary_result() -> dict:
         "extract": "This is a test summary of the Wikipedia article.",
         "title": "Test Article",
     }
+
+
+@pytest.fixture(autouse=True)
+def mock_sqlite_cache() -> None:
+    """Default: patch SQLiteCache so we don't create a real DB  file."""
+    with (
+        patch(
+            "custom_components.llm_intents.web_fetch.SQLiteCache._init_db",
+        ),
+        patch(
+            "custom_components.llm_intents.web_fetch.SQLiteCache.set",
+        ),
+        patch(
+            "custom_components.llm_intents.web_fetch.SQLiteCache.get",
+            return_value=None,
+        ),
+    ):
+        yield

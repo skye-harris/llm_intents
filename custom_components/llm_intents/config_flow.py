@@ -81,6 +81,8 @@ from .const import (
     CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
+    CONF_WEB_FETCH_ENABLED,
+    CONF_WEB_FETCH_MAX_CONTENT_LENGTH,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
     CONF_YOUTUBE_ENABLED,
@@ -93,7 +95,10 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:  # pragma: no cover
+    from collections.abc import Callable
+
     from homeassistant.config_entries import ConfigEntry, OptionsFlow
+    from homeassistant.data_entry_flow import FlowResult
 
 # Individual steps
 STEP_INIT = "init"
@@ -105,6 +110,7 @@ STEP_GOOGLE_PLACES = "google_places"
 STEP_GOOGLE_ROUTES = "google_routes"
 STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
+STEP_WEB_FETCH = "web_fetch"
 STEP_WEATHER = "weather"
 STEP_BASIC_UTILITIES = "basic_utilities"
 STEP_HOME_CONTROL = "home_control"
@@ -114,10 +120,9 @@ STEP_CONFIGURE_BASIC_UTILITIES = "configure_basic_utilities"
 
 
 class NullableNumberSelector(NumberSelector):
-    """NumberSelector that allows for empty values."""
+    """Number selector that accepts None values for optional numeric fields."""
 
     def __call__(self, data: Any) -> float | None:
-        """Perform our validation."""
         # Handle for empty values
         if data == "" or data is None:
             return None
@@ -125,17 +130,19 @@ class NullableNumberSelector(NumberSelector):
         value: float = vol.Coerce(float)(data)
 
         if "min" in self.config and value < self.config["min"]:
-            error_msg = f"Value {value} is too small"
-            raise vol.Invalid(error_msg)
+            msg = f"value {value} is too small"
+            raise vol.Invalid(msg)
 
         if "max" in self.config and value > self.config["max"]:
-            error_msg = f"Value {value} is too large"
-            raise vol.Invalid(error_msg)
+            msg = f"value {value} is too large"
+            raise vol.Invalid(msg)
 
         return value
 
 
-def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
+def get_step_user_data_schema(
+    hass: HomeAssistant, args: dict | None = None
+) -> vol.Schema:
     """Generate a static schema for the main menu to select services."""
     schema = {
         vol.Optional(
@@ -150,6 +157,7 @@ def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
         vol.Optional(CONF_GOOGLE_ROUTES_ENABLED, default=False): bool,
         vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
+        vol.Optional(CONF_WEB_FETCH_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
         vol.Optional(CONF_BASIC_UTILITIES_ENABLED, default=False): bool,
         vol.Optional(CONF_HOME_CONTROL_ENABLED, default=False): bool,
@@ -168,6 +176,9 @@ def expand_config_for_schema(config: dict) -> dict:
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
+    result[CONF_WEB_FETCH_MAX_CONTENT_LENGTH] = config.get(
+        CONF_WEB_FETCH_MAX_CONTENT_LENGTH,
+    ) or SERVICE_DEFAULTS.get(CONF_WEB_FETCH_MAX_CONTENT_LENGTH)
     return result
 
 
@@ -311,7 +322,8 @@ async def get_brave_schema(
 
 
 async def get_searxng_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
@@ -337,7 +349,8 @@ async def get_searxng_schema(
 
 
 async def get_google_places_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
@@ -408,7 +421,8 @@ async def get_google_places_schema(
 
 
 async def get_google_routes_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Google Routes service configuration."""
     return vol.Schema(
@@ -435,12 +449,13 @@ async def get_google_routes_schema(
                     ),
                 ),
             ),
-        }
+        },
     )
 
 
 async def get_youtube_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
@@ -454,7 +469,8 @@ async def get_youtube_schema(
 
 
 async def get_wikipedia_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
@@ -475,8 +491,32 @@ async def get_wikipedia_schema(
     )
 
 
+async def get_web_fetch_schema(
+    hass: HomeAssistant,
+    args: dict | None = None,
+) -> vol.Schema:
+    """Return the static schema for Web Fetch service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_WEB_FETCH_MAX_CONTENT_LENGTH,
+                default=SERVICE_DEFAULTS.get(CONF_WEB_FETCH_MAX_CONTENT_LENGTH),
+            ): NullableNumberSelector(
+                NumberSelectorConfig(
+                    min=1000,
+                    max=50000,
+                    step=500,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Characters",
+                ),
+            ),
+        },
+    )
+
+
 async def get_basic_utilities_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
@@ -498,7 +538,8 @@ async def get_basic_utilities_schema(
 
 
 async def get_weather_schema(
-    hass: HomeAssistant, args: dict | None = None
+    hass: HomeAssistant,
+    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
@@ -572,7 +613,7 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
         # For simplicity lets just enumerate directly from assist, as otherwise our own internal filtering may get in the way of this
         if api.name == "Assist":
             api_instance = await api.async_get_api_instance(
-                LLMContext(DOMAIN, None, None, None, None)
+                LLMContext(DOMAIN, None, None, None, None),
             )
             tools.extend(api_instance.tools)
 
@@ -580,7 +621,8 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
 
 
 async def get_home_control_schema(
-    hass: HomeAssistant, args: dict[str, Any]
+    hass: HomeAssistant,
+    args: dict[str, Any],
 ) -> vol.Schema:
     """Return the static schema for Home Control configuration."""
     return vol.Schema(
@@ -598,9 +640,9 @@ async def get_home_control_schema(
                     options=[tool.name for tool in args.get("tools", [])],
                     multiple=True,
                     mode=SelectSelectorMode.DROPDOWN,
-                )
+                ),
             ),
-        }
+        },
     )
 
 
@@ -622,6 +664,7 @@ SEARCH_STEP_ORDER = {
     STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
+    STEP_WEB_FETCH: [CONF_WEB_FETCH_ENABLED, get_web_fetch_schema],
     STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
 }
 
@@ -637,6 +680,7 @@ BASIC_UTILITIES_STEP_ORDER = {
 
 INITIAL_CONFIG_STEP_ORDER = {
     **SEARCH_STEP_ORDER,
+    STEP_WEB_FETCH: [CONF_WEB_FETCH_ENABLED, get_web_fetch_schema],
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
     STEP_BASIC_UTILITIES: [CONF_BASIC_UTILITIES_ENABLED, get_basic_utilities_schema],
     # STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
@@ -714,6 +758,7 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial configuration step for the user."""
         # Check if entry already exists
         if self._async_current_entries():
+            # TODO: support a single instance of multiple LLM API types (diff tools) # noqa: TD002,TD003,FIX002
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is None:
@@ -779,7 +824,8 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_google_routes(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Google Routes configuration step."""
         return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
@@ -797,6 +843,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle Wikipedia configuration step."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
+
+    async def async_step_web_fetch(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.FlowResult:
+        """Handle Web Fetch configuration step."""
+        return await self.handle_step(STEP_WEB_FETCH, user_input)
 
     async def async_step_weather(
         self,
@@ -883,6 +936,10 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 ): bool,
                 vol.Optional(
                     CONF_WIKIPEDIA_ENABLED,
+                    default=False,
+                ): bool,
+                vol.Optional(
+                    CONF_WEB_FETCH_ENABLED,
                     default=False,
                 ): bool,
             }
@@ -1032,7 +1089,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_google_routes(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Google Routes configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
@@ -1050,6 +1108,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> FlowResult:
         """Handle Wikipedia configuration step in options flow."""
         return await self.handle_step(STEP_WIKIPEDIA, user_input)
+
+    async def async_step_web_fetch(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.FlowResult:
+        """Handle Web Fetch configuration step in options flow."""
+        return await self.handle_step(STEP_WEB_FETCH, user_input)
 
     async def async_step_configure_basic_utilities(
         self,
@@ -1123,9 +1188,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_WEATHER, user_input)
 
     async def async_step_home_control(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Home Control (override Assist) configuration step in options flow."""
         return await self.handle_step(
-            STEP_HOME_CONTROL, user_input, {"tools": await enumerate_tools(self.hass)}
+            STEP_HOME_CONTROL,
+            user_input,
+            {"tools": await enumerate_tools(self.hass)},
         )

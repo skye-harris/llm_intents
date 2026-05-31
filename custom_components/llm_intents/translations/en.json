@@ -10,6 +10,7 @@
           "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
+          "web_fetch_enabled": "Enable Web Fetch",
           "weather_enabled": "Enable Weather Forecast",
           "basic_utilities_enabled": "Enable Basic Utilities"
         }
@@ -94,6 +95,13 @@
           "wikipedia_num_results": "Number of Results"
         }
       },
+      "web_fetch": {
+        "title": "Configure Web Fetch",
+        "description": "Configure Web Fetch settings.",
+        "data": {
+          "web_fetch_max_content_length": "Maximum Content Length"
+        }
+      },
       "weather": {
         "title": "Configure Weather",
         "description": "Configure Weather sources.",
@@ -155,7 +163,8 @@
           "google_places_enabled": "Enable Google Places",
           "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
-          "wikipedia_enabled": "Enable Wikipedia Search"
+          "wikipedia_enabled": "Enable Wikipedia Search",
+          "web_fetch_enabled": "Enable Web Fetch"
         }
       },
       "configure_weather": {
