@@ -11,7 +11,8 @@
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast",
-          "basic_utilities_enabled": "Enable Basic Utilities"
+          "basic_utilities_enabled": "Enable Basic Utilities",
+          "scene_presets_enabled": "Enable Scene Presets"
         }
       },
       "brave": {
@@ -144,7 +145,8 @@
           "configure": "Configure Search Services",
           "configure_weather": "Configure Weather Forecast",
           "configure_basic_utilities": "Configure Basic Utilities",
-          "home_control": "Configure Home Control API"
+          "home_control": "Configure Home Control API",
+          "configure_scene_presets": "Configure Scene Presets"
         }
       },
       "configure": {
@@ -286,6 +288,13 @@
         "data_description": {
           "home_control_prompt": "Override the hidden tooling prompt that is injected by the Assist API. This can be useful if this contains conflicts with your Conversation Agents prompt",
           "home_control_disabled_tools": "Disable any of the standard Assist platform tools that you do not wish your model to have access to."
+        }
+      },
+      "configure_scene_presets": {
+        "title": "Configure Scene Presets",
+        "description": "Enable the Scene Presets lighting tool.",
+        "data": {
+          "scene_presets_enabled": "Enable Scene Presets"
         }
       }
     }

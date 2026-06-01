@@ -13,6 +13,7 @@ WEATHER_API_NAME = "Weather Forecast"
 MEDIA_API_NAME = "Media Services"
 BASIC_UTILITIES_API_NAME = "Basic Utilities"
 HOME_CONTROL_API_NAME = "Home Control"
+SCENE_PRESETS_API_NAME = "Scene Presets"
 
 # SQLite Cache
 
@@ -30,6 +31,12 @@ Use the Media Services tools to play video content on media player devices.
 
 BASIC_UTILITIES_SERVICES_PROMPT = """
 Use the Basic Utilities tools for calculations and unit conversions.
+"""
+
+SCENE_PRESETS_SERVICES_PROMPT = """
+Use SetLightingScene to apply a lighting scene or mood to a room or specific lights.
+For any scene, mood, preset, or ambiance request, call SetLightingScene with mood and area_ids.
+Do not use HassLightSet or HassTurnOn for mood or scene requests.
 """
 
 # Basic Utilities constants
@@ -170,6 +177,9 @@ CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 
+# Scene Presets constants
+CONF_SCENE_PRESETS_ENABLED = "scene_presets_enabled"
+
 # Home Control constants
 CONF_HOME_CONTROL_ENABLED = "home_control_enabled"
 CONF_HOME_CONTROL_PROMPT_TEMPLATE = "home_control_prompt"
@@ -248,6 +258,7 @@ SERVICE_DEFAULTS = {
     CONF_CALCULATOR_ENABLED: True,
     CONF_UNIT_CONVERTER_ENABLED: True,
     CONF_DATE_INFO_ENABLED: True,
+    CONF_SCENE_PRESETS_ENABLED: False,
 }
 
 # To satisfy ruff
