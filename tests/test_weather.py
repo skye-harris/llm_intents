@@ -1,7 +1,7 @@
 """Tests for the WeatherForecastTool."""
 
 import datetime as dt
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -209,6 +209,7 @@ def test_format_time(
 # =============================================================================
 
 
+@pytest.mark.freeze_time("2026-01-01")
 def test_format_date_today() -> None:
     """Test formatting today's date."""
     # Use a date that is definitely in the future to avoid "today" ambiguity
@@ -217,6 +218,7 @@ def test_format_date_today() -> None:
     assert "Monday" in result  # 2026-06-01 is a Monday
 
 
+@pytest.mark.freeze_time("2026-01-01")
 def test_format_date_future() -> None:
     """Test formatting a future date."""
     # Use a date that is definitely in the future to avoid "today" ambiguity
@@ -700,6 +702,7 @@ async def test_async_call_daily_forecast(
 
 
 @pytest.mark.asyncio
+@pytest.mark.freeze_time("2026-05-03")
 async def test_async_call_with_temperature_sensor(mock_hass: HomeAssistant) -> None:
     """Test async_call with current temperature sensor included."""
     tool = WeatherForecastTool(
@@ -750,32 +753,23 @@ async def test_async_call_with_temperature_sensor(mock_hass: HomeAssistant) -> N
     mock_hass.config_entries = MagicMock()
     mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
-    # Mock datetime to make "today" match the forecast date
-    mock_today = datetime(2026, 5, 3, 0, 0, 0, tzinfo=UTC)
+    result = await tool.async_call(
+        mock_hass,
+        tool_input,
+        MagicMock(spec=llm.LLMContext),
+    )
 
-    with patch("custom_components.llm_intents.weather.datetime") as mock_datetime:
-        mock_datetime.now.return_value = mock_today
-        mock_datetime.astimezone.return_value = mock_today
-        mock_datetime.timedelta = timedelta
-        mock_datetime.fromisoformat = datetime.fromisoformat
+    assert "current" in result
+    assert "Temperature: 23" in result
 
-        result = await tool.async_call(
-            mock_hass,
-            tool_input,
-            MagicMock(spec=llm.LLMContext),
-        )
-
-        assert "current" in result
-        assert "Temperature: 23" in result
-
-        # Verify the service was called for hourly forecast (not daily)
-        mock_services.async_call.assert_called_once_with(
-            "weather",
-            "get_forecasts",
-            {"entity_id": "sensor.test_weather", "type": "hourly"},
-            blocking=True,
-            return_response=True,
-        )
+    # Verify the service was called for hourly forecast (not daily)
+    mock_services.async_call.assert_called_once_with(
+        "weather",
+        "get_forecasts",
+        {"entity_id": "sensor.test_weather", "type": "hourly"},
+        blocking=True,
+        return_response=True,
+    )
 
 
 @pytest.mark.asyncio
