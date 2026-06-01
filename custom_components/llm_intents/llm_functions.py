@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import selector_serializer
 
 from . import CONF_SEARCH_PROVIDER, CONF_SEARCH_PROVIDER_BRAVE
 from .brave_llm_context_search import BraveLlmContextSearchTool
@@ -132,6 +133,7 @@ class BaseAPI(llm.API):
             api_prompt="\n\n".join(prompt),
             llm_context=llm_context,
             tools=self.get_enabled_tools(),
+            custom_serializer=selector_serializer,
         )
 
 
