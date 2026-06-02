@@ -3,6 +3,7 @@
 Additional tools for LLM-backed Assist for Home Assistant:
 
 * **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Fetch** — extracts and cleans text content from specific URLs
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
@@ -148,6 +149,33 @@ Uses a self-hosted SearXNG search service to return summarized results.
 | Setting             | Required | Default | Description                             |
 |---------------------|----------|---------|-----------------------------------------|
 | `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM |
+
+---
+
+### 🌐 Web Fetch
+
+The Web Fetch tool allows the LLM to directly retrieve and process the content of a specific web page. It is ideal for reading articles, documentation, or blog posts from a URL provided in a conversation or found during a web search.
+
+The tool automatically strips unnecessary HTML elements like `<script>`, `<style>`, and `<noscript>`, delivering only readable text to the model to save tokens and improve focus.
+
+#### Configuration Steps
+
+1. This tool is grouped under **Search Services**.
+2. Ensure "Search Services" is enabled in your Conversation Agent configuration.
+
+#### Options
+
+| Setting              | Required | Default | Range          | Description                          |
+|----------------------|----------|---------|----------------|--------------------------------------|
+| `Max Content Length` | ✅        | `10000` | `1000 - 50000` | Maximum characters passed to the LLM |
+
+#### ⚠️ Limitations
+
+To ensure reliable performance, please keep the following in mind:
+*   **Static Content Only:** The tool fetches raw HTML and does not execute JavaScript. Pages relying on client-side rendering (e.g., React, Vue, or SPAs) may return empty or incomplete data.
+*   **Anti-Bot Protection:** While it uses a standard browser User-Agent, it cannot bypass sophisticated security layers like Cloudflare "Under Attack" mode, CAPTCHAs, or strict bot detection.
+*   **No Authentication:** Only publicly accessible pages are supported. The tool does not handle logins, cookies, or private sessions.
+*   **Context Management:** Content is truncated based on the `Max Content Length` setting to stay within the LLM's context window limits.
 
 ---
 

@@ -22,7 +22,10 @@ ignore = [
     "ARG002",
     "BLE001",
     "TRY300",
-    "FBT001"
+    "FBT001",
+    "PLR0911", # too many return statements
+    "D102",    # missing docstring in public method
+    "D107",    # missing docstring in __init__
 ]
 
 [lint.flake8-pytest-style]
