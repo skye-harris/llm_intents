@@ -71,6 +71,7 @@ from .const import (
     CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_PROVIDER_API_KEYS,
+    CONF_SCENE_PRESETS_ENABLED,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
@@ -111,6 +112,7 @@ STEP_HOME_CONTROL = "home_control"
 STEP_CONFIGURE_SEARCH = "configure"
 STEP_CONFIGURE_WEATHER = "configure_weather"
 STEP_CONFIGURE_BASIC_UTILITIES = "configure_basic_utilities"
+STEP_CONFIGURE_SCENE_PRESETS = "configure_scene_presets"
 
 
 class NullableNumberSelector(NumberSelector):
@@ -152,6 +154,7 @@ def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
         vol.Optional(CONF_WEATHER_ENABLED, default=False): bool,
         vol.Optional(CONF_BASIC_UTILITIES_ENABLED, default=False): bool,
+        vol.Optional(CONF_SCENE_PRESETS_ENABLED, default=False): bool,
         vol.Optional(CONF_HOME_CONTROL_ENABLED, default=False): bool,
     }
     return vol.Schema(schema)
@@ -847,6 +850,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 step_id=STEP_INIT,
                 menu_options=[
                     STEP_CONFIGURE_BASIC_UTILITIES,
+                    STEP_CONFIGURE_SCENE_PRESETS,
                     STEP_HOME_CONTROL,
                     STEP_CONFIGURE_SEARCH,
                     STEP_CONFIGURE_WEATHER,
@@ -1091,6 +1095,30 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                 data_schema=schema,
             )
 
+        return self.async_create_entry(data=self.config_data)
+
+    async def async_step_configure_scene_presets(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle the configure Scene Presets menu option."""
+        defaults = {**self.config_entry.data, **(self.config_entry.options or {})}
+
+        if user_input is None:
+            schema = vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_SCENE_PRESETS_ENABLED,
+                        default=defaults.get(CONF_SCENE_PRESETS_ENABLED, False),
+                    ): bool,
+                },
+            )
+            return self.async_show_form(
+                step_id=STEP_CONFIGURE_SCENE_PRESETS,
+                data_schema=schema,
+            )
+
+        self.config_data.update(user_input)
         return self.async_create_entry(data=self.config_data)
 
     async def async_step_basic_utilities(
