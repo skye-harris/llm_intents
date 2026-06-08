@@ -568,10 +568,6 @@ async def get_home_control_schema(hass: HomeAssistant) -> vol.Schema:
     return vol.Schema(
         {
             vol.Optional(
-                CONF_HOME_CONTROL_ENABLED,
-                default=False,
-            ): bool,
-            vol.Optional(
                 CONF_HOME_CONTROL_PROMPT_TEMPLATE,
                 default=CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
             ): TemplateSelector(),
@@ -1114,7 +1110,16 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle Home Control (override Assist) configuration step in options flow."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
-            schema = await get_home_control_schema(self.hass)
+            base_schema = await get_home_control_schema(self.hass)
+            schema = vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_HOME_CONTROL_ENABLED,
+                        default=opts.get(CONF_HOME_CONTROL_ENABLED, False),
+                    ): bool,
+                    **base_schema.schema,
+                }
+            )
             schema = self.add_suggested_values_to_schema(schema, opts)
             return self.async_show_form(
                 step_id=STEP_HOME_CONTROL,
