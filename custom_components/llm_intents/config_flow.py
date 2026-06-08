@@ -310,9 +310,7 @@ async def get_brave_schema(
     return vol.Schema(schema)
 
 
-async def get_searxng_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for the SearXNG service configuration."""
     return vol.Schema(
         {
@@ -336,9 +334,7 @@ async def get_searxng_schema(
     )
 
 
-async def get_google_places_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_google_places_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Google Places service configuration."""
     return vol.Schema(
         {
@@ -407,9 +403,7 @@ async def get_google_places_schema(
     )
 
 
-async def get_google_routes_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_google_routes_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Google Routes service configuration."""
     return vol.Schema(
         {
@@ -439,9 +433,7 @@ async def get_google_routes_schema(
     )
 
 
-async def get_youtube_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_youtube_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for YouTube service configuration."""
     return vol.Schema(
         {
@@ -453,9 +445,7 @@ async def get_youtube_schema(
     )
 
 
-async def get_wikipedia_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_wikipedia_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Wikipedia service configuration."""
     return vol.Schema(
         {
@@ -475,9 +465,7 @@ async def get_wikipedia_schema(
     )
 
 
-async def get_basic_utilities_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_basic_utilities_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Basic Utilities tool configuration."""
     return vol.Schema(
         {
@@ -497,9 +485,7 @@ async def get_basic_utilities_schema(
     )
 
 
-async def get_weather_schema(
-    hass: HomeAssistant, args: dict | None = None
-) -> vol.Schema:
+async def get_weather_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Weather configuration."""
     daily_entities = []
     hourly_entities = []
@@ -550,7 +536,6 @@ async def get_weather_schema(
 
 async def get_brave_search_schema(
     hass: HomeAssistant,
-    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Brave Search configuration."""
     return await get_brave_schema(hass, is_llm_context_search=False)
@@ -558,7 +543,6 @@ async def get_brave_search_schema(
 
 async def get_brave_llm_schema(
     hass: HomeAssistant,
-    args: dict | None = None,
 ) -> vol.Schema:
     """Return the static schema for Brave Search configuration."""
     return await get_brave_schema(hass, is_llm_context_search=True)
@@ -579,9 +563,7 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
     return tools
 
 
-async def get_home_control_schema(
-    hass: HomeAssistant, args: dict[str, Any]
-) -> vol.Schema:
+async def get_home_control_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Home Control configuration."""
     return vol.Schema(
         {
@@ -595,7 +577,7 @@ async def get_home_control_schema(
             ): TemplateSelector(),
             vol.Required(CONF_HOME_CONTROL_DISABLED_TOOLS, default=[]): SelectSelector(
                 SelectSelectorConfig(
-                    options=[tool.name for tool in args.get("tools", [])],
+                    options=[tool.name for tool in await enumerate_tools(hass)],
                     multiple=True,
                     mode=SelectSelectorMode.DROPDOWN,
                 )
@@ -622,7 +604,6 @@ SEARCH_STEP_ORDER = {
     STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
     STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
-    STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
 }
 
 WEATHER_STEP_ORDER = {
@@ -639,7 +620,7 @@ INITIAL_CONFIG_STEP_ORDER = {
     **SEARCH_STEP_ORDER,
     STEP_WEATHER: [CONF_WEATHER_ENABLED, get_weather_schema],
     STEP_BASIC_UTILITIES: [CONF_BASIC_UTILITIES_ENABLED, get_basic_utilities_schema],
-    # STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
+    STEP_HOME_CONTROL: [CONF_HOME_CONTROL_ENABLED, get_home_control_schema],
 }
 
 
@@ -812,6 +793,12 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Basic Utilities configuration step."""
         return await self.handle_step(STEP_BASIC_UTILITIES, user_input)
 
+    async def async_step_home_control(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Handle Home Control (override Assist) configuration step in initial config flow."""
+        return await self.handle_step(STEP_HOME_CONTROL, user_input)
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
@@ -962,13 +949,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self,
         current_step: str,
         user_input: dict[str, Any] | None = None,
-        schema_args: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle the current configuration step."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
             _, schema_func = SEARCH_STEP_ORDER[current_step]
-            schema = await schema_func(self.hass, schema_args)
+            schema = await schema_func(self.hass)
             schema = self.add_suggested_values_to_schema(
                 schema,
                 expand_config_for_schema(opts),
@@ -1126,6 +1112,14 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Handle Home Control (override Assist) configuration step in options flow."""
-        return await self.handle_step(
-            STEP_HOME_CONTROL, user_input, {"tools": await enumerate_tools(self.hass)}
-        )
+        if user_input is None:
+            opts = {**self.config_entry.data, **(self.config_entry.options or {})}
+            schema = await get_home_control_schema(self.hass)
+            schema = self.add_suggested_values_to_schema(schema, opts)
+            return self.async_show_form(
+                step_id=STEP_HOME_CONTROL,
+                data_schema=schema,
+            )
+
+        self.config_data.update(user_input)
+        return self.async_create_entry(data=self.config_data)
