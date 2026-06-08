@@ -11,7 +11,8 @@
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast",
-          "basic_utilities_enabled": "Enable Basic Utilities"
+          "basic_utilities_enabled": "Enable Basic Utilities",
+          "home_control_enabled": "Enable Home Control API"
         }
       },
       "brave": {
