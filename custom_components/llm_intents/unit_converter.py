@@ -1,5 +1,6 @@
 """Unit converter tool for volume, weight, and temperature conversions."""
 
+import enum
 import logging
 
 import voluptuous as vol
@@ -36,6 +37,27 @@ VOLUME_UNITS = list(UNIT_TO_ML.keys())
 WEIGHT_UNITS = list(UNIT_TO_GRAMS.keys())
 TEMPERATURE_UNITS = ["celsius", "fahrenheit"]
 ALLOWED_UNITS = VOLUME_UNITS + WEIGHT_UNITS + TEMPERATURE_UNITS
+
+
+class UnitDomain(enum.Enum):
+    """Allowed domains of units that can be converted."""
+
+    WEIGHT = "weight"
+    VOLUME = "volume"
+    TEMPERATURE = "temperature"
+
+
+def _get_unit_domain(unit: str) -> UnitDomain | None:
+    unit_lower = unit.lower()
+    return (
+        UnitDomain.WEIGHT
+        if unit_lower in WEIGHT_UNITS
+        else UnitDomain.VOLUME
+        if unit_lower in VOLUME_UNITS
+        else UnitDomain.TEMPERATURE
+        if unit_lower in TEMPERATURE_UNITS
+        else None
+    )
 
 
 def _parse_amount(amount: str) -> float:
@@ -121,27 +143,19 @@ class UnitConverterTool(BaseTool):
                 ),
             }
 
-        from_is_volume = from_unit in UNIT_TO_ML
-        from_is_weight = from_unit in UNIT_TO_GRAMS
-        from_is_temperature = from_unit in TEMPERATURE_UNITS
-        to_is_volume = to_unit in UNIT_TO_ML
-        to_is_weight = to_unit in UNIT_TO_GRAMS
-        to_is_temperature = to_unit in TEMPERATURE_UNITS
+        from_domain = _get_unit_domain(from_unit)
+        to_domain = _get_unit_domain(to_unit)
 
-        if not from_is_volume and not from_is_weight and not from_is_temperature:
+        if not from_domain:
             return {
                 "error": f"Unknown unit '{from_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}.",
             }
-        if not to_is_volume and not to_is_weight and not to_is_temperature:
+        if not to_domain:
             return {
                 "error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}.",
             }
 
-        if (
-            (from_is_volume and not to_is_volume)
-            or (from_is_weight and not to_is_weight)
-            or (from_is_temperature and not to_is_temperature)
-        ):
+        if to_domain != from_domain:
             return {
                 "error": (
                     f"Cannot convert between '{from_unit}' and '{to_unit}'. "
@@ -151,15 +165,19 @@ class UnitConverterTool(BaseTool):
 
         if from_unit == to_unit:
             result = amount
-        elif from_is_volume:
+        elif from_domain == UnitDomain.VOLUME:
             base_value = amount * UNIT_TO_ML[from_unit]
             result = base_value / UNIT_TO_ML[to_unit]
-        elif from_is_weight:
+        elif from_domain == UnitDomain.WEIGHT:
             base_value = amount * UNIT_TO_GRAMS[from_unit]
             result = base_value / UNIT_TO_GRAMS[to_unit]
-        elif from_unit == "celsius" and to_unit == "fahrenheit":
-            result = (amount * 9 / 5) + 32
+        elif from_domain == UnitDomain.TEMPERATURE:
+            if from_unit == "celsius" and to_unit == "fahrenheit":
+                result = (amount * 9 / 5) + 32
+            else:
+                result = (amount - 32) * 5 / 9
         else:
-            result = (amount - 32) * 5 / 9
+            err_msg = "UnitDomain exists but conversion not implemented '%s'."
+            raise RuntimeError(err_msg, from_domain)
 
         return {"value": round(result, 4)}
