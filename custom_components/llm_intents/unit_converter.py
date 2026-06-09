@@ -1,4 +1,4 @@
-"""Unit converter tool for volume and weight conversions."""
+"""Unit converter tool for volume, weight, and temperature conversions."""
 
 import logging
 
@@ -17,6 +17,7 @@ UNIT_TO_ML: dict[str, float] = {
     "tablespoon": 14.78676478,
     "teaspoon": 4.92892159375,
     "ml": 1.0,
+    "dl": 100.0,
     "liter": 1000.0,
     "gallon": 3785.41,
     "fluid_ounce": 29.5735,
@@ -33,7 +34,8 @@ UNIT_TO_GRAMS: dict[str, float] = {
 
 VOLUME_UNITS = list(UNIT_TO_ML.keys())
 WEIGHT_UNITS = list(UNIT_TO_GRAMS.keys())
-ALLOWED_UNITS = VOLUME_UNITS + WEIGHT_UNITS
+TEMPERATURE_UNITS = ["celsius", "fahrenheit"]
+ALLOWED_UNITS = VOLUME_UNITS + WEIGHT_UNITS + TEMPERATURE_UNITS
 
 
 def _parse_amount(amount: str) -> float:
@@ -54,13 +56,13 @@ def _parse_amount(amount: str) -> float:
 
 
 class UnitConverterTool(BaseTool):
-    """Tool for converting quantities between common volume and weight units."""
+    """Tool for converting quantities between common volume, weight, and temperature units."""
 
     name = "unit_convert"
     description = (
         "Convert quantities between volume units (cups, tablespoons, teaspoons, ml, "
-        "liters, gallons, fluid ounces, pints) and weight units (grams, kilograms, "
-        "milligrams, pounds, ounces, stone). "
+        "liters, gallons, fluid ounces, pints), weight units (grams, kilograms, "
+        "milligrams, pounds, ounces, stone), and temperature units (celsius, fahrenheit). "
         "Supports fractional amounts like '1/8' or '1 1/2'. "
         "Always use this tool for unit conversions instead of calculating manually."
     )
@@ -80,7 +82,8 @@ class UnitConverterTool(BaseTool):
                 description=(
                     "Unit to convert from. Volume: cup, tablespoon, teaspoon, ml, "
                     "liter, gallon, fluid_ounce, pint. "
-                    "Weight: gram, kilogram, milligram, pound, ounce, stone."
+                    "Weight: gram, kilogram, milligram, pound, ounce, stone. "
+                    "Temperature: celsius, fahrenheit."
                 ),
             ): str,
             vol.Required(
@@ -88,7 +91,8 @@ class UnitConverterTool(BaseTool):
                 description=(
                     "Unit to convert to. Volume: cup, tablespoon, teaspoon, ml, "
                     "liter, gallon, fluid_ounce, pint. "
-                    "Weight: gram, kilogram, milligram, pound, ounce, stone."
+                    "Weight: gram, kilogram, milligram, pound, ounce, stone. "
+                    "Temperature: celsius, fahrenheit."
                 ),
             ): str,
         },
@@ -119,31 +123,43 @@ class UnitConverterTool(BaseTool):
 
         from_is_volume = from_unit in UNIT_TO_ML
         from_is_weight = from_unit in UNIT_TO_GRAMS
+        from_is_temperature = from_unit in TEMPERATURE_UNITS
         to_is_volume = to_unit in UNIT_TO_ML
         to_is_weight = to_unit in UNIT_TO_GRAMS
+        to_is_temperature = to_unit in TEMPERATURE_UNITS
 
-        if not from_is_volume and not from_is_weight:
+        if not from_is_volume and not from_is_weight and not from_is_temperature:
             return {
                 "error": f"Unknown unit '{from_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}.",
             }
-        if not to_is_volume and not to_is_weight:
+        if not to_is_volume and not to_is_weight and not to_is_temperature:
             return {
                 "error": f"Unknown unit '{to_unit}'. Allowed: {', '.join(ALLOWED_UNITS)}.",
             }
 
-        if (from_is_volume and to_is_weight) or (from_is_weight and to_is_volume):
+        if (
+            (from_is_volume and not to_is_volume)
+            or (from_is_weight and not to_is_weight)
+            or (from_is_temperature and not to_is_temperature)
+        ):
             return {
                 "error": (
-                    f"Cannot convert between volume ('{from_unit}') and weight ('{to_unit}'). "
+                    f"Cannot convert between '{from_unit}' and '{to_unit}'. "
                     "Both units must be the same type."
                 ),
             }
 
-        if from_is_volume:
+        if from_unit == to_unit:
+            result = amount
+        elif from_is_volume:
             base_value = amount * UNIT_TO_ML[from_unit]
             result = base_value / UNIT_TO_ML[to_unit]
-        else:
+        elif from_is_weight:
             base_value = amount * UNIT_TO_GRAMS[from_unit]
             result = base_value / UNIT_TO_GRAMS[to_unit]
+        elif from_unit == "celsius" and to_unit == "fahrenheit":
+            result = (amount * 9 / 5) + 32
+        else:
+            result = (amount - 32) * 5 / 9
 
         return {"value": round(result, 4)}
