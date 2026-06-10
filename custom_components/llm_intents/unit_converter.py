@@ -9,6 +9,7 @@ from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
+from .const import WEATHER_UNIT_CELSIUS, WEATHER_UNIT_FAHRENHEIT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ UNIT_TO_GRAMS: dict[str, float] = {
 
 VOLUME_UNITS = list(UNIT_TO_ML.keys())
 WEIGHT_UNITS = list(UNIT_TO_GRAMS.keys())
-TEMPERATURE_UNITS = ["celsius", "fahrenheit"]
+TEMPERATURE_UNITS = [WEATHER_UNIT_CELSIUS, WEATHER_UNIT_FAHRENHEIT]
 ALLOWED_UNITS = VOLUME_UNITS + WEIGHT_UNITS + TEMPERATURE_UNITS
 
 
@@ -82,10 +83,12 @@ class UnitConverterTool(BaseTool):
 
     name = "unit_convert"
     description = (
-        "Convert quantities between volume units (cups, tablespoons, teaspoons, ml, "
+        "Convert a single quantity between volume units (cups, tablespoons, teaspoons, ml, "
         "liters, gallons, fluid ounces, pints), weight units (grams, kilograms, "
-        "milligrams, pounds, ounces, stone), and temperature units (celsius, fahrenheit). "
+        "milligrams, pounds, ounces, stone), and temperature units ("
+        f"{WEATHER_UNIT_CELSIUS}, {WEATHER_UNIT_FAHRENHEIT}). "
         "Supports fractional amounts like '1/8' or '1 1/2'. "
+        "Only a single value can be converted per call. "
         "Always use this tool for unit conversions instead of calculating manually."
     )
     prompt_description = None
@@ -105,7 +108,7 @@ class UnitConverterTool(BaseTool):
                     "Unit to convert from. Volume: cup, tablespoon, teaspoon, ml, "
                     "liter, gallon, fluid_ounce, pint. "
                     "Weight: gram, kilogram, milligram, pound, ounce, stone. "
-                    "Temperature: celsius, fahrenheit."
+                    f"Temperature: {WEATHER_UNIT_CELSIUS}, {WEATHER_UNIT_FAHRENHEIT}."
                 ),
             ): str,
             vol.Required(
@@ -114,7 +117,7 @@ class UnitConverterTool(BaseTool):
                     "Unit to convert to. Volume: cup, tablespoon, teaspoon, ml, "
                     "liter, gallon, fluid_ounce, pint. "
                     "Weight: gram, kilogram, milligram, pound, ounce, stone. "
-                    "Temperature: celsius, fahrenheit."
+                    f"Temperature: {WEATHER_UNIT_CELSIUS}, {WEATHER_UNIT_FAHRENHEIT}."
                 ),
             ): str,
         },
@@ -172,7 +175,7 @@ class UnitConverterTool(BaseTool):
             base_value = amount * UNIT_TO_GRAMS[from_unit]
             result = base_value / UNIT_TO_GRAMS[to_unit]
         elif from_domain == UnitDomain.TEMPERATURE:
-            if from_unit == "celsius" and to_unit == "fahrenheit":
+            if from_unit == WEATHER_UNIT_CELSIUS and to_unit == WEATHER_UNIT_FAHRENHEIT:
                 result = (amount * 9 / 5) + 32
             else:
                 result = (amount - 32) * 5 / 9

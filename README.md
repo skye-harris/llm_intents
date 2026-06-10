@@ -247,17 +247,18 @@ Looks up Wikipedia articles and returns summaries of the top results.
 
 ### ⛅ Weather Forecast
 
-Rather than accessing the internet directly for weather information, this tool utilises your existing Home Assistant weather integration and makes the forecast data accessible to your LLM in an intelligent manner.
+This tool utilises your existing Home Assistant weather integration to make forecast data accessible to your LLM in an intelligent manner. When asking about local weather, the tool uses your configured weather entities. When asking about weather in a specific location (e.g. "What is the weather in Paris this week?"), the tool fetches data from [Open-Meteo](https://open-meteo.com/) (free, no API key required).
 
-At a minimum, this tool requires a weather entity that provides either daily or twice-daily forecast data.
-It is recommended, though optional, to also specify a weather entity that provides hourly weather data.
+Temperatures are returned in your Home Assistant unit system by default. If the LLM explicitly requests a specific unit (`celsius` or `fahrenheit`), only that unit is returned. Enabling **Include both Celsius and Fahrenheit** below will return both units with the Home Assistant default first whenever no specific unit is requested.
 
-For cases where a specific days weather is requested (eg: `today`, `tomorrow`, `wednesday`), the hourly data will be provided if available.
+For local weather, at a minimum this tool requires a weather entity that provides either daily or twice-daily forecast data. It is recommended, though optional, to also specify a weather entity that provides hourly weather data.
+
+For cases where a specific day's local weather is requested (eg: `today`, `tomorrow`, `wednesday`), the default behavior depends on the **Use Hourly Forecast by Default** option. When enabled, hourly data is returned if available. When disabled, daily data is returned unless the LLM explicitly passes `hourly: true`.
 If data for the week is requested, no hourly forecast entity is set, or the hourly forecast does not contain data for the requested day, the daily weather data will be used instead.
 
 #### Requirements
 
-* An existing weather forecast integration configured within Home Assistant.
+* For local weather: an existing weather forecast integration configured within Home Assistant.
 
 #### Configuration Steps
 
@@ -273,6 +274,8 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 | `Daily Weather Entity`       | ✅        | The weather entity to use for daily weather forecast data                                                   |
 | `Hourly Weather Entity`      | ❌        | The weather entity to use for hourly weather forecast data                                                  |
 | `Current Temperature Sensor` | ❌        | Optional local sensor entity to provide current temperature when requesting today's hourly weather forecast |
+| `Include both Celsius and Fahrenheit` | ❌        | Display temperatures in both Celsius and Fahrenheit, with the Home Assistant default first                  |
+| `Use Hourly Forecast by Default` | ❌    | When enabled, requests for a specific day return hourly data by default. When disabled, daily data is returned unless explicitly requested |
 
 ### 🎥 YouTube Search + Playback
 
