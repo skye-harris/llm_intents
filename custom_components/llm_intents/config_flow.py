@@ -80,6 +80,8 @@ from .const import (
     CONF_SEARXNG_URL,
     CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
+    CONF_WEATHER_HOURLY_DEFAULT,
+    CONF_WEATHER_SHOW_BOTH_UNITS,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -530,6 +532,14 @@ async def get_weather_schema(hass: HomeAssistant) -> vol.Schema:
                     include_entities=temperature_sensors,
                 ),
             ),
+            vol.Optional(
+                CONF_WEATHER_SHOW_BOTH_UNITS,
+                default=SERVICE_DEFAULTS.get(CONF_WEATHER_SHOW_BOTH_UNITS, False),
+            ): bool,
+            vol.Optional(
+                CONF_WEATHER_HOURLY_DEFAULT,
+                default=SERVICE_DEFAULTS.get(CONF_WEATHER_HOURLY_DEFAULT, True),
+            ): bool,
         },
     )
 
@@ -1102,6 +1112,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             # Without a selection our dict will not contain a value for this, so lets just clear it here and itll be updated in .handle_step by existing logic if a value exists
             self.config_data[CONF_HOURLY_WEATHER_ENTITY] = None
             self.config_data[CONF_WEATHER_TEMPERATURE_SENSOR] = None
+            self.config_data[CONF_WEATHER_SHOW_BOTH_UNITS] = None
+            self.config_data[CONF_WEATHER_HOURLY_DEFAULT] = None
         return await self.handle_step(STEP_WEATHER, user_input)
 
     async def async_step_home_control(
