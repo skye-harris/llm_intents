@@ -61,6 +61,8 @@ class ForecastRetrievalError(WeatherToolError):
 
 def _friendly_precipitation_chance(precipitation_chance: int) -> str:
     """Format the precipitation chance into string categories for the LLM."""
+    if precipitation_chance is None:
+        return "unknown"
     for threshold, value in PRECIPITATION_THRESHOLDS.items():
         if precipitation_chance <= threshold:
             return value
@@ -92,6 +94,8 @@ def _build_attributes(
     for attribute in attribute_list:
         if attribute.key in weather_data:
             attr_data = weather_data.get(attribute.key)
+            if attr_data is None:
+                continue
             output.append(
                 f"  {attribute.name}: {attribute.formatter(attr_data) if attribute.formatter else attr_data}",
             )
