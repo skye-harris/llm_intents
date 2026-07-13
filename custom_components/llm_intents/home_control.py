@@ -2,7 +2,9 @@
 
 import logging
 
+from homeassistant.components.homeassistant.llm import async_get_exposed_entities
 from homeassistant.components.intent import async_device_supports_timers
+from homeassistant.components.llm import AssistAPI, async_get_tools
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import (
     area_registry as ar,
@@ -17,7 +19,6 @@ from homeassistant.helpers import (
     llm,
     template,
 )
-from homeassistant.helpers.llm import AssistAPI, LLMContext, Tool
 
 from .const import (
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
@@ -38,20 +39,46 @@ class HomeControlAPI(AssistAPI):
         self.name = "Home Control"
         self.id = "HomeControl"
 
-    @callback
-    def _async_get_api_prompt(
-        self, llm_context: llm.LLMContext, exposed_entities: dict | None
-    ) -> str:
-        """Build the prompt with a jinja template."""
+    def _get_config_data(self) -> dict:
+        """Return the merged config data for this integration."""
         config_data = self.hass.data[DOMAIN].get("config", {})
         entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        return {**config_data, **entry.options}
+
+    async def async_get_api_instance(
+        self, llm_context: llm.LLMContext
+    ) -> llm.APIInstance:
+        """Return the API instance with a custom prompt and filtered tools."""
+        llm_tools = await async_get_tools(self.hass, llm_context, llm.LLM_API_ASSIST)
+
+        disabled_tools = self._get_config_data().get(
+            CONF_HOME_CONTROL_DISABLED_TOOLS, []
+        )
+        tools = [tool for tool in llm_tools.tools if tool.name not in disabled_tools]
+
+        return llm.APIInstance(
+            api=self,
+            api_prompt=self._async_get_api_prompt(llm_context),
+            llm_context=llm_context,
+            tools=tools,
+            custom_serializer=llm.selector_serializer,
+        )
+
+    @callback
+    def _async_get_api_prompt(self, llm_context: llm.LLMContext) -> str:
+        """Build the prompt with a jinja template."""
+        config_data = self._get_config_data()
         prompt_template = config_data.get(
             CONF_HOME_CONTROL_PROMPT_TEMPLATE, CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE
         )
-        exposed_entities = (
-            list(exposed_entities["entities"].values()) if exposed_entities else []
-        )
+
+        exposed_entities: list = []
+        if llm_context.assistant:
+            exposed_entities = list(
+                async_get_exposed_entities(
+                    self.hass, llm_context.assistant, include_state=False
+                ).values()
+            )
 
         supports_timers = llm_context.device_id and async_device_supports_timers(
             self.hass, llm_context.device_id
@@ -87,20 +114,3 @@ class HomeControlAPI(AssistAPI):
             )
             .strip()
         )
-
-    def _async_get_tools(
-        self, llm_context: LLMContext, exposed_entities: dict | None
-    ) -> list[Tool]:
-        """Return a list of tools, filtered per our config settings."""
-        config_data = self.hass.data[DOMAIN].get("config", {})
-        entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
-
-        tools = super()._async_get_tools(llm_context, exposed_entities)
-
-        # Filter by the disabled tools rule
-        return [
-            tool
-            for tool in tools
-            if tool.name not in config_data.get(CONF_HOME_CONTROL_DISABLED_TOOLS, [])
-        ]
