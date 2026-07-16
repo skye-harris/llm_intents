@@ -101,12 +101,16 @@
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
           "weather_hourly_entity": "Hourly Weather Entity",
-          "current_temperature_entity": "Current Temperature Sensor"
+          "current_temperature_entity": "Current Temperature Sensor",
+          "weather_show_both_units": "Include both Celsius and Fahrenheit",
+          "weather_hourly_default": "Use hourly forecast by default"
         },
         "data_description": {
           "weather_daily_entity": "Weather entity to pull daily forecast data from",
           "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
-          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
+          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from",
+          "weather_show_both_units": "When enabled, temperatures are displayed in both units with the Home Assistant default first",
+          "weather_hourly_default": "When enabled, requests for a specific day will return hourly data. When disabled, daily data is returned unless the LLM explicitly requests hourly."
         }
       },
       "basic_utilities": {
@@ -252,12 +256,16 @@
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
           "weather_hourly_entity": "Hourly Weather Entity",
-          "current_temperature_entity": "Current Temperature Sensor"
+          "current_temperature_entity": "Current Temperature Sensor",
+          "weather_show_both_units": "Include both Celsius and Fahrenheit",
+          "weather_hourly_default": "Use hourly forecast by default"
         },
         "data_description": {
           "weather_daily_entity": "Weather entity to pull daily forecast data from",
           "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
-          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
+          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from",
+          "weather_show_both_units": "When enabled, temperatures are displayed in both units with the Home Assistant default first",
+          "weather_hourly_default": "When enabled, requests for a specific day will return hourly data. When disabled, daily data is returned unless the LLM explicitly requests hourly."
         }
       },
       "configure_basic_utilities": {

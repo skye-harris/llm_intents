@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
 
@@ -24,6 +25,11 @@ def mock_hass() -> HomeAssistant:
     hass = MagicMock(spec=HomeAssistant)
     hass.async_create_task = AsyncMock()
     hass.data = {DOMAIN: {"config": {}}}
+    hass.config = MagicMock()
+    hass.config.units = MagicMock()
+    hass.config.units.temperature_unit = UnitOfTemperature.CELSIUS
+    hass.states = MagicMock()
+    hass.services = MagicMock()
     return hass
 
 
