@@ -132,6 +132,37 @@ async def test_brave_llm_context_search_config_params_headers(
     assert headers["X-Loc-Postal-Code"] == "12345"
 
 
+async def test_brave_llm_context_search_freshness_translated(
+    tool: BraveLlmContextSearchTool, success_response: dict
+) -> None:
+    """Test that a freshness value is translated to the Brave API code."""
+    session = mock_session(status=200, data=success_response)
+
+    with patch(
+        "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_search("test query", freshness="This Week")
+
+    params = session.get.call_args[1]["params"]
+    assert params["freshness"] == "pw"
+
+
+async def test_brave_llm_context_search_no_freshness_by_default(
+    tool: BraveLlmContextSearchTool, success_response: dict
+) -> None:
+    """Test that no freshness param is sent when none is provided."""
+    session = mock_session(status=200, data=success_response)
+
+    with patch(
+        "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_search("test query")
+
+    assert "freshness" not in session.get.call_args[1]["params"]
+
+
 async def test_brave_llm_context_search_request_failure(
     tool: BraveLlmContextSearchTool, mock_hass: HomeAssistant
 ) -> None:

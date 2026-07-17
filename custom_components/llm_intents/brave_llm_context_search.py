@@ -5,6 +5,7 @@ import logging
 import re
 from http import HTTPStatus
 
+import voluptuous as vol
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .base_web_search import SearchWebTool
@@ -28,6 +29,23 @@ _LOGGER = logging.getLogger(__name__)
 class BraveLlmContextSearchTool(SearchWebTool):
     """Tool for searching the web via Brave LLM Context Search API."""
 
+    FRESHNESS_CODES = {
+        "Today": "pd",
+        "This Week": "pw",
+        "This Month": "pm",
+        "This Year": "py",
+    }
+
+    parameters = vol.Schema(
+        {
+            vol.Required("query", description="The query to search for"): str,
+            vol.Optional(
+                "freshness",
+                description="Only include results from this time period.",
+            ): vol.In(list(FRESHNESS_CODES)),
+        },
+    )
+
     async def cleanup_text(self, text: str) -> str:
         """Cleanup the text that we send back to the LLM."""
         text = await super().cleanup_text(text)
@@ -45,6 +63,7 @@ class BraveLlmContextSearchTool(SearchWebTool):
     async def async_search(
         self,
         query: str,
+        freshness: str | None = None,
     ) -> list:
         """Call the tool."""
         provider_keys = self.config.get(CONF_PROVIDER_API_KEYS) or {}
@@ -97,6 +116,9 @@ class BraveLlmContextSearchTool(SearchWebTool):
 
         if post_code:
             headers["X-Loc-Postal-Code"] = str(post_code)
+
+        if freshness:
+            params["freshness"] = self.FRESHNESS_CODES[freshness]
 
         async with session.get(
             "https://api.search.brave.com/res/v1/llm/context",
