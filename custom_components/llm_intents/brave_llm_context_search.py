@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from http import HTTPStatus
+from typing import ClassVar
 
 import voluptuous as vol
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -29,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 class BraveLlmContextSearchTool(SearchWebTool):
     """Tool for searching the web via Brave LLM Context Search API."""
 
-    FRESHNESS_CODES = {
+    FRESHNESS_CODES: ClassVar[dict[str, str]] = {
         "Today": "pd",
         "This Week": "pw",
         "This Month": "pm",

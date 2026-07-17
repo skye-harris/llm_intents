@@ -49,7 +49,7 @@ class SearchWebTool(BaseTool):
         text = re.sub(r"<[^>]+>", "", text)
         return re.sub(r"\s+", " ", text).strip()
 
-    async def async_search(self, query: str, **kwargs) -> list:
+    async def async_search(self, query: str, **kwargs: str) -> list:
         """Perform a search in our subclasses."""
 
     async def async_call(
