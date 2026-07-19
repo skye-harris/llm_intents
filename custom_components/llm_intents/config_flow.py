@@ -341,7 +341,6 @@ async def get_google_api_key_schema(hass: HomeAssistant) -> vol.Schema:
         {
             vol.Required(
                 CONF_GOOGLE_API_KEY,
-                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
             ): TextSelector(
                 TextSelectorConfig(
                     type=TextSelectorType.PASSWORD,
