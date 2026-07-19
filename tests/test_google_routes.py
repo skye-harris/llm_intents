@@ -1,9 +1,11 @@
 """Tests for the Google Routes tool."""
 
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -515,3 +517,174 @@ async def test_traffic_duration_emitted_when_different(
     body = result["result"]
     assert body["duration"] == "15 min"
     assert body["duration_without_traffic"] == "10 min"
+
+
+@pytest.mark.parametrize("value", [None, "not-a-date"])
+def test_resolve_departure_time_none(tool: GetRouteTool, value: str | None) -> None:
+    """None or unparseable input returns None."""
+    assert tool._resolve_departure_time(value) is None
+
+
+def test_resolve_departure_time_naive_utc(tool: GetRouteTool) -> None:
+    """Naive datetime is treated as local time and converted to UTC."""
+    result = tool._resolve_departure_time("2026-01-01T12:00:00")
+    assert isinstance(result, str)
+    assert result.endswith("Z")
+    parsed = datetime.strptime(result, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    assert parsed > datetime.now(UTC)
+
+
+@freeze_time("2025-01-01 00:00:00")
+@pytest.mark.parametrize(
+    ("input_time", "expected"),
+    [
+        ("2024-06-01T12:00:00Z", "2025-01-01T00:00:10Z"),
+        ("2026-06-01T12:00:00Z", "2026-06-01T12:00:00Z"),
+    ],
+)
+def test_resolve_departure_time_past_future(
+    tool: GetRouteTool,
+    input_time: str,
+    expected: str,
+) -> None:
+    """Past departure time is bumped to now+10s; future time is unchanged."""
+    result = tool._resolve_departure_time(input_time)
+    assert result == expected
+
+
+@freeze_time("2025-01-01 00:00:00")
+@pytest.mark.parametrize(
+    ("scenario", "places_response", "raise_on_places", "expected"),
+    [
+        (
+            "happy_path",
+            {
+                "places": [
+                    {
+                        "displayName": {"text": "Aquarium"},
+                        "shortFormattedAddress": "100 Water St",
+                    },
+                ],
+            },
+            False,
+            {"address": "100 Water St", "name": "Aquarium"},
+        ),
+        (
+            "exception",
+            None,
+            True,
+            None,
+        ),
+    ],
+)
+async def test_resolve_destination_via_places(
+    tool: GetRouteTool,
+    routes_hass: HomeAssistant,
+    cache_miss: Any,
+    scenario: str,
+    places_response: dict | None,
+    raise_on_places: bool,
+    expected: dict | None,
+) -> None:
+    """Resolve destination via Places API with caching and error handling."""
+    session = AsyncMock()
+
+    def mock_post(url: str, **_kwargs: Any) -> MockContext:
+        if "places" in url:
+            if raise_on_places:
+                raise RuntimeError("network error")
+            response = AsyncMock()
+            response.status = 200
+            response.json = AsyncMock(return_value=places_response or {})
+            return MockContext(response)
+        response = AsyncMock()
+        response.status = 200
+        response.json = AsyncMock(return_value=_routes_response())
+        return MockContext(response)
+
+    session.post = Mock(side_effect=mock_post)
+
+    with patch(
+        "custom_components.llm_intents.google_routes.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool._resolve_destination_via_places(
+            routes_hass,
+            "test_key",
+            "Aquarium",
+        )
+
+    assert result == expected
+    assert session.post.call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("scenario", "routes_response", "raise_on_routes"),
+    [
+        (
+            "with_departure_time",
+            _routes_response(duration_s=600, distance_m=5000),
+            False,
+        ),
+        (
+            "no_routes",
+            {"routes": []},
+            False,
+        ),
+        (
+            "exception",
+            None,
+            True,
+        ),
+    ],
+)
+@freeze_time("2025-01-01 00:00:00")
+async def test_async_call_variants(
+    tool: GetRouteTool,
+    routes_hass: HomeAssistant,
+    cache_miss: Any,
+    scenario: str,
+    routes_response: dict,
+    raise_on_routes: bool,
+) -> None:
+    """Test async_call with departure time, no routes, and exception paths."""
+    session = AsyncMock()
+
+    def mock_post(url: str, **_kwargs: Any) -> MockContext:
+        if "places" in url:
+            response = AsyncMock()
+            response.status = 200
+            response.json = AsyncMock(return_value=_places_response())
+            return MockContext(response)
+        if raise_on_routes:
+            raise RuntimeError("api error")
+        response = AsyncMock()
+        response.status = 200
+        response.json = AsyncMock(return_value=routes_response)
+        return MockContext(response)
+
+    session.post = Mock(side_effect=mock_post)
+
+    with patch(
+        "custom_components.llm_intents.google_routes.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            routes_hass,
+            _tool_input(
+                destination="Aquarium",
+                departure_time="2026-06-01T12:00:00Z",
+            ),
+            Mock(),
+        )
+
+    if scenario == "with_departure_time":
+        assert "departure_time" in result["result"]
+        assert "estimated_arrival" in result["result"]
+        assert result["result"]["departure_time"] == "2026-06-01T12:00:00Z"
+        routes_body = session.post.call_args_list[1].kwargs["json"]
+        assert routes_body["departureTime"] == "2026-06-01T12:00:00Z"
+    elif scenario == "no_routes":
+        assert result.get("result") == "No route found"
+    else:
+        assert result.get("error") == "Error computing route"
