@@ -202,10 +202,39 @@ async def test_brave_llm_context_search_cleanup_text_multiple_whitespace(
 
 async def test_brave_llm_context_search_cleanup_text_json_decode_error(
     tool: BraveLlmContextSearchTool,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that JSON decode errors are handled gracefully in cleanup_text."""
-    invalid_json = "not valid json { missing quotes"
+    invalid_json = "{bad data}"
 
     result = await tool.cleanup_text(invalid_json)
 
     assert result == invalid_json
+    assert "Failed to decode JSON" in caplog.text
+
+
+async def test_brave_llm_context_search_cleanup_text_json_decode_success(
+    tool: BraveLlmContextSearchTool,
+) -> None:
+    """Test that valid JSON objects wrapped in braces are parsed in cleanup_text."""
+    json_text = '{"key": "value", "nested": {"a": 1}}'
+
+    result = await tool.cleanup_text(json_text)
+
+    assert result == {"key": "value", "nested": {"a": 1}}
+
+
+async def test_brave_llm_context_search_missing_api_key(
+    hass: HomeAssistant,
+) -> None:
+    """Test that missing Brave API key raises RuntimeError."""
+    config = {
+        CONF_BRAVE_NUM_RESULTS: 2,
+    }
+    tool = BraveLlmContextSearchTool(config, hass)
+
+    with pytest.raises(
+        RuntimeError,
+        match="Brave API key not configured",
+    ):
+        await tool.async_search("test query")
