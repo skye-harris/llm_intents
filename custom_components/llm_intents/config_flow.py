@@ -203,7 +203,6 @@ async def get_brave_schema(
     schema = {
         vol.Required(
             CONF_BRAVE_API_KEY,
-            default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY),
         ): TextSelector(
             TextSelectorConfig(
                 type=TextSelectorType.PASSWORD,
