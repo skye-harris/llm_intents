@@ -4,9 +4,9 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.llm_intents.const import (
     CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
@@ -82,21 +82,19 @@ def config() -> dict:
 
 
 @pytest.fixture
-def routes_hass(mock_hass: HomeAssistant, config: dict) -> HomeAssistant:
+def routes_hass(hass: HomeAssistant, config: dict) -> HomeAssistant:
     """Configure a mock HA instance for the routes tool."""
-    mock_hass.data = {DOMAIN: {"config": config}}
-    entry = Mock(spec=ConfigEntry)
-    entry.options = {}
-    mock_hass.config_entries = Mock()
-    mock_hass.config_entries.async_entries = Mock(return_value=[entry])
+    hass.data = {DOMAIN: {"config": config}}
+    entry = MockConfigEntry(domain=DOMAIN)
+    entry.add_to_hass(hass)
     # `hass.config` is not a class attribute on the HA spec, so attach our own.
-    mock_hass.config = Mock()
-    mock_hass.config.language = "en"
-    mock_hass.config.latitude = 40.0
-    mock_hass.config.longitude = -74.0
+    hass.config = Mock()
+    hass.config.language = "en"
+    hass.config.latitude = 40.0
+    hass.config.longitude = -74.0
     # Default to metric — anything that's not US_CUSTOMARY_SYSTEM
-    mock_hass.config.units = object()
-    return mock_hass
+    hass.config.units = object()
+    return hass
 
 
 @pytest.fixture

@@ -38,9 +38,9 @@ def config() -> dict:
 
 
 @pytest.fixture
-def tool(config: dict, mock_hass: HomeAssistant) -> BraveSearchTool:
+def tool(config: dict, hass: HomeAssistant) -> BraveSearchTool:
     """Create a BraveSearchTool instance."""
-    return BraveSearchTool(config, mock_hass)
+    return BraveSearchTool(config, hass)
 
 
 @pytest.fixture

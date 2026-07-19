@@ -10,10 +10,10 @@ from custom_components.llm_intents.unit_converter import UnitConverterTool
 
 
 @pytest.fixture
-def unit_converter_tool(mock_hass: HomeAssistant) -> UnitConverterTool:
+def unit_converter_tool(hass: HomeAssistant) -> UnitConverterTool:
     """Create UnitConverterTool instance."""
     config = {"unit_converter_enabled": True}
-    return UnitConverterTool(config, mock_hass)
+    return UnitConverterTool(config, hass)
 
 
 @pytest.mark.parametrize(
@@ -34,7 +34,7 @@ def unit_converter_tool(mock_hass: HomeAssistant) -> UnitConverterTool:
     ],
 )
 async def test_temperature_conversions(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     unit_converter_tool: UnitConverterTool,
     tool_input_json: str,
     expected_value: float,
@@ -47,7 +47,7 @@ async def test_temperature_conversions(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await unit_converter_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
 
     assert "value" in result
     assert result["value"] == pytest.approx(expected_value, abs=1e-3)
@@ -67,7 +67,7 @@ async def test_temperature_conversions(
     ],
 )
 async def test_volume_conversions(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     unit_converter_tool: UnitConverterTool,
     tool_input_json: str,
     expected_value: float,
@@ -80,14 +80,14 @@ async def test_volume_conversions(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await unit_converter_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
 
     assert "value" in result
     assert result["value"] == pytest.approx(expected_value, abs=1e-3)
 
 
 async def test_temperature_to_volume_error(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     unit_converter_tool: UnitConverterTool,
 ) -> None:
     """Test converting temperature to volume returns error."""
@@ -99,14 +99,14 @@ async def test_temperature_to_volume_error(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await unit_converter_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
     assert "Cannot convert" in result["error"]
 
 
 async def test_volume_to_temperature_error(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     unit_converter_tool: UnitConverterTool,
 ) -> None:
     """Test converting volume to temperature returns error."""
@@ -118,14 +118,14 @@ async def test_volume_to_temperature_error(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await unit_converter_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
     assert "Cannot convert" in result["error"]
 
 
 async def test_unknown_temperature_unit(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     unit_converter_tool: UnitConverterTool,
 ) -> None:
     """Test unknown temperature unit returns error."""
@@ -137,7 +137,7 @@ async def test_unknown_temperature_unit(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await unit_converter_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
     assert "Unknown unit" in result["error"]

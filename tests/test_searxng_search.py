@@ -25,9 +25,9 @@ def config() -> dict:
 
 
 @pytest.fixture
-def tool(config: dict, mock_hass: HomeAssistant) -> SearXngSearchTool:
+def tool(config: dict, hass: HomeAssistant) -> SearXngSearchTool:
     """Create a SearXngSearchTool instance."""
-    return SearXngSearchTool(config, mock_hass)
+    return SearXngSearchTool(config, hass)
 
 
 @pytest.fixture

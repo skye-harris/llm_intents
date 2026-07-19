@@ -47,9 +47,9 @@ def config() -> dict:
 
 
 @pytest.fixture
-def tool(config: dict, mock_hass: HomeAssistant) -> BraveLlmContextSearchTool:
+def tool(config: dict, hass: HomeAssistant) -> BraveLlmContextSearchTool:
     """Create a BraveLlmContextSearchTool instance."""
-    return BraveLlmContextSearchTool(config, mock_hass)
+    return BraveLlmContextSearchTool(config, hass)
 
 
 @pytest.fixture
@@ -133,7 +133,7 @@ async def test_brave_llm_context_search_config_params_headers(
 
 
 async def test_brave_llm_context_search_request_failure(
-    tool: BraveLlmContextSearchTool, mock_hass: HomeAssistant
+    tool: BraveLlmContextSearchTool, hass: HomeAssistant
 ) -> None:
     """Test that HTTP errors from Brave raise RuntimeError."""
     error_response = {
