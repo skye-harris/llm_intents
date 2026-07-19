@@ -238,3 +238,55 @@ async def test_brave_llm_context_search_missing_api_key(
         match="Brave API key not configured",
     ):
         await tool.async_search("test query")
+
+
+async def test_brave_llm_context_search_no_optional_location_headers(
+    hass: HomeAssistant,
+) -> None:
+    """Test that optional location headers are omitted when not configured."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {
+            PROVIDER_BRAVE: "test_api_key",
+            PROVIDER_BRAVE_LLM: "test_llm_api_key",
+        },
+        CONF_BRAVE_NUM_RESULTS: 2,
+        CONF_BRAVE_LATITUDE: None,
+        CONF_BRAVE_LONGITUDE: None,
+        CONF_BRAVE_TIMEZONE: "",
+        CONF_BRAVE_COUNTRY_CODE: None,
+        CONF_BRAVE_POST_CODE: "",
+        CONF_BRAVE_MAX_SNIPPETS_PER_URL: 2,
+        CONF_BRAVE_MAX_TOKENS_PER_URL: 512,
+        CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
+    }
+    tool = BraveLlmContextSearchTool(config, hass)
+
+    response = {
+        "grounding": {
+            "generic": [
+                {
+                    "title": "Test Result",
+                    "snippets": ["Snippet 1"],
+                }
+            ]
+        }
+    }
+
+    session = mock_session(
+        status=200,
+        data=response,
+    )
+
+    with patch(
+        "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_search("test query")
+
+    headers = session.get.call_args[1]["headers"]
+
+    assert "X-Loc-Lat" not in headers
+    assert "X-Loc-Long" not in headers
+    assert "X-Loc-Timezone" not in headers
+    assert "X-Loc-Country" not in headers
+    assert "X-Loc-Postal-Code" not in headers
