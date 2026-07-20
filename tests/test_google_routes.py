@@ -115,49 +115,33 @@ def cache_miss() -> Any:
         yield cache_cls
 
 
-def test_format_duration_under_a_minute() -> None:
-    """Sub-minute durations render in seconds."""
-    assert _format_duration(45) == "45 seconds"
+@pytest.mark.parametrize(
+    ("seconds", "expected"),
+    [
+        (45, "45 seconds"),
+        (180, "3 min"),
+        (125, "2 min 5 sec"),
+        (7200, "2 hr"),
+        (7320, "2 hr 2 min"),
+    ],
+)
+def test_format_duration(seconds: int, expected: str) -> None:
+    """Format durations in seconds to human-readable strings."""
+    assert _format_duration(seconds) == expected
 
 
-def test_format_duration_minutes_only() -> None:
-    """Whole-minute durations render without trailing seconds."""
-    assert _format_duration(180) == "3 min"
-
-
-def test_format_duration_minutes_and_seconds() -> None:
-    """Mixed minute/second durations render both parts."""
-    assert _format_duration(125) == "2 min 5 sec"
-
-
-def test_format_duration_hours_only() -> None:
-    """Whole-hour durations render without trailing minutes."""
-    assert _format_duration(7200) == "2 hr"
-
-
-def test_format_duration_hours_and_minutes() -> None:
-    """Mixed hour/minute durations render both parts."""
-    assert _format_duration(7320) == "2 hr 2 min"
-
-
-def test_format_distance_metric_meters() -> None:
-    """Metric distances under 1 km render in meters."""
-    assert _format_distance(450, imperial=False) == "450 m"
-
-
-def test_format_distance_metric_kilometers() -> None:
-    """Metric distances at or above 1 km render in kilometers."""
-    assert _format_distance(15000, imperial=False) == "15.0 km"
-
-
-def test_format_distance_imperial_feet() -> None:
-    """Imperial distances under a tenth of a mile render in feet."""
-    assert _format_distance(50, imperial=True) == "164 ft"
-
-
-def test_format_distance_imperial_miles() -> None:
-    """Imperial distances at or above a tenth of a mile render in miles."""
-    assert _format_distance(8000, imperial=True) == "5.0 mi"
+@pytest.mark.parametrize(
+    ("metres", "imperial", "expected"),
+    [
+        (450, False, "450 m"),
+        (15000, False, "15.0 km"),
+        (50, True, "164 ft"),
+        (8000, True, "5.0 mi"),
+    ],
+)
+def test_format_distance(metres: int, imperial: bool, expected: str) -> None:
+    """Format distances in metres to human-readable strings."""
+    assert _format_distance(metres, imperial=imperial) == expected
 
 
 async def test_returns_error_without_api_key(
