@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from http import HTTPStatus
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import voluptuous as vol
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -65,6 +65,7 @@ class BraveLlmContextSearchTool(SearchWebTool):
         self,
         query: str,
         freshness: str | None = None,
+        **kwargs: Any,
     ) -> list:
         """Call the tool."""
         provider_keys = self.config.get(CONF_PROVIDER_API_KEYS) or {}
