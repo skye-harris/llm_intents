@@ -33,6 +33,9 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     TemplateSelector,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 
 from .const import (
@@ -54,7 +57,6 @@ from .const import (
     CONF_DAILY_WEATHER_ENTITY,
     CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_API_KEY,
-    CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_LATITUDE,
     CONF_GOOGLE_PLACES_LONGITUDE,
@@ -101,6 +103,7 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
+STEP_GOOGLE_API_KEY = "google_api_key"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_GOOGLE_ROUTES = "google_routes"
 STEP_YOUTUBE = "youtube"
@@ -183,16 +186,10 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
         provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
 
-    if PROVIDER_GOOGLE not in provider_keys and config_data.get(
-        CONF_GOOGLE_PLACES_API_KEY,
-    ):
-        provider_keys[PROVIDER_GOOGLE] = config_data[CONF_GOOGLE_PLACES_API_KEY]
-
     config_data[CONF_PROVIDER_API_KEYS] = provider_keys
-    # Remove form/legacy keys - store only in provider_api_keys
+    # Remove form keys - store only in provider_api_keys
     config_data.pop(CONF_BRAVE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_API_KEY, None)
-    config_data.pop(CONF_GOOGLE_PLACES_API_KEY, None)
 
 
 async def get_brave_schema(
@@ -206,8 +203,11 @@ async def get_brave_schema(
     schema = {
         vol.Required(
             CONF_BRAVE_API_KEY,
-            default=SERVICE_DEFAULTS.get(CONF_BRAVE_API_KEY),
-        ): str,
+        ): TextSelector(
+            TextSelectorConfig(
+                type=TextSelectorType.PASSWORD,
+            ),
+        ),
         vol.Required(
             CONF_BRAVE_NUM_RESULTS,
             default=SERVICE_DEFAULTS.get(CONF_BRAVE_NUM_RESULTS),
@@ -334,14 +334,25 @@ async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
     )
 
 
-async def get_google_places_schema(hass: HomeAssistant) -> vol.Schema:
-    """Return the static schema for Google Places service configuration."""
+async def get_google_api_key_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the static schema for Google API key configuration."""
     return vol.Schema(
         {
             vol.Required(
                 CONF_GOOGLE_API_KEY,
-                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
-            ): str,
+            ): TextSelector(
+                TextSelectorConfig(
+                    type=TextSelectorType.PASSWORD,
+                ),
+            ),
+        },
+    )
+
+
+async def get_google_places_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the static schema for Google Places service configuration."""
+    return vol.Schema(
+        {
             vol.Required(
                 CONF_GOOGLE_PLACES_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
@@ -408,10 +419,6 @@ async def get_google_routes_schema(hass: HomeAssistant) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
-                CONF_GOOGLE_API_KEY,
-                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
-            ): str,
-            vol.Required(
                 CONF_GOOGLE_ROUTES_HOME_ADDRESS,
                 default=SERVICE_DEFAULTS.get(CONF_GOOGLE_ROUTES_HOME_ADDRESS, ""),
             ): str,
@@ -429,18 +436,6 @@ async def get_google_routes_schema(hass: HomeAssistant) -> vol.Schema:
                     ),
                 ),
             ),
-        }
-    )
-
-
-async def get_youtube_schema(hass: HomeAssistant) -> vol.Schema:
-    """Return the static schema for YouTube service configuration."""
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_GOOGLE_API_KEY,
-                default=SERVICE_DEFAULTS.get(CONF_GOOGLE_API_KEY, ""),
-            ): str,
         },
     )
 
@@ -556,7 +551,7 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
         # For simplicity lets just enumerate directly from assist, as otherwise our own internal filtering may get in the way of this
         if api.name == "Assist":
             api_instance = await api.async_get_api_instance(
-                LLMContext(DOMAIN, None, None, None, None)
+                LLMContext(DOMAIN, None, None, None, None),
             )
             tools.extend(api_instance.tools)
 
@@ -576,9 +571,9 @@ async def get_home_control_schema(hass: HomeAssistant) -> vol.Schema:
                     options=[tool.name for tool in await enumerate_tools(hass)],
                     multiple=True,
                     mode=SelectSelectorMode.DROPDOWN,
-                )
+                ),
             ),
-        }
+        },
     )
 
 
@@ -596,9 +591,14 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         get_searxng_schema,
     ],
+    STEP_GOOGLE_API_KEY: [
+        lambda data: (
+            data.get(CONF_GOOGLE_PLACES_ENABLED) or data.get(CONF_GOOGLE_ROUTES_ENABLED)
+        ),
+        get_google_api_key_schema,
+    ],
     STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
     STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
-    STEP_YOUTUBE: [CONF_YOUTUBE_ENABLED, get_youtube_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
 
@@ -748,6 +748,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle SearXNG configuration step."""
         return await self.handle_step(STEP_SEARXNG, user_input)
 
+    async def async_step_google_api_key(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Google API key configuration step."""
+        return await self.handle_step(STEP_GOOGLE_API_KEY, user_input)
+
     async def async_step_google_places(
         self,
         user_input: dict[str, Any] | None = None,
@@ -756,17 +763,11 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_google_routes(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Google Routes configuration step."""
         return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
-
-    async def async_step_youtube(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> FlowResult:
-        """Handle YouTube configuration step."""
-        return await self.handle_step(STEP_YOUTUBE, user_input)
 
     async def async_step_wikipedia(
         self,
@@ -790,7 +791,8 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.handle_step(STEP_BASIC_UTILITIES, user_input)
 
     async def async_step_home_control(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Home Control (override Assist) configuration step in initial config flow."""
         return await self.handle_step(STEP_HOME_CONTROL, user_input)
@@ -1006,6 +1008,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle SearXNG configuration step in options flow."""
         return await self.handle_step(STEP_SEARXNG, user_input)
 
+    async def async_step_google_api_key(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Google API key configuration step in options flow."""
+        return await self.handle_step(STEP_GOOGLE_API_KEY, user_input)
+
     async def async_step_google_places(
         self,
         user_input: dict[str, Any] | None = None,
@@ -1014,17 +1023,11 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
     async def async_step_google_routes(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Google Routes configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_ROUTES, user_input)
-
-    async def async_step_youtube(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> FlowResult:
-        """Handle YouTube configuration step in options flow."""
-        return await self.handle_step(STEP_YOUTUBE, user_input)
 
     async def async_step_wikipedia(
         self,
@@ -1105,7 +1108,8 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         return await self.handle_step(STEP_WEATHER, user_input)
 
     async def async_step_home_control(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,
     ) -> config_entries.FlowResult:
         """Handle Home Control (override Assist) configuration step in options flow."""
         if user_input is None:
@@ -1118,7 +1122,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                         default=opts.get(CONF_HOME_CONTROL_ENABLED, False),
                     ): bool,
                     **base_schema.schema,
-                }
+                },
             )
             schema = self.add_suggested_values_to_schema(schema, opts)
             return self.async_show_form(

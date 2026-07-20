@@ -1,7 +1,7 @@
 """Tests for the SearXNG Web Search tool."""
 
 import re
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -25,9 +25,9 @@ def config() -> dict:
 
 
 @pytest.fixture
-def tool(config: dict, mock_hass: HomeAssistant) -> SearXngSearchTool:
+def tool(config: dict, hass: HomeAssistant) -> SearXngSearchTool:
     """Create a SearXngSearchTool instance."""
-    return SearXngSearchTool(config, mock_hass)
+    return SearXngSearchTool(config, hass)
 
 
 @pytest.fixture
@@ -114,3 +114,38 @@ async def test_searxng_search_request_failure(tool: SearXngSearchTool) -> None:
         ),
     ):
         await tool.async_search("test query")
+
+
+async def test_searxng_search_missing_url() -> None:
+    """Test that missing SearXNG URL raises RuntimeError."""
+    empty_config: dict = {}
+    tool = SearXngSearchTool(empty_config, None)
+
+    with pytest.raises(
+        RuntimeError,
+        match="SearXNG server url not configured",
+    ):
+        await tool.async_search("test query")
+
+
+async def test_searxng_search_cleanup_text_called(
+    tool: SearXngSearchTool, success_response: dict
+) -> None:
+    """Test that cleanup_text is called on each result content."""
+    mock_cleanup = AsyncMock(side_effect=lambda x: x)
+
+    with (
+        patch(
+            "custom_components.llm_intents.searxng_search.async_get_clientsession",
+            return_value=mock_session(
+                status=200,
+                data=success_response,
+            ),
+        ),
+        patch.object(tool, "cleanup_text", mock_cleanup),
+    ):
+        await tool.async_search("test query")
+
+    assert mock_cleanup.call_count == 2
+    mock_cleanup.assert_any_call("This is the content for result 1.")
+    mock_cleanup.assert_any_call("This is the content for result 2.")

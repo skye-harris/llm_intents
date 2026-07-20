@@ -47,9 +47,9 @@ def config() -> dict:
 
 
 @pytest.fixture
-def tool(config: dict, mock_hass: HomeAssistant) -> BraveLlmContextSearchTool:
+def tool(config: dict, hass: HomeAssistant) -> BraveLlmContextSearchTool:
     """Create a BraveLlmContextSearchTool instance."""
-    return BraveLlmContextSearchTool(config, mock_hass)
+    return BraveLlmContextSearchTool(config, hass)
 
 
 @pytest.fixture
@@ -164,7 +164,7 @@ async def test_brave_llm_context_search_no_freshness_by_default(
 
 
 async def test_brave_llm_context_search_request_failure(
-    tool: BraveLlmContextSearchTool, mock_hass: HomeAssistant
+    tool: BraveLlmContextSearchTool, hass: HomeAssistant
 ) -> None:
     """Test that HTTP errors from Brave raise RuntimeError."""
     error_response = {
@@ -233,10 +233,91 @@ async def test_brave_llm_context_search_cleanup_text_multiple_whitespace(
 
 async def test_brave_llm_context_search_cleanup_text_json_decode_error(
     tool: BraveLlmContextSearchTool,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that JSON decode errors are handled gracefully in cleanup_text."""
-    invalid_json = "not valid json { missing quotes"
+    invalid_json = "{bad data}"
 
     result = await tool.cleanup_text(invalid_json)
 
     assert result == invalid_json
+    assert "Failed to decode JSON" in caplog.text
+
+
+async def test_brave_llm_context_search_cleanup_text_json_decode_success(
+    tool: BraveLlmContextSearchTool,
+) -> None:
+    """Test that valid JSON objects wrapped in braces are parsed in cleanup_text."""
+    json_text = '{"key": "value", "nested": {"a": 1}}'
+
+    result = await tool.cleanup_text(json_text)
+
+    assert result == {"key": "value", "nested": {"a": 1}}
+
+
+async def test_brave_llm_context_search_missing_api_key(
+    hass: HomeAssistant,
+) -> None:
+    """Test that missing Brave API key raises RuntimeError."""
+    config = {
+        CONF_BRAVE_NUM_RESULTS: 2,
+    }
+    tool = BraveLlmContextSearchTool(config, hass)
+
+    with pytest.raises(
+        RuntimeError,
+        match="Brave API key not configured",
+    ):
+        await tool.async_search("test query")
+
+
+async def test_brave_llm_context_search_no_optional_location_headers(
+    hass: HomeAssistant,
+) -> None:
+    """Test that optional location headers are omitted when not configured."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {
+            PROVIDER_BRAVE: "test_api_key",
+            PROVIDER_BRAVE_LLM: "test_llm_api_key",
+        },
+        CONF_BRAVE_NUM_RESULTS: 2,
+        CONF_BRAVE_LATITUDE: None,
+        CONF_BRAVE_LONGITUDE: None,
+        CONF_BRAVE_TIMEZONE: "",
+        CONF_BRAVE_COUNTRY_CODE: None,
+        CONF_BRAVE_POST_CODE: "",
+        CONF_BRAVE_MAX_SNIPPETS_PER_URL: 2,
+        CONF_BRAVE_MAX_TOKENS_PER_URL: 512,
+        CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
+    }
+    tool = BraveLlmContextSearchTool(config, hass)
+
+    response = {
+        "grounding": {
+            "generic": [
+                {
+                    "title": "Test Result",
+                    "snippets": ["Snippet 1"],
+                }
+            ]
+        }
+    }
+
+    session = mock_session(
+        status=200,
+        data=response,
+    )
+
+    with patch(
+        "custom_components.llm_intents.brave_llm_context_search.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_search("test query")
+
+    headers = session.get.call_args[1]["headers"]
+
+    assert "X-Loc-Lat" not in headers
+    assert "X-Loc-Long" not in headers
+    assert "X-Loc-Timezone" not in headers
+    assert "X-Loc-Country" not in headers
+    assert "X-Loc-Postal-Code" not in headers

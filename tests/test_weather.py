@@ -9,6 +9,7 @@ import pytest
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.llm_intents.const import DOMAIN
 from custom_components.llm_intents.weather import (
@@ -22,9 +23,9 @@ from custom_components.llm_intents.weather import (
 
 
 @pytest.fixture
-def tool(mock_hass: HomeAssistant) -> WeatherForecastTool:
+def tool(hass: HomeAssistant) -> WeatherForecastTool:
     """Return an instance of the WeatherForecastTool."""
-    return WeatherForecastTool({}, mock_hass)
+    return WeatherForecastTool({}, hass)
 
 
 @pytest.mark.parametrize(
@@ -314,7 +315,7 @@ def test_has_twice_daily_data_supported(tool: WeatherForecastTool) -> None:
 )
 def test_get_current_temperature_sensor_data(
     tool: WeatherForecastTool,
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     state: str,
     expected_result: str,
 ) -> None:
@@ -324,7 +325,7 @@ def test_get_current_temperature_sensor_data(
     entity.state = state
     mock_states.get.return_value = entity
     tool.hass.states = mock_states
-    result = tool._get_current_temperature_sensor_data(mock_hass, "sensor.temperature")
+    result = tool._get_current_temperature_sensor_data(hass, "sensor.temperature")
     assert result == expected_result
 
 
@@ -335,14 +336,13 @@ def test_get_current_temperature_sensor_data(
 
 @pytest.mark.asyncio
 async def test_get_daily_forecast_with_target_date(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test getting daily forecast with a target date."""
     tool: WeatherForecastTool  # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     forecast_data = [
         {
@@ -369,7 +369,7 @@ async def test_get_daily_forecast_with_target_date(
 
     target_date = date(2026, 5, 3)
     result = await tool._get_daily_forecast(
-        mock_hass,
+        hass,
         "sensor.test_weather",
         target_date,
     )
@@ -381,14 +381,13 @@ async def test_get_daily_forecast_with_target_date(
 
 @pytest.mark.asyncio
 async def test_get_daily_forecast_without_target_date(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test getting daily forecast without a target date (all days)."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     forecast_data = [
         {
@@ -413,7 +412,7 @@ async def test_get_daily_forecast_without_target_date(
     mock_services.async_call = mock_service
     tool.hass.services = mock_services
 
-    result = await tool._get_daily_forecast(mock_hass, "sensor.test_weather", None)
+    result = await tool._get_daily_forecast(hass, "sensor.test_weather", None)
 
     assert len(result.split("\n")) >= 2
     assert "Sunny" in result
@@ -422,14 +421,13 @@ async def test_get_daily_forecast_without_target_date(
 
 @pytest.mark.asyncio
 async def test_get_daily_forecast_no_forecast(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test when no forecast data is available."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     mock_service = AsyncMock()
     mock_service.return_value = {"sensor.test_weather": {"forecast": []}}
@@ -438,7 +436,7 @@ async def test_get_daily_forecast_no_forecast(
     tool.hass.services = mock_services
 
     with pytest.raises(ForecastRetrievalError):
-        await tool._get_daily_forecast(mock_hass, "sensor.test_weather", None)
+        await tool._get_daily_forecast(hass, "sensor.test_weather", None)
 
 
 # =============================================================================
@@ -448,14 +446,13 @@ async def test_get_daily_forecast_no_forecast(
 
 @pytest.mark.asyncio
 async def test_get_twice_daily_forecast(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test getting twice-daily forecast."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     forecast_data = [
         {
@@ -484,7 +481,7 @@ async def test_get_twice_daily_forecast(
 
     target_date = date(2026, 5, 3)
     result = await tool._get_twice_daily_forecast(
-        mock_hass,
+        hass,
         "sensor.test_weather",
         target_date,
     )
@@ -497,14 +494,13 @@ async def test_get_twice_daily_forecast(
 
 @pytest.mark.asyncio
 async def test_get_twice_daily_forecast_no_twice_daily_support(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test that forecast is still returned even if entity doesn't support twice-daily."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     forecast_data = [
         {
@@ -525,7 +521,7 @@ async def test_get_twice_daily_forecast_no_twice_daily_support(
 
     target_date = date(2026, 5, 3)
     result = await tool._get_twice_daily_forecast(
-        mock_hass,
+        hass,
         "sensor.test_weather",
         target_date,
     )
@@ -535,14 +531,13 @@ async def test_get_twice_daily_forecast_no_twice_daily_support(
 
 @pytest.mark.asyncio
 async def test_get_twice_daily_forecast_no_forecast(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test when no twice-daily forecast data is available."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     mock_service = AsyncMock()
     mock_service.return_value = {"sensor.test_weather": {"forecast": []}}
@@ -551,7 +546,7 @@ async def test_get_twice_daily_forecast_no_forecast(
     tool.hass.services = mock_services
 
     with pytest.raises(ForecastRetrievalError):
-        await tool._get_twice_daily_forecast(mock_hass, "sensor.test_weather", None)
+        await tool._get_twice_daily_forecast(hass, "sensor.test_weather", None)
 
 
 # =============================================================================
@@ -562,14 +557,13 @@ async def test_get_twice_daily_forecast_no_forecast(
 @pytest.mark.asyncio
 async def test_get_hourly_forecast(
     tool: WeatherForecastTool,
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
 ) -> None:
     """Test getting hourly forecast."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     forecast_data = [
         {
@@ -624,7 +618,7 @@ async def test_get_hourly_forecast(
         )
 
         result = await tool._get_hourly_forecast(
-            mock_hass,
+            hass,
             "sensor.test_weather",
             target_date,
         )
@@ -643,14 +637,13 @@ async def test_get_hourly_forecast(
 
 @pytest.mark.asyncio
 async def test_get_hourly_forecast_no_forecast(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test when no hourly forecast data is available."""
     # Set up mock hass data and states
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {DOMAIN: {"config": {}}}
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {DOMAIN: {"config": {}}}
+    mock_entry.add_to_hass(hass)
 
     mock_service = AsyncMock()
     mock_service.return_value = {"sensor.test_weather": {"forecast": []}}
@@ -660,7 +653,7 @@ async def test_get_hourly_forecast_no_forecast(
 
     target_date = date(2026, 5, 3)
     with pytest.raises(ForecastRetrievalError):
-        await tool._get_hourly_forecast(mock_hass, "sensor.test_weather", target_date)
+        await tool._get_hourly_forecast(hass, "sensor.test_weather", target_date)
 
 
 # =============================================================================
@@ -671,7 +664,7 @@ async def test_get_hourly_forecast_no_forecast(
 @pytest.mark.asyncio
 @pytest.mark.freeze_time("2026-05-03")
 async def test_async_call_daily_forecast(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test async_call with daily forecast."""
     tool_input = llm.ToolInput(
@@ -700,16 +693,15 @@ async def test_async_call_daily_forecast(
     tool.hass.states = mock_states
 
     # Set up mock hass data and config_entries
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {
         DOMAIN: {
             "config": {
                 "weather_daily_entity": "sensor.test_weather",
             },
         },
     }
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry.add_to_hass(hass)
 
     # Make async_call return an awaitable coroutine
     async def mock_async_call(*args: object, **kwargs: Any) -> dict:
@@ -718,7 +710,7 @@ async def test_async_call_daily_forecast(
     mock_services.async_call = mock_async_call
 
     result = await tool.async_call(
-        mock_hass,
+        hass,
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
@@ -729,13 +721,13 @@ async def test_async_call_daily_forecast(
 
 @pytest.mark.asyncio
 @pytest.mark.freeze_time("2026-05-03")
-async def test_async_call_with_temperature_sensor(mock_hass: HomeAssistant) -> None:
+async def test_async_call_with_temperature_sensor(hass: HomeAssistant) -> None:
     """Test async_call with current temperature sensor included."""
     tool = WeatherForecastTool(
         {
             "current_temperature_entity": "sensor.temperature",
         },
-        mock_hass,
+        hass,
     )
 
     tool_input = llm.ToolInput(
@@ -767,8 +759,8 @@ async def test_async_call_with_temperature_sensor(mock_hass: HomeAssistant) -> N
     tool.hass.states = mock_states
 
     # Set up mock hass data and config_entries
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {
         DOMAIN: {
             "config": {
                 "weather_hourly_entity": "sensor.test_weather",
@@ -776,11 +768,10 @@ async def test_async_call_with_temperature_sensor(mock_hass: HomeAssistant) -> N
             },
         },
     }
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry.add_to_hass(hass)
 
     result = await tool.async_call(
-        mock_hass,
+        hass,
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
@@ -800,7 +791,7 @@ async def test_async_call_with_temperature_sensor(mock_hass: HomeAssistant) -> N
 
 @pytest.mark.asyncio
 async def test_async_call_no_forecast_available(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test async_call when no forecast is available."""
     tool_input = llm.ToolInput(
@@ -820,19 +811,18 @@ async def test_async_call_no_forecast_available(
     tool.hass.states.get.return_value = mock_entity
 
     # Set up mock hass data and config_entries
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {
         DOMAIN: {
             "config": {
                 "weather_daily_entity": "sensor.test_weather",
             },
         },
     }
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry.add_to_hass(hass)
 
     result = await tool.async_call(
-        mock_hass,
+        hass,
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
@@ -843,7 +833,7 @@ async def test_async_call_no_forecast_available(
 
 @pytest.mark.asyncio
 async def test_async_call_error_handling(
-    tool: WeatherForecastTool, mock_hass: HomeAssistant
+    tool: WeatherForecastTool, hass: HomeAssistant
 ) -> None:
     """Test async_call error handling."""
     tool_input = llm.ToolInput(
@@ -859,22 +849,120 @@ async def test_async_call_error_handling(
     tool.hass.states.get.return_value = None
 
     # Set up mock hass data and config_entries
-    mock_entry = MagicMock(options={})
-    mock_hass.data = {
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {
         DOMAIN: {
             "config": {
                 "weather_daily_entity": "sensor.test_weather",
             },
         },
     }
-    mock_hass.config_entries = MagicMock()
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_entry.add_to_hass(hass)
 
     result = await tool.async_call(
-        mock_hass,
+        hass,
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
 
     assert "error" in result
     assert "Error retrieving weather forecast" in result["error"]
+
+
+@pytest.mark.freeze_time("2026-01-01")
+def test_format_date_returns_today() -> None:
+    """Test formatting when the forecast date matches today."""
+    result = WeatherForecastTool._format_date("2026-01-01T00:00:00+00:00")
+    assert result == "Today (Thursday)"
+
+
+@pytest.mark.asyncio
+@pytest.mark.freeze_time("2026-05-03")
+async def test_async_call_twice_daily_forecast(
+    tool: WeatherForecastTool, hass: HomeAssistant
+) -> None:
+    """Test async_call takes the twice-daily forecast path."""
+    tool_input = llm.ToolInput(
+        tool_args={"range": "tomorrow"},
+        tool_name="get_weather_forecast",
+    )
+
+    forecast_data = [
+        {
+            "datetime": "2026-05-04T00:00:00+00:00",
+            "temperature": 22,
+            "templow": 17,
+            "condition": "Sunny",
+            "precipitation_probability": 30,
+            "is_daytime": True,
+        },
+        {
+            "datetime": "2026-05-04T00:00:00+00:00",
+            "temperature": 16,
+            "templow": 12,
+            "condition": "Clear",
+            "precipitation_probability": 10,
+            "is_daytime": False,
+        },
+    ]
+
+    mock_service = AsyncMock()
+    mock_service.return_value = {"sensor.test_weather": {"forecast": forecast_data}}
+    mock_services = MagicMock()
+    mock_services.async_call = mock_service
+    tool.hass.services = mock_services
+
+    mock_entity = MagicMock()
+    mock_entity.attributes = {
+        "supported_features": WeatherEntityFeature.FORECAST_TWICE_DAILY
+    }
+    tool.hass.states = MagicMock()
+    tool.hass.states.get.return_value = mock_entity
+
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {
+        DOMAIN: {
+            "config": {
+                "weather_daily_entity": "sensor.test_weather",
+            },
+        },
+    }
+    mock_entry.add_to_hass(hass)
+
+    result = await tool.async_call(
+        hass,
+        tool_input,
+        MagicMock(spec=llm.LLMContext),
+    )
+
+    assert "daytime" in result
+    assert "nighttime" in result
+    assert "Sunny" in result
+    assert "Clear" in result
+
+
+@pytest.mark.asyncio
+async def test_async_call_no_forecast_fallback(
+    tool: WeatherForecastTool, hass: HomeAssistant
+) -> None:
+    """Test async_call returns fallback message when no forecast is available."""
+    tool_input = llm.ToolInput(
+        tool_args={"range": "week"},
+        tool_name="get_weather_forecast",
+    )
+
+    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
+    hass.data = {
+        DOMAIN: {
+            "config": {},
+        },
+    }
+    mock_entry.add_to_hass(hass)
+
+    result = await tool.async_call(
+        hass,
+        tool_input,
+        MagicMock(spec=llm.LLMContext),
+    )
+
+    assert result == "No weather forecast available for the selected range"

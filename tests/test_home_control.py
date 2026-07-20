@@ -3,12 +3,12 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.area_registry import AreaEntry, AreaRegistry
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistry
 from homeassistant.helpers.floor_registry import FloorEntry, FloorRegistry
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.llm_intents.const import (
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
@@ -20,17 +20,17 @@ from custom_components.llm_intents.home_control import HomeControlAPI
 
 
 @pytest.fixture
-def config_entry() -> ConfigEntry:
+def config_entry() -> MockConfigEntry:
     """Mock ConfigEntry with home control settings."""
-    entry = MagicMock(spec=ConfigEntry)
-    entry.domain = DOMAIN
-    entry.entry_id = "test_home_control_entry"
-    entry.data = {"some_config": "value"}
-    entry.options = {
-        CONF_HOME_CONTROL_PROMPT_TEMPLATE: CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
-        CONF_HOME_CONTROL_DISABLED_TOOLS: [],
-    }
-    return entry
+    return MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="test_home_control_entry",
+        data={"some_config": "value"},
+        options={
+            CONF_HOME_CONTROL_PROMPT_TEMPLATE: CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
+            CONF_HOME_CONTROL_DISABLED_TOOLS: [],
+        },
+    )
 
 
 @pytest.fixture
@@ -64,13 +64,14 @@ def mock_exposed_entities() -> dict:
 
 
 async def test_get_tools_filters_disabled_tools(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     mock_llm_context_no_device: llm.LLMContext,
-    config_entry: ConfigEntry,
+    config_entry: MockConfigEntry,
 ) -> None:
     """Test that tools in disabled_tools list are filtered out."""
+    hass.data = {DOMAIN: {"config": {}}}
     config_entry.options[CONF_HOME_CONTROL_DISABLED_TOOLS].append("HassTimerStart")
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
+    config_entry.add_to_hass(hass)
 
     mock_tool_timer_start = MagicMock()
     mock_tool_timer_start.name = "HassTimerStart"
@@ -86,7 +87,7 @@ async def test_get_tools_filters_disabled_tools(
             ]
         ),
     ):
-        api = HomeControlAPI(mock_hass)
+        api = HomeControlAPI(hass)
         result = api._async_get_tools(mock_llm_context_no_device, None)
 
         assert len(result) == 1
@@ -94,13 +95,14 @@ async def test_get_tools_filters_disabled_tools(
 
 
 async def test_async_get_api_prompt_generates_correct_prompt(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     mock_llm_context_with_device: llm.LLMContext,
-    config_entry: ConfigEntry,
+    config_entry: MockConfigEntry,
     mock_exposed_entities: dict,
 ) -> None:
     """Test that _async_get_api_prompt returns rendered prompt with context."""
-    mock_hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
+    hass.data = {DOMAIN: {"config": {}}}
+    config_entry.add_to_hass(hass)
 
     # Mock device, area, and floor registry lookups
     device = MagicMock(spec=DeviceEntry)
@@ -135,7 +137,7 @@ async def test_async_get_api_prompt_generates_correct_prompt(
             CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
         ),
     ):
-        api = HomeControlAPI(mock_hass)
+        api = HomeControlAPI(hass)
         result = api._async_get_api_prompt(
             mock_llm_context_with_device, mock_exposed_entities
         )

@@ -10,10 +10,10 @@ from custom_components.llm_intents.calculator import CalculatorTool
 
 
 @pytest.fixture
-def calculator_tool(mock_hass: HomeAssistant) -> CalculatorTool:
+def calculator_tool(hass: HomeAssistant) -> CalculatorTool:
     """Create CalculatorTool instance."""
     config = {"calculator_enabled": True}
-    return CalculatorTool(config, mock_hass)
+    return CalculatorTool(config, hass)
 
 
 @pytest.mark.parametrize(
@@ -38,7 +38,7 @@ def calculator_tool(mock_hass: HomeAssistant) -> CalculatorTool:
     ],
 )
 async def test_calculator_operations(
-    mock_hass: HomeAssistant,
+    hass: HomeAssistant,
     calculator_tool: CalculatorTool,
     tool_input_json: str,
     expected_value: float | str,
@@ -51,14 +51,14 @@ async def test_calculator_operations(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await calculator_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
     assert "value" in result
     assert result["value"] == expected_value
 
 
 async def test_calculator_invalid_operation(
-    mock_hass: HomeAssistant, calculator_tool: CalculatorTool
+    hass: HomeAssistant, calculator_tool: CalculatorTool
 ) -> None:
     """Test invalid operation returns error dict."""
     tool_input = llm.ToolInput(
@@ -68,14 +68,14 @@ async def test_calculator_invalid_operation(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await calculator_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
     assert "Unknown operation" in result["error"]
 
 
 async def test_calculator_empty_data(
-    mock_hass: HomeAssistant, calculator_tool: CalculatorTool
+    hass: HomeAssistant, calculator_tool: CalculatorTool
 ) -> None:
     """Test empty data list raises error."""
     tool_input = llm.ToolInput(
@@ -85,13 +85,13 @@ async def test_calculator_empty_data(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await calculator_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
 
 
 async def test_calculator_invalid_expression(
-    mock_hass: HomeAssistant, calculator_tool: CalculatorTool
+    hass: HomeAssistant, calculator_tool: CalculatorTool
 ) -> None:
     """Test invalid expression raises error."""
     tool_input = llm.ToolInput(
@@ -102,6 +102,6 @@ async def test_calculator_invalid_expression(
         platform="test", context=None, language="en", assistant=None, device_id=None
     )
 
-    result = await calculator_tool.async_call(mock_hass, tool_input, llm_context)
+    result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
