@@ -2,6 +2,7 @@
 
 import logging
 from http import HTTPStatus
+from typing import Any
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -27,6 +28,7 @@ class BraveSearchTool(SearchWebTool):
     async def async_search(
         self,
         query: str,
+        **kwargs: Any,
     ) -> list:
         """Call the tool."""
         provider_keys = self.config.get(CONF_PROVIDER_API_KEYS) or {}

@@ -7,10 +7,12 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
           "weather_enabled": "Enable Weather Forecast",
-          "basic_utilities_enabled": "Enable Basic Utilities"
+          "basic_utilities_enabled": "Enable Basic Utilities",
+          "home_control_enabled": "Enable Home Control API"
         }
       },
       "brave": {
@@ -54,11 +56,17 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "google_api_key": {
+        "title": "Configure Google API Key",
+        "description": "Enter your Google API key. This key is shared by Google Places and Google Routes.",
+        "data": {
+          "google_api_key": "Google API Key"
+        }
+      },
       "google_places": {
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
         "data": {
-          "google_api_key": "Google API Key",
           "google_places_rank_preference": "Rank Preference",
           "google_places_num_results": "Number of Results",
           "google_places_latitude": "Location Bias Latitude (optional)",
@@ -66,11 +74,16 @@
           "google_places_radius": "Location Bias Radius (KM)"
         }
       },
-      "youtube": {
-        "title": "Configure YouTube Search",
-        "description": "Configure YouTube search settings. Uses the same Google API key as Google Places.",
+      "google_routes": {
+        "title": "Configure Google Routes",
+        "description": "Configure Google Routes API settings.",
         "data": {
-          "google_api_key": "Google API Key"
+          "google_routes_home_address": "Home Address",
+          "google_routes_default_travel_mode": "Default Travel Mode"
+        },
+        "data_description": {
+          "google_routes_home_address": "Starting point for route calculations (e.g. '123 Main St, Springfield, IL')",
+          "google_routes_default_travel_mode": "Travel mode used when the assistant doesn't specify one"
         }
       },
       "wikipedia": {
@@ -102,6 +115,19 @@
           "unit_converter_enabled": "Enable Unit Converter",
           "date_info_enabled": "Enable Calendar Day Info"
         }
+      },
+      "home_control": {
+        "title": "Configure Home Control API",
+        "description": "Take control of Home Assistants inbuilt **Assist** platform by customising the hidden prompt and disabling any unwanted tools. You must disable the **Assist** tools from your Conversation Agents when utilising this.",
+        "data": {
+          "home_control_prompt": "System Prompt",
+          "home_control_enabled": "Enable Home Control API",
+          "home_control_disabled_tools": "Disabled Tools"
+        },
+        "data_description": {
+          "home_control_prompt": "Override the hidden tooling prompt that is injected by the Assist API. This can be useful if this contains conflicts with your Conversation Agents prompt",
+          "home_control_disabled_tools": "Disable any of the standard Assist platform tools that you do not wish your model to have access to."
+        }
       }
     },
     "abort": {
@@ -116,7 +142,8 @@
         "menu_options": {
           "configure": "Configure Search Services",
           "configure_weather": "Configure Weather Forecast",
-          "configure_basic_utilities": "Configure Basic Utilities"
+          "configure_basic_utilities": "Configure Basic Utilities",
+          "home_control": "Configure Home Control API"
         }
       },
       "configure": {
@@ -125,6 +152,7 @@
         "data": {
           "search_provider": "Web Search Provider",
           "google_places_enabled": "Enable Google Places",
+          "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search"
         }
@@ -177,11 +205,17 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "google_api_key": {
+        "title": "Configure Google API Key",
+        "description": "Enter your Google API key. This key is shared by Google Places and Google Routes.",
+        "data": {
+          "google_api_key": "Google API Key"
+        }
+      },
       "google_places": {
         "title": "Configure Google Places",
         "description": "Configure Google Places API settings.",
         "data": {
-          "google_api_key": "Google API Key",
           "google_places_rank_preference": "Rank Preference",
           "google_places_num_results": "Number of Results",
           "google_places_latitude": "Location Bias Latitude (optional)",
@@ -189,11 +223,16 @@
           "google_places_radius": "Location Bias Radius (KM)"
         }
       },
-      "youtube": {
-        "title": "Configure YouTube Search",
-        "description": "Configure YouTube search settings. Uses the same Google API key as Google Places.",
+      "google_routes": {
+        "title": "Configure Google Routes",
+        "description": "Configure Google Routes API settings.",
         "data": {
-          "google_api_key": "Google API Key"
+          "google_routes_home_address": "Home Address",
+          "google_routes_default_travel_mode": "Default Travel Mode"
+        },
+        "data_description": {
+          "google_routes_home_address": "Starting point for route calculations (e.g. '123 Main St, Springfield, IL')",
+          "google_routes_default_travel_mode": "Travel mode used when the assistant doesn't specify one"
         }
       },
       "wikipedia": {
@@ -231,6 +270,19 @@
           "calculator_enabled": "Enable Calculator",
           "unit_converter_enabled": "Enable Unit Converter",
           "date_info_enabled": "Enable Calendar Day Info"
+        }
+      },
+      "home_control": {
+        "title": "Configure Home Control API",
+        "description": "Take control of Home Assistants inbuilt **Assist** platform by customising the hidden prompt and disabling any unwanted tools. You must disable the **Assist** tools from your Conversation Agents when utilising this.",
+        "data": {
+          "home_control_prompt": "Tooling Prompt",
+          "home_control_enabled": "Enable Home Control API",
+          "home_control_disabled_tools": "Disabled Tools"
+        },
+        "data_description": {
+          "home_control_prompt": "Override the hidden tooling prompt that is injected by the Assist API. This can be useful if this contains conflicts with your Conversation Agents prompt",
+          "home_control_disabled_tools": "Disable any of the standard Assist platform tools that you do not wish your model to have access to."
         }
       }
     }
