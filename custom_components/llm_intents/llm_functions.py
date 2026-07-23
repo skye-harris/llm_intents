@@ -15,7 +15,6 @@ from .calculator import CalculatorTool
 from .const import (
     BASIC_UTILITIES_API_NAME,
     BASIC_UTILITIES_SERVICES_PROMPT,
-    CONF_BASIC_UTILITIES_ENABLED,
     CONF_CALCULATOR_ENABLED,
     CONF_DATE_INFO_ENABLED,
     CONF_GOOGLE_PLACES_ENABLED,
@@ -72,6 +71,10 @@ WEATHER_CONF_ENABLED_MAP = [
     (CONF_WEATHER_ENABLED, WeatherForecastTool),
 ]
 
+HOME_CONTROL_CONF_ENABLED_MAP = [
+    (CONF_HOME_CONTROL_ENABLED, EntityHistoryTool),
+]
+
 # Media tools are enabled when YouTube is enabled
 MEDIA_CONF_ENABLED_MAP = [
     (CONF_YOUTUBE_ENABLED, PlayVideoTool),
@@ -81,7 +84,6 @@ BASIC_UTILITIES_CONF_ENABLED_MAP = [
     (CONF_CALCULATOR_ENABLED, CalculatorTool),
     (CONF_UNIT_CONVERTER_ENABLED, UnitConverterTool),
     (CONF_DATE_INFO_ENABLED, DateInfoTool),
-    (CONF_BASIC_UTILITIES_ENABLED, EntityHistoryTool),
 ]
 
 
