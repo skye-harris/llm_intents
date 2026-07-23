@@ -18,6 +18,7 @@ from homeassistant.helpers import (
     template,
 )
 from homeassistant.helpers.llm import AssistAPI, LLMContext, Tool
+from .entity_history import EntityHistoryTool
 
 from .const import (
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
@@ -97,6 +98,7 @@ class HomeControlAPI(AssistAPI):
         config_data = {**config_data, **entry.options}
 
         tools = super()._async_get_tools(llm_context, exposed_entities)
+        tools.append(EntityHistoryTool(config_data, self.hass))
 
         # Filter by the disabled tools rule
         return [

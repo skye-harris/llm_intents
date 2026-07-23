@@ -35,7 +35,6 @@ from .const import (
     WEATHER_SERVICES_PROMPT,
 )
 from .date_info import DateInfoTool
-from .entity_history import EntityHistoryTool
 from .google_places import FindPlacesTool
 from .google_routes import GetRouteTool
 from .home_control import HomeControlAPI
@@ -69,10 +68,6 @@ SEARCH_CONF_ENABLED_MAP = [
 
 WEATHER_CONF_ENABLED_MAP = [
     (CONF_WEATHER_ENABLED, WeatherForecastTool),
-]
-
-HOME_CONTROL_CONF_ENABLED_MAP = [
-    (CONF_HOME_CONTROL_ENABLED, EntityHistoryTool),
 ]
 
 # Media tools are enabled when YouTube is enabled
