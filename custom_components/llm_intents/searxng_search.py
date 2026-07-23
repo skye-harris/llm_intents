@@ -2,6 +2,7 @@
 
 import logging
 from http import HTTPStatus
+from typing import Any
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -20,6 +21,7 @@ class SearXngSearchTool(SearchWebTool):
     async def async_search(
         self,
         query: str,
+        **kwargs: Any,
     ) -> list:
         """Call the tool."""
         url = self.config.get(CONF_SEARXNG_URL)

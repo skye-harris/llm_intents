@@ -3,6 +3,7 @@
 import html
 import logging
 import re
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -49,7 +50,7 @@ class SearchWebTool(BaseTool):
         text = re.sub(r"<[^>]+>", "", text)
         return re.sub(r"\s+", " ", text).strip()
 
-    async def async_search(self, query: str) -> list:
+    async def async_search(self, query: str, **kwargs: Any) -> list:
         """Perform a search in our subclasses."""
 
     async def async_call(
@@ -59,20 +60,28 @@ class SearchWebTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        query = tool_input.tool_args["query"]
+        tool_args = tool_input.tool_args
+        query = tool_args["query"]
+        search_kwargs = {
+            key: value
+            for key, value in tool_args.items()
+            if key != "query" and value is not None
+        }
+
         _LOGGER.info("Web search requested for: %s", query)
 
         try:
             cache = SQLiteCache()
-            cached_response = cache.get(__name__, {"query": query})
+            cache_key = {"query": query, **search_kwargs}
+            cached_response = cache.get(__name__, cache_key)
             if cached_response:
                 return self.with_instructions(cached_response)
 
-            results = await self.async_search(query)
+            results = await self.async_search(query, **search_kwargs)
             response = {"results": results or "No results found"}
 
             if results:
-                cache.set(__name__, {"query": query}, response)
+                cache.set(__name__, cache_key, response)
                 return self.with_instructions(response)
 
             return response

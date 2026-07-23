@@ -221,8 +221,6 @@ Static Context: An overview of the areas and the devices in this smart home:
 # Service defaults
 
 SERVICE_DEFAULTS = {
-    CONF_GOOGLE_API_KEY: "",
-    CONF_BRAVE_API_KEY: "",
     CONF_BRAVE_NUM_RESULTS: 2,
     CONF_BRAVE_LATITUDE: "",
     CONF_BRAVE_LONGITUDE: "",

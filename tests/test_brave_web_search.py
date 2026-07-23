@@ -31,16 +31,16 @@ def config() -> dict:
         CONF_BRAVE_NUM_RESULTS: 5,
         CONF_BRAVE_LATITUDE: "123.456",
         CONF_BRAVE_LONGITUDE: "-12.345",
-        CONF_BRAVE_TIMEZONE: "",
-        CONF_BRAVE_COUNTRY_CODE: None,
-        CONF_BRAVE_POST_CODE: "",
+        CONF_BRAVE_TIMEZONE: "America/New_York",
+        CONF_BRAVE_COUNTRY_CODE: "US",
+        CONF_BRAVE_POST_CODE: "12345",
     }
 
 
 @pytest.fixture
-def tool(config: dict, mock_hass: HomeAssistant) -> BraveSearchTool:
+def tool(config: dict, hass: HomeAssistant) -> BraveSearchTool:
     """Create a BraveSearchTool instance."""
-    return BraveSearchTool(config, mock_hass)
+    return BraveSearchTool(config, hass)
 
 
 @pytest.fixture
@@ -111,11 +111,12 @@ async def test_brave_search_config_params_headers(
     assert headers["X-Subscription-Token"] == "test_api_key"
     assert headers["X-Loc-Lat"] == "123.456"
     assert headers["X-Loc-Long"] == "-12.345"
+    assert headers["X-Loc-Timezone"] == "America/New_York"
+    assert headers["X-Loc-Country"] == "US"
+    assert headers["X-Loc-Postal-Code"] == "12345"
 
-    # Verify no timezone, country, or post code headers (not configured)
-    assert "X-Loc-Timezone" not in headers
-    assert "X-Loc-Country" not in headers
-    assert "X-Loc-Postal-Code" not in headers
+    # Verify country param
+    assert params["country"] == "US"
 
 
 async def test_brave_search_request_failure(tool: BraveSearchTool) -> None:
@@ -137,3 +138,96 @@ async def test_brave_search_request_failure(tool: BraveSearchTool) -> None:
         ),
     ):
         await tool.async_search("test query")
+
+
+async def test_brave_search_missing_api_key(hass: HomeAssistant) -> None:
+    """Test that missing Brave API key raises RuntimeError."""
+    config = {
+        CONF_BRAVE_NUM_RESULTS: 2,
+    }
+    tool = BraveSearchTool(config, hass)
+
+    with pytest.raises(
+        RuntimeError,
+        match="Brave API key not configured",
+    ):
+        await tool.async_search("test query")
+
+
+async def test_brave_search_no_extra_snippets_fallback(
+    tool: BraveSearchTool,
+) -> None:
+    """Test that results without extra_snippets fall back to description."""
+    response = {
+        "web": {
+            "results": [
+                {
+                    "title": "No Snippets Result",
+                    "description": "Fallback description text",
+                    "extra_snippets": [],
+                }
+            ]
+        }
+    }
+
+    with patch(
+        "custom_components.llm_intents.brave_web_search.async_get_clientsession",
+        return_value=mock_session(
+            status=200,
+            data=response,
+        ),
+    ):
+        result = await tool.async_search("test query")
+
+    assert len(result) == 1
+    assert result[0]["title"] == "No Snippets Result"
+    assert result[0]["content"] == "Fallback description text"
+
+
+async def test_brave_search_no_optional_location_headers(hass: HomeAssistant) -> None:
+    """Test that optional location headers are omitted when not configured."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {
+            PROVIDER_BRAVE: "test_api_key",
+        },
+        CONF_BRAVE_NUM_RESULTS: 2,
+        CONF_BRAVE_LATITUDE: None,
+        CONF_BRAVE_LONGITUDE: None,
+        CONF_BRAVE_TIMEZONE: "",
+        CONF_BRAVE_COUNTRY_CODE: None,
+        CONF_BRAVE_POST_CODE: "",
+    }
+    tool = BraveSearchTool(config, hass)
+
+    response = {
+        "web": {
+            "results": [
+                {
+                    "title": "Test Result",
+                    "description": "Test description",
+                    "extra_snippets": ["Snippet 1"],
+                }
+            ]
+        }
+    }
+
+    session = mock_session(
+        status=200,
+        data=response,
+    )
+
+    with patch(
+        "custom_components.llm_intents.brave_web_search.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_search("test query")
+
+    headers = session.get.call_args[1]["headers"]
+    params = session.get.call_args[1]["params"]
+
+    assert "X-Loc-Lat" not in headers
+    assert "X-Loc-Long" not in headers
+    assert "X-Loc-Timezone" not in headers
+    assert "X-Loc-Country" not in headers
+    assert "X-Loc-Postal-Code" not in headers
+    assert "country" not in params

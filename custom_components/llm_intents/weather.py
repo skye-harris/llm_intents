@@ -92,6 +92,8 @@ def _build_attributes(
     for attribute in attribute_list:
         if attribute.key in weather_data:
             attr_data = weather_data.get(attribute.key)
+            if attr_data is None:
+                continue
             output.append(
                 f"  {attribute.name}: {attribute.formatter(attr_data) if attribute.formatter else attr_data}",
             )

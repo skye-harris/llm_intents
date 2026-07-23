@@ -1,4 +1,14 @@
-homeassistant==2026.4.0
+flake8
+flake8-docstrings
+pytest
+pytest-cov
+pytest-homeassistant-custom-component
+pytest-asyncio
+pytest-freezer
+pytest-tornasync
+pytest-trio
+pre-commit
+homeassistant
 aiohttp
 ruff
 voluptuous

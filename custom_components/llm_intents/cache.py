@@ -15,6 +15,8 @@ class SQLiteCache:
     """Simple SQLite cache for our network requests."""
 
     _instance = None
+    _conn = None
+
     DEFAULT_MAX_AGE = 7200  # 2 hour
 
     def __new__(cls) -> Self:
@@ -23,6 +25,11 @@ class SQLiteCache:
             cls._instance = super().__new__(cls)
             cls._instance._init_db()  # noqa:  SLF001
         return cls._instance
+
+    def __del__(self) -> None:
+        """Ensure connection is closed when garbage collected."""
+        if self._conn is not None:
+            self._conn.close()
 
     def _init_db(self) -> None:
         """Init the DB for our cache."""
