@@ -548,10 +548,12 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
     tools = []
     apis = llm.async_get_apis(hass)
     for api in apis:
-        api_instance = await api.async_get_api_instance(
-            LLMContext(DOMAIN, None, None, "conversation", None),
-        )
-        tools.extend(api_instance.tools)
+        # For simplicity lets just enumerate directly from assist, as otherwise our own internal filtering may get in the way of this
+        if api.name == "Assist":
+            api_instance = await api.async_get_api_instance(
+                LLMContext(DOMAIN, None, None, "conversation", None),
+            )
+            tools.extend(api_instance.tools)
 
     return tools
 
