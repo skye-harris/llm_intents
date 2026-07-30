@@ -555,6 +555,8 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
             )
             tools.extend(api_instance.tools)
 
+    tools.sort(key=lambda tool: tool.name)
+
     return tools
 
 
