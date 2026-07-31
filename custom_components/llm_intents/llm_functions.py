@@ -22,6 +22,7 @@ from .const import (
     CONF_HOME_CONTROL_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
+    CONF_SEARCH_PROVIDER_SERPBASE,
     CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -40,6 +41,7 @@ from .google_routes import GetRouteTool
 from .home_control import HomeControlAPI
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
+from .serpbase_web_search import SerpBaseSearchTool
 from .unit_converter import UnitConverterTool
 from .weather import WeatherForecastTool
 from .wikipedia import SearchWikipediaTool
@@ -59,6 +61,10 @@ SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         SearXngSearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SERPBASE,
+        SerpBaseSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_GOOGLE_ROUTES_ENABLED, GetRouteTool),
