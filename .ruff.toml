@@ -11,6 +11,7 @@ ignore = [
     "D203", # no-blank-line-before-class (incompatible with formatter)
     "D212", # multi-line-summary-first-line (incompatible with formatter)
     "COM812", # incompatible with formatter
+    "CPY001", # missing-copyright-notice
 
     # Temporary exceptions for Ruff implementation
     "PERF401", # manual-list-comprehension
@@ -37,6 +38,7 @@ max-complexity = 25
 "**/tests/*" = [
     "EM101", # Exception must not use a string literal
     "PLR0913", # Too many arguments in function definition
+    "PLR0917", # Too many positional arguments (pytest fixtures/parametrize)
     "PLR2004", # Magic numbers
     "S101", # Use of assert
     "SLF001", # Private member accessed
