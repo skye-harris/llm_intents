@@ -58,7 +58,7 @@ class HomeControlAPI(AssistAPI):
         tools = [tool for tool in llm_tools.tools if tool.name not in disabled_tools]
 
         # todo: entity tool addition is temporary here, need to handle for tool filtering properly in UI
-        tools.append(EntityHistoryTool(config_data, self.hass))
+        tools.append(EntityHistoryTool(self._get_config_data(), self.hass))
 
         return llm.APIInstance(
             api=self,
