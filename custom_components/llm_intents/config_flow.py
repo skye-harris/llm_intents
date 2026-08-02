@@ -580,13 +580,8 @@ async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
     return sorted(tools.values(), key=lambda tool: tool.name)
 
 
-async def get_home_control_schema(
-    hass: HomeAssistant, disabled_tools: list[str] | None = None
-) -> vol.Schema:
+async def get_home_control_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Home Control configuration."""
-    tool_names = {tool.name for tool in await enumerate_tools(hass)}
-    tool_names.update(disabled_tools or [])
-
     return vol.Schema(
         {
             vol.Optional(
@@ -595,7 +590,7 @@ async def get_home_control_schema(
             ): TemplateSelector(),
             vol.Required(CONF_HOME_CONTROL_DISABLED_TOOLS, default=[]): SelectSelector(
                 SelectSelectorConfig(
-                    options=sorted(tool_names),
+                    options=[tool.name for tool in await enumerate_tools(hass)],
                     multiple=True,
                     mode=SelectSelectorMode.DROPDOWN,
                 ),
@@ -1141,10 +1136,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle Home Control (override Assist) configuration step in options flow."""
         if user_input is None:
             opts = {**self.config_entry.data, **(self.config_entry.options or {})}
-            base_schema = await get_home_control_schema(
-                self.hass,
-                opts.get(CONF_HOME_CONTROL_DISABLED_TOOLS, []),
-            )
+            base_schema = await get_home_control_schema(self.hass)
             schema = vol.Schema(
                 {
                     vol.Optional(
