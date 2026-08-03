@@ -18,8 +18,10 @@ from zoneinfo import available_timezones
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components.intent import async_device_supports_timers
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
 from homeassistant.helpers.llm import LLMContext
 from homeassistant.helpers.selector import (
@@ -579,21 +581,39 @@ async def get_brave_llm_schema(
     return await get_brave_schema(hass, is_llm_context_search=True)
 
 
+def get_timer_device_id(hass: HomeAssistant) -> str | None:
+    """Return a timer-capable device id, if one is available."""
+    device_reg = dr.async_get(hass)
+    for device in device_reg.devices.values():
+        if async_device_supports_timers(hass, device.id):
+            return device.id
+
+    return None
+
+
 async def enumerate_tools(hass: HomeAssistant) -> list[llm.Tool]:
     """Enumerate available tools for the Assist API."""
-    tools = []
+    tools: dict[str, llm.Tool] = {}
+    llm_contexts = [LLMContext(DOMAIN, None, None, "conversation", None)]
+    if timer_device_id := get_timer_device_id(hass):
+        llm_contexts.append(
+            LLMContext(DOMAIN, None, None, "conversation", timer_device_id)
+        )
+
     apis = llm.async_get_apis(hass)
     for api in apis:
         # For simplicity lets just enumerate directly from assist, as otherwise our own internal filtering may get in the way of this
-        if api.name == "Assist":
+        if api.id != llm.LLM_API_ASSIST:
+            continue
+
+        for llm_context in llm_contexts:
             api_instance = await api.async_get_api_instance(
-                LLMContext(DOMAIN, None, None, "conversation", None),
+                llm_context,
             )
-            tools.extend(api_instance.tools)
+            for tool in api_instance.tools:
+                tools.setdefault(tool.name, tool)
 
-    tools.sort(key=lambda tool: tool.name)
-
-    return tools
+    return sorted(tools.values(), key=lambda tool: tool.name)
 
 
 async def get_home_control_schema(hass: HomeAssistant) -> vol.Schema:
