@@ -56,6 +56,17 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "serpbase": {
+        "title": "Configure SerpBase Web Search",
+        "description": "Configure SerpBase Google Search API settings.",
+        "data": {
+          "serpbase_api_key": "API Key",
+          "serpbase_num_results": "Number of Results"
+        },
+        "data_description": {
+          "serpbase_api_key": "Get a key at https://serpbase.dev (100 free searches, no credit card required)"
+        }
+      },
       "google_api_key": {
         "title": "Configure Google API Key",
         "description": "Enter your Google API key. This key is shared by Google Places and Google Routes.",
@@ -203,6 +214,17 @@
         },
         "data_description": {
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
+        }
+      },
+      "serpbase": {
+        "title": "Configure SerpBase Web Search",
+        "description": "Configure SerpBase Google Search API settings.",
+        "data": {
+          "serpbase_api_key": "API Key",
+          "serpbase_num_results": "Number of Results"
+        },
+        "data_description": {
+          "serpbase_api_key": "Get a key at https://serpbase.dev (100 free searches, no credit card required)"
         }
       },
       "google_api_key": {

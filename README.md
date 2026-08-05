@@ -2,7 +2,7 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _SearXNG_ or _SerpBase_
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
@@ -148,6 +148,29 @@ Uses a self-hosted SearXNG search service to return summarized results.
 | Setting             | Required | Default | Description                             |
 |---------------------|----------|---------|-----------------------------------------|
 | `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM |
+
+---
+
+### 🔍 SerpBase Web Search
+
+Uses the SerpBase Google Search Results API to return Google-ranked, snippet-rich results without running a browser or maintaining scrapers.
+
+##### Requirements
+
+* Requires a [SerpBase API key](https://serpbase.dev). 100 free searches per month, no credit card required.
+
+#### Configuration Steps
+
+1. Select "SerpBase" as the search provider during setup.
+2. Enter your [SerpBase API key](https://serpbase.dev/dashboard/api-keys).
+3. Configure the number of results to provide to the LLM.
+
+#### Options
+
+| Setting             | Required | Default | Description                             |
+|---------------------|----------|---------|-----------------------------------------|
+| `API Key`           | ✅        | —       | SerpBase API key                        |
+| `Number of Results` | ✅        | `10`    | Number of results to provide to the LLM |
 
 ---
 
