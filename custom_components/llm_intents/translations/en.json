@@ -64,7 +64,10 @@
           "serpbase_num_results": "Number of Results"
         },
         "data_description": {
-          "serpbase_api_key": "Get a key at https://serpbase.dev (100 free searches, no credit card required)"
+          "serpbase_api_key": "Get a key at {serpbase_url} (100 free searches, no credit card required)"
+        },
+        "description_placeholders": {
+          "serpbase_url": "https://serpbase.dev"
         }
       },
       "google_api_key": {
@@ -224,7 +227,10 @@
           "serpbase_num_results": "Number of Results"
         },
         "data_description": {
-          "serpbase_api_key": "Get a key at https://serpbase.dev (100 free searches, no credit card required)"
+          "serpbase_api_key": "Get a key at {serpbase_url} (100 free searches, no credit card required)"
+        },
+        "description_placeholders": {
+          "serpbase_url": "https://serpbase.dev"
         }
       },
       "google_api_key": {
