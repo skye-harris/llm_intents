@@ -1,6 +1,6 @@
 """Tests for HomeControlAPI."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -49,20 +49,6 @@ def mock_llm_context_with_device() -> llm.LLMContext:
     return context
 
 
-@pytest.fixture
-def mock_exposed_entities() -> dict:
-    """Mock exposed entities dict."""
-    return {
-        "entities": {
-            "light.living_room": {
-                "entity_id": "light.living_room",
-                "names": "Living Room Light",
-            },
-            "switch.garage": {"entity_id": "switch.garage", "names": "Garage Switch"},
-        }
-    }
-
-
 async def test_get_tools_filters_disabled_tools(
     hass: HomeAssistant,
     mock_llm_context_no_device: llm.LLMContext,
@@ -78,31 +64,43 @@ async def test_get_tools_filters_disabled_tools(
     mock_tool_hass_turn_on = MagicMock()
     mock_tool_hass_turn_on.name = "HassTurnOn"
 
-    with patch(
-        "custom_components.llm_intents.home_control.AssistAPI._async_get_tools",
-        MagicMock(
-            return_value=[
-                mock_tool_timer_start,
-                mock_tool_hass_turn_on,
-            ]
+    mock_llm_tools = MagicMock()
+    mock_llm_tools.tools = [mock_tool_timer_start, mock_tool_hass_turn_on]
+
+    with (
+        patch(
+            "custom_components.llm_intents.home_control.async_get_tools",
+            AsyncMock(return_value=mock_llm_tools),
+        ),
+        patch.object(
+            HomeControlAPI, "_async_get_api_prompt", return_value="test prompt"
         ),
     ):
         api = HomeControlAPI(hass)
-        result = api._async_get_tools(mock_llm_context_no_device, None)
+        result = await api.async_get_api_instance(mock_llm_context_no_device)
 
-        assert len(result) == 1
-        assert result[0].name == "HassTurnOn"
+        assert len(result.tools) == 1
+        assert result.tools[0].name == "HassTurnOn"
 
 
 async def test_async_get_api_prompt_generates_correct_prompt(
     hass: HomeAssistant,
     mock_llm_context_with_device: llm.LLMContext,
     config_entry: MockConfigEntry,
-    mock_exposed_entities: dict,
 ) -> None:
     """Test that _async_get_api_prompt returns rendered prompt with context."""
     hass.data = {DOMAIN: {"config": {}}}
     config_entry.add_to_hass(hass)
+
+    mock_llm_context_with_device.assistant = "assist_test"
+
+    exposed_entities = {
+        "light.living_room": {
+            "entity_id": "light.living_room",
+            "names": "Living Room Light",
+        },
+        "switch.garage": {"entity_id": "switch.garage", "names": "Garage Switch"},
+    }
 
     # Mock device, area, and floor registry lookups
     device = MagicMock(spec=DeviceEntry)
@@ -133,14 +131,20 @@ async def test_async_get_api_prompt_generates_correct_prompt(
         patch("homeassistant.helpers.area_registry.async_get", return_value=area_reg),
         patch("homeassistant.helpers.floor_registry.async_get", return_value=floor_reg),
         patch(
+            "custom_components.llm_intents.home_control.async_get_exposed_entities",
+            return_value=exposed_entities,
+        ),
+        patch(
+            "homeassistant.components.intent.async_device_supports_timers",
+            return_value=False,
+        ),
+        patch(
             "custom_components.llm_intents.const.CONF_HOME_CONTROL_PROMPT_TEMPLATE",
             CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
         ),
     ):
         api = HomeControlAPI(hass)
-        result = api._async_get_api_prompt(
-            mock_llm_context_with_device, mock_exposed_entities
-        )
+        result = api._async_get_api_prompt(mock_llm_context_with_device)
 
         assert result is not None
         assert "Living Room Light" in result

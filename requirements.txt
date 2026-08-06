@@ -8,7 +8,7 @@ pytest-freezer
 pytest-tornasync
 pytest-trio
 pre-commit
-homeassistant
+homeassistant>=2026.8
 aiohttp
 ruff
 voluptuous
