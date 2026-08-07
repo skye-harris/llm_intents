@@ -44,11 +44,13 @@ CONF_SEARCH_PROVIDER = "search_provider"
 CONF_SEARCH_PROVIDER_BRAVE = "Brave"
 CONF_SEARCH_PROVIDER_BRAVE_LLM = "Brave LLM Context"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
+CONF_SEARCH_PROVIDER_SERPBASE = "SerpBase"
 
 CONF_SEARCH_PROVIDERS = {
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
     "Brave LLM Context": CONF_SEARCH_PROVIDER_BRAVE_LLM,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
+    "SerpBase": CONF_SEARCH_PROVIDER_SERPBASE,
 }
 
 # SearXNG-specific constants
@@ -62,11 +64,13 @@ CONF_PROVIDER_API_KEYS = "provider_api_keys"
 PROVIDER_GOOGLE = "google"
 PROVIDER_BRAVE = "brave"
 PROVIDER_BRAVE_LLM = "brave_llm"
+PROVIDER_SERPBASE = "serpbase"
 
 # Form field keys for provider API keys
 
 CONF_GOOGLE_API_KEY = "google_api_key"
 CONF_BRAVE_API_KEY = "brave_api_key"
+CONF_SERPBASE_API_KEY = "serpbase_api_key"
 
 # Brave-specific constants
 
@@ -80,6 +84,10 @@ CONF_BRAVE_POST_CODE = "brave_post_code"
 CONF_BRAVE_MAX_SNIPPETS_PER_URL = "brave_max_snippets_per_url"
 CONF_BRAVE_MAX_TOKENS_PER_URL = "brave_max_tokens_per_url"
 CONF_BRAVE_CONTEXT_THRESHOLD_MODE = "brave_context_threshold_mode"
+
+# SerpBase-specific constants
+
+CONF_SERPBASE_NUM_RESULTS = "serpbase_num_results"
 
 CONF_BRAVE_CONTEXT_THRESHOLD_MODES = {
     "strict": "Strict",
@@ -232,6 +240,7 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
+    CONF_SERPBASE_NUM_RESULTS: 10,
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",
     CONF_GOOGLE_PLACES_LONGITUDE: "",
