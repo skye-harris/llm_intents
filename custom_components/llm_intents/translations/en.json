@@ -58,16 +58,10 @@
       },
       "serpbase": {
         "title": "Configure SerpBase Web Search",
-        "description": "Configure SerpBase Google Search API settings.",
+        "description": "Configure SerpBase Google Search API settings. See the README for how to get an API key.",
         "data": {
           "serpbase_api_key": "API Key",
           "serpbase_num_results": "Number of Results"
-        },
-        "data_description": {
-          "serpbase_api_key": "Get a key at {serpbase_url} (100 free searches, no credit card required)"
-        },
-        "description_placeholders": {
-          "serpbase_url": "https://serpbase.dev"
         }
       },
       "google_api_key": {
@@ -221,16 +215,10 @@
       },
       "serpbase": {
         "title": "Configure SerpBase Web Search",
-        "description": "Configure SerpBase Google Search API settings.",
+        "description": "Configure SerpBase Google Search API settings. See the README for how to get an API key.",
         "data": {
           "serpbase_api_key": "API Key",
           "serpbase_num_results": "Number of Results"
-        },
-        "data_description": {
-          "serpbase_api_key": "Get a key at {serpbase_url} (100 free searches, no credit card required)"
-        },
-        "description_placeholders": {
-          "serpbase_url": "https://serpbase.dev"
         }
       },
       "google_api_key": {
