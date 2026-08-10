@@ -15,6 +15,11 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_SERPBASE_API_URL = "https://api.serpbase.dev/google/search"
+# SerpBase returns HTTP 200 with a JSON error body for failures; the
+# envelope's `status` field is the source of truth (0 == success).
+_SERPBASE_STATUS_OK = 0
+
 
 class SerpBaseSearchTool(SearchWebTool):
     """Tool for searching the web via SerpBase Google Search API."""
@@ -37,29 +42,29 @@ class SerpBaseSearchTool(SearchWebTool):
             return []
 
         session = async_get_clientsession(self.hass)
-        params = {
-            "q": query,
-            "api_key": api_key,
-            "num": num_results,
-        }
 
-        async with session.get(
-            "https://api.serpbase.dev/google/search",
-            params=params,
+        async with session.post(
+            _SERPBASE_API_URL,
+            json={"q": query},
+            headers={"X-API-Key": api_key},
         ) as resp:
             response_content = await resp.json()
-            if resp.status == HTTPStatus.OK:
-                results = []
-                for result in response_content.get("organic_results", []):
-                    title = result.get("title", "")
-                    snippet = result.get("snippet", "")
-                    content = await self.cleanup_text(snippet)
+            if (
+                resp.status != HTTPStatus.OK
+                or response_content.get("status") != _SERPBASE_STATUS_OK
+            ):
+                error_msg = (
+                    f"Web search received a HTTP {resp.status} error from SerpBase: "
+                    f"{response_content.get('error', response_content)}"
+                )
+                raise RuntimeError(error_msg)
 
-                    results.append({"title": title, "content": content})
+            results = []
+            for result in response_content.get("organic", [])[:num_results]:
+                title = result.get("title", "")
+                snippet = result.get("snippet", "")
+                content = await self.cleanup_text(snippet)
 
-                return results
-            error_msg = (
-                f"Web search received a HTTP {resp.status} error "
-                f"from SerpBase: {response_content}"
-            )
-            raise RuntimeError(error_msg)
+                results.append({"title": title, "content": content})
+
+            return results

@@ -35,22 +35,25 @@ def tool(config: dict, hass: HomeAssistant) -> SerpBaseSearchTool:
 
 @pytest.fixture
 def success_response() -> dict:
-    """Return a successful SerpBase API response."""
+    """Return a successful SerpBase API response (current envelope)."""
     return {
-        "organic_results": [
+        "status": 0,
+        "request_id": "req_test_123",
+        "elapsed_ms": 42,
+        "credits_charged": 1,
+        "search_type": "search",
+        "organic": [
             {
                 "title": "SerpBase Test Result 1",
                 "snippet": "This is the snippet for result 1.",
                 "link": "https://example.com/1",
-                "position": 1,
             },
             {
                 "title": "SerpBase Test Result 2",
                 "snippet": "This is the snippet for result 2.",
                 "link": "https://example.com/2",
-                "position": 2,
             },
-        ]
+        ],
     }
 
 
@@ -77,7 +80,7 @@ async def test_serpbase_search_success(
 async def test_serpbase_search_config_params(
     tool: SerpBaseSearchTool, success_response: dict
 ) -> None:
-    """Test that API key and num_results are correctly passed as query params."""
+    """Test that the API key is sent as X-API-Key header and query as JSON body."""
     session = mock_session(
         status=200,
         data=success_response,
@@ -89,16 +92,46 @@ async def test_serpbase_search_config_params(
     ):
         await tool.async_search("test query")
 
-    # Verify the API was called
-    assert session.get.called
+    # Verify the API was called with POST
+    assert session.post.called
 
-    call_kwargs = session.get.call_args[1]
-    params = call_kwargs["params"]
+    call_kwargs = session.post.call_args[1]
+    url = session.post.call_args[0][0]
 
-    # Verify query params
-    assert params["q"] == "test query"
-    assert params["api_key"] == "test_api_key_12345"
-    assert params["num"] == 5
+    # Verify URL and headers
+    assert url == "https://api.serpbase.dev/google/search"
+    assert call_kwargs["headers"]["X-API-Key"] == "test_api_key_12345"
+
+    # Verify JSON payload
+    assert call_kwargs["json"]["q"] == "test query"
+
+
+async def test_serpbase_search_api_error_envelope(tool: SerpBaseSearchTool) -> None:
+    """Test that a 200 response with an error envelope raises RuntimeError.
+
+    SerpBase returns HTTP 200 even for failures; the body carries the error.
+    """
+    with (
+        patch(
+            "custom_components.llm_intents.serpbase_web_search.async_get_clientsession",
+            return_value=mock_session(
+                status=200,
+                data={
+                    "status": 1001,
+                    "error": "unauthorized",
+                    "request_id": "req_err_1",
+                    "credits_charged": 0,
+                },
+            ),
+        ),
+        pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "Web search received a HTTP 200 error from SerpBase: unauthorized"
+            ),
+        ),
+    ):
+        await tool.async_search("test query")
 
 
 async def test_serpbase_search_request_failure(tool: SerpBaseSearchTool) -> None:
@@ -114,7 +147,7 @@ async def test_serpbase_search_request_failure(tool: SerpBaseSearchTool) -> None
         pytest.raises(
             RuntimeError,
             match=re.escape(
-                "Web search received a HTTP 503 error from SerpBase: {'error': 'SerpBase API error'}"
+                "Web search received a HTTP 503 error from SerpBase: SerpBase API error"
             ),
         ),
     ):
