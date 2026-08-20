@@ -380,11 +380,26 @@ Additionally, the inbuilt Assist tools can be disabled on a per-tool basis, in c
 
 **As the Home Control API is a direct clone of the Assist API, it is strongly recommended to only use either `Assist` OR `Home Control` in your Conversation Agents, and not both together.**
 
-## Acknowledgements
+---
 
-- [@NickM-27](https://github.com/NickM-27) for his contributions both in additions to the integration itself, and providing support and assistance with reported issues
-- [@JonahMMay](https://github.com/JonahMMay) for his early refactor of this project to support UI/config-flow configuration
+## Contributors
+
+I would like to thank the following people for their contributions.
+
+<table>
+<tr>
+  <td align="center"><a href="https://github.com/JonahMMay"><img src="https://avatars.githubusercontent.com/u/119529402?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/JonahMMay">JonahMMay</a></b></sub></td>
+  <td align="center"><a href="https://github.com/NickM-27"><img src="https://avatars.githubusercontent.com/u/14866235?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/NickM-27">NickM-27</a></b></sub></td>
+  <td align="center"><a href="https://github.com/HenrikJohnson"><img src="https://avatars.githubusercontent.com/u/737533?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/HenrikJohnson">HenrikJohnson</a></b></sub></td>
+  <td align="center"><a href="https://github.com/QuadroKnoX"><img src="https://avatars.githubusercontent.com/u/9086677?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/QuadroKnoX">QuadroKnoX</a></b></sub></td>
+  <td align="center"><a href="https://github.com/Thyraz"><img src="https://avatars.githubusercontent.com/u/170099?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Thyraz">Thyraz</a></b></sub></td>
+</tr>
+</table>
 
 ---
+
+## Support Development
+
+If you find this integration useful and would like to support development, please consider [buying me a coffee](https://www.buymeacoffee.com/skyeharris).
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/skyeharris)
