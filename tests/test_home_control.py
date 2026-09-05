@@ -11,6 +11,7 @@ from homeassistant.helpers.floor_registry import FloorEntry, FloorRegistry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.llm_intents.const import (
+    CONF_ENTITY_HISTORY_ENABLED,
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
     CONF_HOME_CONTROL_DISABLED_TOOLS,
     CONF_HOME_CONTROL_PROMPT_TEMPLATE,
@@ -29,6 +30,7 @@ def config_entry() -> MockConfigEntry:
         options={
             CONF_HOME_CONTROL_PROMPT_TEMPLATE: CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
             CONF_HOME_CONTROL_DISABLED_TOOLS: [],
+            CONF_ENTITY_HISTORY_ENABLED: True,
         },
     )
 
@@ -84,9 +86,50 @@ async def test_get_tools_filters_disabled_tools(
         assert len(result.tools) == 2
         names = [tool.name for tool in result.tools]
         assert "HassTurnOn" in names
-
-        # TODO: this is temporary, tool filter handling needs updating
         assert "get_device_history_context" in names
+
+
+async def test_get_tools_excludes_entity_history_when_disabled(
+    hass: HomeAssistant,
+    mock_llm_context_no_device: llm.LLMContext,
+    config_entry: MockConfigEntry,
+) -> None:
+    """Test that EntityHistoryTool is excluded when CONF_ENTITY_HISTORY_ENABLED is False."""
+    hass.data = {DOMAIN: {"config": {}}}
+    disabled_entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="test_home_control_entry_disabled",
+        data={"some_config": "value"},
+        options={
+            CONF_HOME_CONTROL_PROMPT_TEMPLATE: CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
+            CONF_HOME_CONTROL_DISABLED_TOOLS: [],
+            CONF_ENTITY_HISTORY_ENABLED: False,
+        },
+    )
+    disabled_entry.add_to_hass(hass)
+
+    mock_tool_hass_turn_on = MagicMock()
+    mock_tool_hass_turn_on.name = "HassTurnOn"
+
+    mock_llm_tools = MagicMock()
+    mock_llm_tools.tools = [mock_tool_hass_turn_on]
+
+    with (
+        patch(
+            "custom_components.llm_intents.home_control.async_get_tools",
+            AsyncMock(return_value=mock_llm_tools),
+        ),
+        patch.object(
+            HomeControlAPI, "_async_get_api_prompt", return_value="test prompt"
+        ),
+    ):
+        api = HomeControlAPI(hass)
+        result = await api.async_get_api_instance(mock_llm_context_no_device)
+
+        assert len(result.tools) == 1
+        names = [tool.name for tool in result.tools]
+        assert "HassTurnOn" in names
+        assert "get_device_history_context" not in names
 
 
 async def test_async_get_api_prompt_generates_correct_prompt(
