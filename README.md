@@ -380,6 +380,11 @@ Additionally, the inbuilt Assist tools can be disabled on a per-tool basis, in c
 
 **As the Home Control API is a direct clone of the Assist API, it is strongly recommended to only use either `Assist` OR `Home Control` in your Conversation Agents, and not both together.**
 
+#### Additional Features
+
+- **Entity History Tool** — Retrieves the past (historic) states of an entity from the Home Assistant recorder database.
+    This tool returns summary statistics (min, max, average for numeric entities) along with a downsampled set of significant state changes, making it efficient for the LLM to answer questions like _"What time did [name] get home last night?"_
+
 ---
 
 ## Contributors
