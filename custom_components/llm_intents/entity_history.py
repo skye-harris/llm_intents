@@ -115,7 +115,6 @@ class EntityHistoryTool(BaseTool):
 
         stats: dict[str, Any] = {
             "state_at_search_start": _state_value(raw_states[0]),
-            "state_at_end": _state_value(raw_states[-1]),
             "total_data_points": len(raw_states),
         }
 
@@ -231,13 +230,14 @@ class EntityHistoryTool(BaseTool):
         """Process a single entity's state list into LLM-friendly format."""
         start_state = sublist[0]
         remaining = sublist[1:]
+        last_state = remaining[-1] if remaining else start_state
 
         filtered = self._filter_unavailable(remaining)
 
         if not filtered:
-            return self._build_empty_result(start_state, results)
+            return self._build_empty_result(start_state, last_state, results)
 
-        return self._build_result_with_stats(start_state, filtered, results)
+        return self._build_result_with_stats(start_state, filtered, last_state, results)
 
     def _filter_unavailable(self, states: list) -> list[State | dict[str, Any]]:
         """Remove unavailable/unknown records that add no useful context."""
@@ -246,11 +246,13 @@ class EntityHistoryTool(BaseTool):
     def _build_empty_result(
         self,
         start_state: State | dict[str, Any],
+        last_state: State | dict[str, Any],
         results: dict[str, Any],
     ) -> dict[str, Any]:
         """Return minimal result when no meaningful state changes exist."""
         results["stats"] = {
             "state_at_search_start": _state_value(start_state),
+            "state_at_end": _state_value(last_state),
             "total_data_points": 1,
         }
         results["instruction"] = (
@@ -262,11 +264,13 @@ class EntityHistoryTool(BaseTool):
         self,
         start_state: State | dict[str, Any],
         filtered: list[State | dict[str, Any]],
+        last_state: State | dict[str, Any],
         results: dict[str, Any],
     ) -> dict[str, Any]:
         """Build result with summary stats and downsampled states."""
         stats = self._compute_stats(filtered)
         stats["state_at_search_start"] = _state_value(start_state)
+        stats["state_at_end"] = _state_value(last_state)
         stats["total_data_points"] = len(filtered) + 1
 
         sampled = self._downsample(filtered, MAX_HISTORY_RESULTS)

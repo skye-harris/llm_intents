@@ -281,6 +281,49 @@ async def test_early_return_no_sampled_states(
         assert result["stats"]["state_at_search_start"] == state_value
 
 
+async def test_state_at_end_reports_unavailable(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """Test state_at_end reports the true last state even when it went unavailable."""
+    mock_find, mock_get_instance = mock_recorder
+    entity_id = "sensor.went_down"
+    mock_find.return_value = State(entity_id, "22.0")
+
+    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    start = State(
+        entity_id,
+        "22.0",
+        last_changed=base_time,
+        last_updated=base_time,
+    )
+    gone = State(
+        entity_id,
+        "unavailable",
+        last_changed=base_time + timedelta(seconds=18),
+        last_updated=base_time + timedelta(seconds=18),
+    )
+    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
+        return_value={entity_id: [start, gone]},
+    )
+
+    tool = EntityHistoryTool({}, hass)
+    result = await tool.async_call(
+        hass,
+        MagicMock(
+            tool_args={
+                "entity_name": "Went Down",
+                "start_date_time": "2024-01-15 00:00",
+                "end_date_time": "2024-01-15 23:59",
+            }
+        ),
+        MagicMock(),
+    )
+
+    assert result["stats"]["state_at_search_start"] == "22.0"
+    assert result["stats"]["state_at_end"] == "unavailable"
+
+
 # ---------------------------------------------------------------------------
 # Integration tests — type handling (dict vs State)
 # ---------------------------------------------------------------------------
@@ -418,24 +461,27 @@ def test_filter_unavailable(
 
 
 @pytest.mark.parametrize(
-    ("start_state", "start_value"),
+    ("start_state", "start_value", "last_state", "last_value"),
     [
-        (State("sensor.test", "22.5"), "22.5"),
-        ({"state": "unavailable"}, "unavailable"),
+        (State("sensor.test", "22.5"), "22.5", State("sensor.test", "23.0"), "23.0"),
+        ({"state": "available"}, "available", {"state": "unavailable"}, "unavailable"),
     ],
 )
 def test_build_empty_result(
     start_state: State | dict[str, str],
     start_value: str,
+    last_state: State | dict[str, str],
+    last_value: str,
 ) -> None:
-    """Test _build_empty_result returns minimal result with start state."""
+    """Test _build_empty_result returns minimal result with start and end state."""
     tool = EntityHistoryTool({}, MagicMock())
     results = {}
-    result = tool._build_empty_result(start_state, results)
+    result = tool._build_empty_result(start_state, last_state, results)
     assert "stats" in result
     assert "sampled_states" not in result
     assert "instruction" in result
     assert result["stats"]["state_at_search_start"] == start_value
+    assert result["stats"]["state_at_end"] == last_value
     assert result["stats"]["total_data_points"] == 1
 
 
@@ -452,6 +498,7 @@ def test_build_empty_result(
         "expected_min",
         "expected_max",
         "expected_avg",
+        "last_state_value",
     ),
     [
         # Numeric entity
@@ -462,6 +509,7 @@ def test_build_empty_result(
             20.0,
             29.0,
             24.5,
+            "unavailable",
         ),
         # Non-numeric entity
         (
@@ -471,6 +519,7 @@ def test_build_empty_result(
             None,
             None,
             None,
+            "unavailable",
         ),
     ],
 )
@@ -481,6 +530,7 @@ def test_build_result_with_stats(
     expected_min: float | None,
     expected_max: float | None,
     expected_avg: float | None,
+    last_state_value: str,
 ) -> None:
     """Test _build_result_with_stats computes stats and downsamples."""
     tool = EntityHistoryTool({}, MagicMock())
@@ -505,15 +555,16 @@ def test_build_result_with_stats(
             )
             for i in range(filtered_count)
         ]
+    last_state = State(filtered[-1].entity_id, last_state_value)
     results = {}
-    result = tool._build_result_with_stats(start_state, filtered, results)
+    result = tool._build_result_with_stats(start_state, filtered, last_state, results)
 
     assert "stats" in result
     assert "sampled_states" in result
     assert "instruction" in result
     assert result["stats"]["state_at_search_start"] == _state_value(start_state)
     assert result["stats"]["total_data_points"] == filtered_count + 1
-    assert result["stats"]["state_at_end"] == _state_value(filtered[-1])
+    assert result["stats"]["state_at_end"] == last_state_value
 
     if numeric:
         assert result["stats"]["min"] == expected_min

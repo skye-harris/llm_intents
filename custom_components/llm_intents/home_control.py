@@ -19,7 +19,6 @@ from homeassistant.helpers import (
     llm,
     template,
 )
-from .entity_history import EntityHistoryTool
 
 from .const import (
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
@@ -27,6 +26,7 @@ from .const import (
     CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     DOMAIN,
 )
+from .entity_history import EntityHistoryTool
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class HomeControlAPI(AssistAPI):
         )
         tools = [tool for tool in llm_tools.tools if tool.name not in disabled_tools]
 
-        # todo: entity tool addition is temporary here, need to handle for tool filtering properly in UI
+        # TODO: entity tool addition is temporary here, need to handle for tool filtering properly in UI
         tools.append(EntityHistoryTool(self._get_config_data(), self.hass))
 
         return llm.APIInstance(
