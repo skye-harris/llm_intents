@@ -1,12 +1,12 @@
 {
   "domain": "llm_intents",
   "name": "Tools for Assist",
-  "after_dependencies": ["intent", "llm"],
+  "after_dependencies": ["intent", "llm", "recorder"],
   "codeowners": [
     "@skye-harris"
   ],
   "config_flow": true,
-  "dependencies": ["intent", "llm"],
+  "dependencies": ["intent", "llm", "recorder"],
   "documentation": "https://github.com/skye-harris/llm_intents",
   "integration_type": "service",
   "iot_class": "cloud_polling",
