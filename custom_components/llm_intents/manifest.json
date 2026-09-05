@@ -17,5 +17,5 @@
   "requirements": [
     "sympy>=1.14.0"
   ],
-  "version": "1.9.0"
+  "version": "1.10.0"
 }
