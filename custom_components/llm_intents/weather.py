@@ -103,10 +103,11 @@ def _build_attributes(
 class WeatherForecastTool(BaseTool):
     """Tool for weather forecast data."""
 
-    name = "GetWeatherForecast"
+    name = "get_weather_forecast"
     description = (
-        "Use this tool to retrieve weather forecasts for a particular period.\n"
-        "If the user requests data for `tonight`, use the `today` argument."
+        "Use this tool to retrieve weather forecasts from now up until a week in advance.\n"
+        "If the user requests data for `tonight`, use the `today` argument.\n"
+        "Cannot be used to retrieve past or historic weather data: local sensor history can be queried via the device history tool."
     )
     prompt_description = None
 

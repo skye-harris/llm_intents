@@ -58,6 +58,7 @@ from .const import (
     CONF_CALCULATOR_ENABLED,
     CONF_DAILY_WEATHER_ENTITY,
     CONF_DATE_INFO_ENABLED,
+    CONF_ENTITY_HISTORY_ENABLED,
     CONF_GOOGLE_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_LATITUDE,
@@ -584,6 +585,10 @@ async def get_home_control_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Home Control configuration."""
     return vol.Schema(
         {
+            vol.Optional(
+                CONF_ENTITY_HISTORY_ENABLED,
+                default=SERVICE_DEFAULTS.get(CONF_ENTITY_HISTORY_ENABLED, True),
+            ): bool,
             vol.Optional(
                 CONF_HOME_CONTROL_PROMPT_TEMPLATE,
                 default=CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
@@ -1146,6 +1151,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                     **base_schema.schema,
                 },
             )
+
+            current_tools = {tool.name for tool in await enumerate_tools(self.hass)}
+            disabled_tools = opts.get(CONF_HOME_CONTROL_DISABLED_TOOLS, [])
+            opts[CONF_HOME_CONTROL_DISABLED_TOOLS] = [
+                tool for tool in disabled_tools if tool in current_tools
+            ]
+
             schema = self.add_suggested_values_to_schema(schema, opts)
             return self.async_show_form(
                 step_id=STEP_HOME_CONTROL,

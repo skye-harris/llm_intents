@@ -174,6 +174,7 @@ CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
 CONF_HOME_CONTROL_ENABLED = "home_control_enabled"
 CONF_HOME_CONTROL_PROMPT_TEMPLATE = "home_control_prompt"
 CONF_HOME_CONTROL_DISABLED_TOOLS = "home_control_disabled_tools"
+CONF_ENTITY_HISTORY_ENABLED = "entity_history_enabled"
 CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE = """
 {%- if not exposed_entities %}
 Only if the user wants to control a device, tell them to expose entities to their voice assistant in Home Assistant.
@@ -246,6 +247,7 @@ SERVICE_DEFAULTS = {
     CONF_CALCULATOR_ENABLED: True,
     CONF_UNIT_CONVERTER_ENABLED: True,
     CONF_DATE_INFO_ENABLED: True,
+    CONF_ENTITY_HISTORY_ENABLED: True,
 }
 
 # To satisfy ruff

@@ -78,13 +78,12 @@ class SearchYouTubeTool(BaseTool):
             return {"error": "Google API key not configured"}
 
         try:
-            session = async_get_clientsession(hass)
-
             cache = SQLiteCache()
             cache_params = {"query": query, "maxResults": num_results}
             cached_response = cache.get(__name__, cache_params)
             if cached_response:
                 return cached_response
+            session = async_get_clientsession(hass)
 
             params = {
                 "part": "snippet",
