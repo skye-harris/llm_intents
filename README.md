@@ -9,6 +9,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Weather Forecast**
 * **YouTube Search and Playback**
 * **Basic Utilities** — Calculator, Kitchen Unit Converter, and Date Information
+* **Entity History** — Part of the `Home control` domain
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
 A caching layer is utilised in order to reduce both API usage and latency on repeated requests for the same information within a 2-hour period.
