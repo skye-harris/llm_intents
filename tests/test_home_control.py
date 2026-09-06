@@ -202,3 +202,62 @@ async def test_async_get_api_prompt_generates_correct_prompt(
             "You are in area Living Room (floor Upstairs) and all generic commands"
             in result
         )
+
+
+async def test_async_get_api_prompt_encloses_entity_names_in_backticks(
+    hass: HomeAssistant,
+    mock_llm_context_with_device: llm.LLMContext,
+    config_entry: MockConfigEntry,
+) -> None:
+    """Test that entity names/aliases are wrapped in backticks in the rendered prompt."""
+    hass.data = {DOMAIN: {"config": {}}}
+    config_entry.add_to_hass(hass)
+
+    mock_llm_context_with_device.assistant = "assist_test"
+
+    exposed_entities = {
+        "light.living_room": {
+            "entity_id": "light.living_room",
+            "names": "Living Room Light, Living Room Lamp, LR Light",
+        },
+        "switch.garage": {"entity_id": "switch.garage", "names": "Garage Switch"},
+    }
+
+    device = MagicMock(spec=DeviceEntry)
+    device.area_id = "area_1"
+
+    device_reg = MagicMock(spec=DeviceRegistry)
+    device_reg.async_get = MagicMock(return_value=device)
+
+    area = MagicMock(spec=AreaEntry)
+    area.id = "area_1"
+    area.floor_id = None
+    area.name = "Living Room"
+
+    area_reg = MagicMock(spec=AreaRegistry)
+    area_reg.async_get_area = MagicMock(return_value=area)
+
+    floor_reg = MagicMock(spec=FloorRegistry)
+    floor_reg.async_get_floor = MagicMock(return_value=None)
+
+    with (
+        patch(
+            "homeassistant.helpers.device_registry.async_get", return_value=device_reg
+        ),
+        patch("homeassistant.helpers.area_registry.async_get", return_value=area_reg),
+        patch("homeassistant.helpers.floor_registry.async_get", return_value=floor_reg),
+        patch(
+            "custom_components.llm_intents.home_control.async_get_exposed_entities",
+            return_value=exposed_entities,
+        ),
+        patch(
+            "homeassistant.components.intent.async_device_supports_timers",
+            return_value=False,
+        ),
+    ):
+        api = HomeControlAPI(hass)
+        result = api._async_get_api_prompt(mock_llm_context_with_device)
+
+        assert "`Living Room Light`, `Living Room Lamp`, `LR Light`" in result
+        assert "`Garage Switch`" in result
+        assert "names:" in result

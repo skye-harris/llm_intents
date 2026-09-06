@@ -196,7 +196,7 @@ For general knowledge questions not about the home: Answer truthfully from inter
 {% if exposed_entities -%}
 Static Context: An overview of the areas and the devices in this smart home:
 {%- for entity in exposed_entities %}
-  {{- "\n- names: " + entity.names }}
+  {{- "\n- names: " + '`' + entity.names.split(',') | map('trim') | join('`, `') + '`' }}
   {%- for key, value in entity.items() %}
     {%- if key != 'names' %}
       {{- "\n  " + key + ": " + value }}
