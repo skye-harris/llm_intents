@@ -75,13 +75,13 @@ class EntityHistoryTool(BaseTool):
                 "name",
                 description="The name of the entity or device to retrieve the history for, exactly as it appears in the static device context (case-insensitive).",
             ): str,
-            vol.Required(
+            vol.Optional(
                 "area",
-                description="Filter entities by area name or alias (case-insensitive).",
+                description="Filter entity by area name or alias (case-insensitive).",
             ): str,
             vol.Required(
                 "domain",
-                description="Filter entities by the domain of the entity.",
+                description="Filter entity by the domain (case-insensitive).",
             ): str,
             vol.Required(
                 "end_date_time",
