@@ -18,9 +18,12 @@ def hass_with_entities(hass: HomeAssistant) -> HomeAssistant:
     ]
 
     class MockEntry:
-        def __init__(self, entity_id: str, aliases: list[str]) -> None:
+        def __init__(
+            self, entity_id: str, aliases: list[str], area_id: str | None = None
+        ) -> None:
             self.entity_id = entity_id
             self.aliases = aliases
+            self.area_id = area_id
 
     registry = {
         "light.living_room": MockEntry(
@@ -53,57 +56,85 @@ def hass_with_entities(hass: HomeAssistant) -> HomeAssistant:
             yield hass
 
 
-def test_find_by_entity_id(hass_with_entities: HomeAssistant) -> None:
-    """Test finding an entity by its full entity_id."""
-    result = find_entity_by_name(hass_with_entities, "light.living_room")
-    assert result.entity_id == "light.living_room"
-    assert result.state == "on"
+_EXPOSED_ENTITIES = {
+    "light.living_room": {
+        "names": "Living Room Light",
+        "domain": "light",
+        "areas": "Living Room",
+    },
+    "sensor.kitchen_temperature": {
+        "names": "Kitchen Temperature",
+        "domain": "sensor",
+        "areas": "Kitchen",
+    },
+    "switch.garage_door": {
+        "names": "Garage Door",
+        "domain": "switch",
+        "areas": "Garage",
+    },
+}
 
 
-def test_find_by_human_name(hass_with_entities: HomeAssistant) -> None:
-    """Test finding an entity by its human-readable name."""
-    result = find_entity_by_name(hass_with_entities, "Living Room Light")
-    assert result.entity_id == "light.living_room"
-    assert result.state == "on"
+@pytest.mark.parametrize(
+    ("search_term", "area", "domain", "expected_entity_id", "expected_state"),
+    [
+        ("Living Room Light", "Living Room", "light", "light.living_room", "on"),
+        ("Living Room", "Living Room", "light", "light.living_room", "on"),
+        ("LIVING ROOM LIGHT", "Living Room", "light", "light.living_room", "on"),
+        ("living room light", "Living Room", "light", "light.living_room", "on"),
+        ("LiViNg RoOm LiGhT", "Living Room", "light", "light.living_room", "on"),
+        ("  Living Room Light  ", "Living Room", "light", "light.living_room", "on"),
+        (
+            "\tKitchen Temperature\n",
+            "Kitchen",
+            "sensor",
+            "sensor.kitchen_temperature",
+            "22.0",
+        ),
+    ],
+)
+def test_find_success(
+    hass_with_entities: HomeAssistant,
+    search_term: str,
+    area: str,
+    domain: str,
+    expected_entity_id: str,
+    expected_state: str,
+) -> None:
+    """Test finding an entity by human name, alias, case variations, and whitespace."""
+    result = find_entity_by_name(
+        hass_with_entities,
+        search_term,
+        area=area,
+        domain=domain,
+        exposed_entities=_EXPOSED_ENTITIES,
+    )
+    assert result.entity_id == expected_entity_id
+    assert result.state == expected_state
 
 
-def test_find_by_alias(hass_with_entities: HomeAssistant) -> None:
-    """Test finding an entity by one of its aliases."""
-    result = find_entity_by_name(hass_with_entities, "Living Room")
-    assert result.entity_id == "light.living_room"
-
-
-def test_find_case_insensitive(hass_with_entities: HomeAssistant) -> None:
-    """Test that entity name matching is case-insensitive."""
-    result = find_entity_by_name(hass_with_entities, "LIVING ROOM LIGHT")
-    assert result.entity_id == "light.living_room"
-
-    result = find_entity_by_name(hass_with_entities, "living room light")
-    assert result.entity_id == "light.living_room"
-
-    result = find_entity_by_name(hass_with_entities, "LiViNg RoOm LiGhT")
-    assert result.entity_id == "light.living_room"
-
-
-def test_find_whitespace_stripped(hass_with_entities: HomeAssistant) -> None:
-    """Test that leading/trailing whitespace is stripped from the search term."""
-    result = find_entity_by_name(hass_with_entities, "  Living Room Light  ")
-    assert result.entity_id == "light.living_room"
-
-    result = find_entity_by_name(hass_with_entities, "\tKitchen Temperature\n")
-    assert result.entity_id == "sensor.kitchen_temperature"
-
-
-def test_find_not_found_raises(hass_with_entities: HomeAssistant) -> None:
+@pytest.mark.parametrize(
+    ("search_term", "area", "domain"),
+    [
+        ("nonexistent_entity", "", ""),
+        ("nonexistent_entity", "Living Room", "light"),
+    ],
+)
+def test_find_not_found_raises(
+    hass_with_entities: HomeAssistant,
+    search_term: str,
+    area: str,
+    domain: str,
+) -> None:
     """Test that EntityNotFoundError is raised when no entity matches."""
     with pytest.raises(EntityNotFoundError):
-        find_entity_by_name(hass_with_entities, "nonexistent_entity")
-
-
-def test_find_not_found_case_insensitive(hass_with_entities: HomeAssistant) -> None:
-    """Test that EntityNotFoundError is raised even with different casing."""
-    with pytest.raises(EntityNotFoundError):
-        find_entity_by_name(hass_with_entities, "NonExistent")
+        find_entity_by_name(
+            hass_with_entities,
+            search_term,
+            area=area,
+            domain=domain,
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
 
 
 def test_find_no_entity_entry() -> None:
@@ -122,13 +153,87 @@ def test_find_no_entity_entry() -> None:
         mock_get.return_value.async_get.return_value = None
         mock_aliases.return_value = []
 
-        result = find_entity_by_name(hass, "light.unknown_entity")
+        result = find_entity_by_name(
+            hass,
+            "light.unknown_entity",
+            area="",
+            domain="light",
+            exposed_entities={"light.unknown_entity": {"domain": "light"}},
+        )
         assert result.entity_id == "light.unknown_entity"
         assert result.state == "on"
 
 
-def test_find_multiple_entities_same_state(hass_with_entities: HomeAssistant) -> None:
-    """Test that the first matching entity is returned."""
-    result = find_entity_by_name(hass_with_entities, "Kitchen Temperature")
-    assert result.entity_id == "sensor.kitchen_temperature"
-    assert result.state == "22.0"
+@pytest.mark.parametrize(
+    ("search_term", "area", "domain", "exposed", "expect_error"),
+    [
+        # Domain match
+        ("light.living_room", "Living Room", "light", _EXPOSED_ENTITIES, False),
+        # Domain mismatch
+        ("light.living_room", "Living Room", "sensor", _EXPOSED_ENTITIES, True),
+        # Area mismatch
+        ("light.living_room", "Kitchen", "light", _EXPOSED_ENTITIES, True),
+        # Exposed entities filter: entity not in dict
+        (
+            "light.living_room",
+            "Living Room",
+            "light",
+            {
+                "light.living_room": {
+                    "names": "Living Room Light",
+                    "domain": "light",
+                    "areas": "Living Room",
+                },
+            },
+            False,
+        ),
+        (
+            "sensor.kitchen_temperature",
+            "Kitchen",
+            "sensor",
+            {
+                "light.living_room": {
+                    "names": "Living Room Light",
+                    "domain": "light",
+                    "areas": "Living Room",
+                },
+            },
+            True,
+        ),
+        # Filtered out entirely
+        (
+            "sensor.kitchen_temperature",
+            "Living Room",
+            "sensor",
+            _EXPOSED_ENTITIES,
+            True,
+        ),
+    ],
+)
+def test_find_filters(
+    hass_with_entities: HomeAssistant,
+    search_term: str,
+    area: str,
+    domain: str,
+    exposed: dict,
+    expect_error: bool,
+) -> None:
+    """Test domain, area, and exposed_entities filtering."""
+    if expect_error:
+        with pytest.raises(EntityNotFoundError):
+            find_entity_by_name(
+                hass_with_entities,
+                search_term,
+                area=area,
+                domain=domain,
+                exposed_entities=exposed,
+            )
+    else:
+        result = find_entity_by_name(
+            hass_with_entities,
+            search_term,
+            area=area,
+            domain=domain,
+            exposed_entities=exposed,
+        )
+        assert result is not None

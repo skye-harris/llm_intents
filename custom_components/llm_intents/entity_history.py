@@ -7,6 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components import recorder
+from homeassistant.components.homeassistant.llm import async_get_exposed_entities
 from homeassistant.components.recorder import history
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
@@ -63,6 +64,7 @@ class EntityHistoryTool(BaseTool):
         "- If the user wants to know the device state at an exact time, limit the start and end date/time arguments to exactly that date and time.\n"
         "- If the user wants information for a particular time period, such as the morning, evening, or overnight, ensure that the start and end times encapsulate the entire duration.\n"
         "- If the user wants to know the last time something changed, ensure to use the current date and time as the search end time.\n"
+        "- If the user wants to know when a person left or arrived home.\n"
         "Example queries: `What time did the kitchen reach 25 degrees?` `When was the bedroom light turned off?` `What was the temperature outside at 8am this morning?`"
     )
     prompt_description = None
@@ -70,8 +72,16 @@ class EntityHistoryTool(BaseTool):
     parameters = vol.Schema(
         {
             vol.Required(
-                "entity_name",
-                description="The name of the entity or device to retrieve the history for, exactly as it appears in the static device context.",
+                "name",
+                description="The name of the entity or device to retrieve the history for, exactly as it appears in the static device context (case-insensitive).",
+            ): str,
+            vol.Required(
+                "area",
+                description="Filter entities by area name or alias (case-insensitive).",
+            ): str,
+            vol.Required(
+                "domain",
+                description="Filter entities by the domain of the entity.",
             ): str,
             vol.Required(
                 "end_date_time",
@@ -190,11 +200,27 @@ class EntityHistoryTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Return state change history of the device entity."""
-        entity_name = tool_input.tool_args.get("entity_name").lower().strip()
+        entity_name = tool_input.tool_args.get("name")
+        area = tool_input.tool_args.get("area")
+        domain = tool_input.tool_args.get("domain")
         start_time = tool_input.tool_args.get("start_date_time")
         end_time = tool_input.tool_args.get("end_date_time")
 
-        entity = find_entity_by_name(hass, entity_name)
+        if not llm_context.assistant:
+            err_msg = "No assistant context available for entity history"
+            raise HomeAssistantError(err_msg)
+
+        exposed_entities = async_get_exposed_entities(
+            hass, llm_context.assistant, include_state=False
+        )
+
+        entity = find_entity_by_name(
+            hass,
+            entity_name,
+            exposed_entities=exposed_entities,
+            area=area,
+            domain=domain,
+        )
         entity_id = entity.entity_id
 
         start_time = _to_datetime(start_time)
