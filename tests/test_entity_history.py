@@ -12,6 +12,7 @@ from custom_components.llm_intents.entity_history import (
     EntityHistoryTool,
     _state_value,
 )
+from custom_components.llm_intents.utils import EntityNotFoundError
 
 
 def _make_states(
@@ -45,6 +46,10 @@ def mock_recorder() -> tuple[MagicMock, MagicMock]:
         patch(
             "custom_components.llm_intents.entity_history.recorder.get_instance",
         ) as mock_get_instance,
+        patch(
+            "custom_components.llm_intents.entity_history.async_get_exposed_entities",
+            new=AsyncMock(return_value={}),
+        ),
     ):
         mock_session = MagicMock()
         mock_scope.return_value.__enter__.return_value = mock_session
@@ -75,6 +80,14 @@ def mock_recorder() -> tuple[MagicMock, MagicMock]:
             6,
             True,
         ),
+        # Non-numeric entity: skips numeric stats but caps results
+        (
+            50,
+            lambda i: "on" if i % 2 == 0 else "off",
+            MAX_HISTORY_RESULTS,
+            50,
+            False,
+        ),
     ],
 )
 async def test_downsampling_behavior(
@@ -86,7 +99,7 @@ async def test_downsampling_behavior(
     expected_total: int,
     expect_numeric_stats: bool,
 ) -> None:
-    """Test downsampling with high-frequency and low-frequency entities."""
+    """Test downsampling with high-frequency, low-frequency, and non-numeric entities."""
     mock_find, mock_get_instance = mock_recorder
     entity_id = "sensor.temperature"
     mock_find.return_value = State(entity_id, "22.0")
@@ -103,7 +116,9 @@ async def test_downsampling_behavior(
         hass,
         MagicMock(
             tool_args={
-                "entity_name": "Temperature",
+                "name": "Temperature",
+                "area": "Kitchen",
+                "domain": "sensor",
                 "start_date_time": "2024-01-15 00:00",
                 "end_date_time": "2024-01-15 23:59",
             }
@@ -121,99 +136,6 @@ async def test_downsampling_behavior(
         assert "min" not in result["stats"]
         assert "max" not in result["stats"]
         assert "avg" not in result["stats"]
-
-
-async def test_downsample_preserves_min_max_and_order(
-    mock_recorder: tuple[MagicMock, MagicMock],
-    hass: HomeAssistant,
-) -> None:
-    """Test downsampling preserves min/max values and chronological order."""
-    mock_find, mock_get_instance = mock_recorder
-    entity_id = "sensor.with_spike"
-    mock_find.return_value = State(entity_id, "20.0")
-
-    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
-    values = [20.0] * 50 + [35.0] + [21.0] * 49
-    states = _make_states(
-        entity_id,
-        100,
-        base_time,
-        lambda i: str(values[i]),
-    )
-
-    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
-        return_value={entity_id: states},
-    )
-
-    tool = EntityHistoryTool({}, hass)
-    result = await tool.async_call(
-        hass,
-        MagicMock(
-            tool_args={
-                "entity_name": "Sensor With Spike",
-                "start_date_time": "2024-01-15 00:00",
-                "end_date_time": "2024-01-15 23:59",
-            }
-        ),
-        MagicMock(),
-    )
-
-    assert result["stats"]["min"] == 20.0
-    assert result["stats"]["max"] == 35.0
-    sampled_states = [s["state"] for s in result["sampled_states"]]
-    assert "35.0" in sampled_states
-    timestamps = [s["last_changed"] for s in result["sampled_states"]]
-    assert timestamps == sorted(timestamps), (
-        "sampled_states must be in chronological order"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Integration tests — non-numeric entity
-# ---------------------------------------------------------------------------
-
-
-async def test_non_numeric_entity(
-    mock_recorder: tuple[MagicMock, MagicMock],
-    hass: HomeAssistant,
-) -> None:
-    """Test non-numeric entity skips numeric stats but caps results."""
-    mock_find, mock_get_instance = mock_recorder
-    entity_id = "switch.living_room_light"
-    mock_find.return_value = State(entity_id, "off")
-
-    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
-    states = _make_states(
-        entity_id,
-        50,
-        base_time,
-        lambda i: "on" if i % 2 == 0 else "off",
-    )
-
-    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
-        return_value={entity_id: states},
-    )
-
-    tool = EntityHistoryTool({}, hass)
-    result = await tool.async_call(
-        hass,
-        MagicMock(
-            tool_args={
-                "entity_name": "Living Room Light",
-                "start_date_time": "2024-01-15 00:00",
-                "end_date_time": "2024-01-15 23:59",
-            }
-        ),
-        MagicMock(),
-    )
-
-    assert len(result["sampled_states"]) == MAX_HISTORY_RESULTS
-    assert "min" not in result["stats"]
-    assert "max" not in result["stats"]
-    assert "avg" not in result["stats"]
-    assert result["stats"]["total_data_points"] == 50
-    assert "state_at_search_start" in result["stats"]
-    assert "state_at_end" in result["stats"]
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +164,19 @@ async def test_non_numeric_entity(
             [],
             True,
         ),
+        # Start available, end unavailable → empty result with both states
+        (
+            "22.0",
+            [
+                State("sensor.test", "22.0", last_changed=datetime.now(UTC)),
+                State(
+                    "sensor.test",
+                    "unavailable",
+                    last_changed=datetime.now(UTC) + timedelta(seconds=18),
+                ),
+            ],
+            False,
+        ),
     ],
 )
 async def test_early_return_no_sampled_states(
@@ -265,7 +200,9 @@ async def test_early_return_no_sampled_states(
         hass,
         MagicMock(
             tool_args={
-                "entity_name": "Test",
+                "name": "Test",
+                "area": "Kitchen",
+                "domain": "sensor",
                 "start_date_time": "2024-01-15 00:00",
                 "end_date_time": "2024-01-15 23:59",
             }
@@ -279,49 +216,8 @@ async def test_early_return_no_sampled_states(
         assert "stats" in result
         assert "sampled_states" not in result
         assert result["stats"]["state_at_search_start"] == state_value
-
-
-async def test_state_at_end_reports_unavailable(
-    mock_recorder: tuple[MagicMock, MagicMock],
-    hass: HomeAssistant,
-) -> None:
-    """Test state_at_end reports the true last state even when it went unavailable."""
-    mock_find, mock_get_instance = mock_recorder
-    entity_id = "sensor.went_down"
-    mock_find.return_value = State(entity_id, "22.0")
-
-    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
-    start = State(
-        entity_id,
-        "22.0",
-        last_changed=base_time,
-        last_updated=base_time,
-    )
-    gone = State(
-        entity_id,
-        "unavailable",
-        last_changed=base_time + timedelta(seconds=18),
-        last_updated=base_time + timedelta(seconds=18),
-    )
-    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
-        return_value={entity_id: [start, gone]},
-    )
-
-    tool = EntityHistoryTool({}, hass)
-    result = await tool.async_call(
-        hass,
-        MagicMock(
-            tool_args={
-                "entity_name": "Went Down",
-                "start_date_time": "2024-01-15 00:00",
-                "end_date_time": "2024-01-15 23:59",
-            }
-        ),
-        MagicMock(),
-    )
-
-    assert result["stats"]["state_at_search_start"] == "22.0"
-    assert result["stats"]["state_at_end"] == "unavailable"
+        if state_value == "22.0":
+            assert result["stats"]["state_at_end"] == "unavailable"
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +272,9 @@ async def test_type_handling(
         hass,
         MagicMock(
             tool_args={
-                "entity_name": "Temp",
+                "name": "Temp",
+                "area": "Kitchen",
+                "domain": "sensor",
                 "start_date_time": "2024-01-15 00:00",
                 "end_date_time": "2024-01-15 23:59",
             }
@@ -682,3 +580,46 @@ def test_downsample_preserves_extremes() -> None:
     assert min(result_values) == 10.0
     assert max(result_values) == 30.0
     assert len(result) <= 30
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — area/domain filtering
+# ---------------------------------------------------------------------------
+
+
+async def test_async_call_ignores_non_exposed_entity(
+    hass: HomeAssistant,
+) -> None:
+    """Test that non-exposed entities raise EntityNotFoundError."""
+    hass.states.async_set("sensor.temperature", "22.0")
+    hass.states.async_set("light.living_room", "on")
+
+    exposed_entities = {
+        "light.living_room": {
+            "names": "Living Room Light",
+            "domain": "light",
+            "areas": "Living Room",
+        },
+    }
+
+    tool = EntityHistoryTool({}, hass)
+    with (
+        patch(
+            "custom_components.llm_intents.entity_history.async_get_exposed_entities",
+            return_value=exposed_entities,
+        ),
+        pytest.raises(EntityNotFoundError),
+    ):
+        await tool.async_call(
+            hass,
+            MagicMock(
+                tool_args={
+                    "name": "Temperature",
+                    "area": "Kitchen",
+                    "domain": "sensor",
+                    "start_date_time": "2024-01-15 00:00",
+                    "end_date_time": "2024-01-15 23:59",
+                }
+            ),
+            MagicMock(assistant="test_assistant"),
+        )
