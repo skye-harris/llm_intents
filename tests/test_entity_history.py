@@ -48,7 +48,7 @@ def mock_recorder() -> tuple[MagicMock, MagicMock]:
         ) as mock_get_instance,
         patch(
             "custom_components.llm_intents.entity_history.async_get_exposed_entities",
-            new=AsyncMock(return_value={}),
+            new=MagicMock(return_value={}),
         ),
     ):
         mock_session = MagicMock()
