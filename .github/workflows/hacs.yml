@@ -14,28 +14,6 @@ jobs:
         repository:
           - name: hacs/integration
             category: integration
-
-          - name: basnijholt/lovelace-ios-dark-mode-theme
-            category: theme
-
-          - name: home-assistant-community-themes/template
-            category: theme
-
-          - name: ofekashery/vertical-stack-in-card
-            category: plugin
-            ignore: images topics
-
-          - name: custom-cards/boilerplate-card
-            category: plugin
-            ignore: images
-
-          - name: ludeeus/ad-hacs
-            category: appdaemon
-            ignore: hacsjson
-
-          - name: ludeeus/ps-hacs
-            category: python_script
-            ignore: hacsjson information
     steps:
       - name: Checkout the repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
