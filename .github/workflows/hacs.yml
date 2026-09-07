@@ -1,0 +1,49 @@
+name: HACS Action
+
+on:
+  push:
+
+permissions: {}
+
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    name: "${{ matrix.repository.category }}: ${{ matrix.repository.name }}"
+    strategy:
+      matrix:
+        repository:
+          - name: hacs/integration
+            category: integration
+
+          - name: basnijholt/lovelace-ios-dark-mode-theme
+            category: theme
+
+          - name: home-assistant-community-themes/template
+            category: theme
+
+          - name: ofekashery/vertical-stack-in-card
+            category: plugin
+            ignore: images topics
+
+          - name: custom-cards/boilerplate-card
+            category: plugin
+            ignore: images
+
+          - name: ludeeus/ad-hacs
+            category: appdaemon
+            ignore: hacsjson
+
+          - name: ludeeus/ps-hacs
+            category: python_script
+            ignore: hacsjson information
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: HACS Action
+        uses: ./
+        with:
+          comment: false
+          category: ${{ matrix.repository.category }}
+          ignore: ${{ matrix.repository.ignore }}
+          repository: ${{ matrix.repository.name }}
