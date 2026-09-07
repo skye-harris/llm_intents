@@ -115,10 +115,11 @@ class EntityHistoryTool(BaseTool):
         """
         Compute summary statistics from raw state records.
 
-        For numeric entities this returns min/max/avg so the LLM can
-        understand the overall pattern without seeing every data point.
+        For numeric entities this returns min/max/avg, a range delta (min to
+        max) and a trend delta (first to last value) so the LLM can understand
+        the overall pattern without seeing every data point.
         Non-numeric entities (switches, sensors with string states) get
-        only positional metadata — min/max/avg are omitted.
+        only positional metadata — min/max/avg/delta are omitted.
         """
         if not raw_states:
             return {}
@@ -139,7 +140,9 @@ class EntityHistoryTool(BaseTool):
 
         stats["min"] = min(numeric_values)
         stats["max"] = max(numeric_values)
-        stats["avg"] = sum(numeric_values) / len(numeric_values)
+        stats["avg"] = round(sum(numeric_values) / len(numeric_values), 2)
+        stats["min_max_delta"] = round(stats["max"] - stats["min"], 2)
+        stats["start_end_delta"] = round(numeric_values[-1] - numeric_values[0], 2)
 
         return stats
 

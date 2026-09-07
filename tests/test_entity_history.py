@@ -132,10 +132,14 @@ async def test_downsampling_behavior(
         assert "min" in result["stats"]
         assert "max" in result["stats"]
         assert "avg" in result["stats"]
+        assert "min_max_delta" in result["stats"]
+        assert "start_end_delta" in result["stats"]
     else:
         assert "min" not in result["stats"]
         assert "max" not in result["stats"]
         assert "avg" not in result["stats"]
+        assert "min_max_delta" not in result["stats"]
+        assert "start_end_delta" not in result["stats"]
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +289,8 @@ async def test_type_handling(
     assert "stats" in result
     assert "min" in result["stats"]
     assert "max" in result["stats"]
+    assert "min_max_delta" in result["stats"]
+    assert "start_end_delta" in result["stats"]
     assert "sampled_states" in result
 
 
@@ -468,10 +474,16 @@ def test_build_result_with_stats(
         assert result["stats"]["min"] == expected_min
         assert result["stats"]["max"] == expected_max
         assert result["stats"]["avg"] == expected_avg
+        assert result["stats"]["min_max_delta"] == round(expected_max - expected_min, 2)
+        assert result["stats"]["start_end_delta"] == round(
+            expected_max - expected_min, 2
+        )
     else:
         assert "min" not in result["stats"]
         assert "max" not in result["stats"]
         assert "avg" not in result["stats"]
+        assert "min_max_delta" not in result["stats"]
+        assert "start_end_delta" not in result["stats"]
 
 
 # ---------------------------------------------------------------------------
