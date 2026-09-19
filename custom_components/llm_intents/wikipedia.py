@@ -1,23 +1,56 @@
-"""Wikipedia tool."""
+"""Wikipedia tool using wikipedia-api library."""
 
 import logging
-import re
-import urllib.parse
-from http import HTTPStatus
 
+import nanoe5
+import numpy as np
 import voluptuous as vol
+import wikipediaapi
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
+from wikipediaapi import WikipediaException
 
 from .base_tool import BaseTool
 from .cache import SQLiteCache
-from .const import (
-    CONF_WIKIPEDIA_NUM_RESULTS,
-)
+from .const import CONF_WIKIPEDIA_NUM_RESULTS
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _flatten_sections(sections: list) -> list[dict]:
+    """Recursively flatten sections into a flat list of title+text dicts."""
+    result: list[dict] = []
+    for section in sections:
+        result.append({"title": section.title, "text": section.text})
+        result.extend(_flatten_sections(section.sections))
+    return result
+
+
+def _find_best_section(
+    query: str,
+    sections: list[dict],
+) -> str | None:
+    """Return the section text most similar to the query using embeddings."""
+    if not sections:
+        return None
+
+    try:
+        query_emb = nanoe5.query(query)
+        section_texts = [s["text"] for s in sections if s["text"]]
+        if not section_texts:
+            _LOGGER.debug("no section texts found")
+            return None
+        section_embs = nanoe5.passage(section_texts)
+        scores = section_embs @ query_emb
+        best_idx = int(np.argmax(scores))
+        _LOGGER.debug("Best score = %s", scores[best_idx])
+        return section_texts[best_idx]
+    except Exception:
+        _LOGGER.debug(
+            "Embedding search failed, falling back to first section", exc_info=True
+        )
+        return sections[0]["text"] if sections else None
 
 
 class SearchWikipediaTool(BaseTool):
@@ -44,74 +77,54 @@ class SearchWikipediaTool(BaseTool):
     ) -> JsonObjectType:
         """Call the tool."""
         config_data = self.config
-
         query = tool_input.tool_args["query"]
-        _LOGGER.info("Wikipedia search requested for: %s", query)
-
         num_results = int(config_data.get(CONF_WIKIPEDIA_NUM_RESULTS, 1))
 
+        _LOGGER.info("Wikipedia search requested for: %s", query)
+
         try:
-            session = async_get_clientsession(hass)
-
-            # First, search for pages
-            search_params = {
-                "action": "query",
-                "format": "json",
-                "list": "search",
-                "srsearch": query,
-                "srlimit": num_results,
-            }
-
             cache = SQLiteCache()
-            cached_response = cache.get(__name__, search_params)
+            cache_key = {"query": query, "num_results": num_results}
+            cached_response = cache.get(__name__, cache_key)
             if cached_response:
                 return cached_response
 
-            async with session.get(
-                "https://en.wikipedia.org/w/api.php",
-                params=search_params,
-            ) as resp:
-                if resp.status != HTTPStatus.OK:
-                    _LOGGER.error(
-                        "Wikipedia search received a HTTP %s error from Wikipedia",
-                        resp.status,
-                    )
-                    return {"error": f"Wikipedia search error: {resp.status}"}
+            wiki = wikipediaapi.AsyncWikipedia(
+                user_agent="ToolsForAssist/0.0 (https://github.com/skye-harris/llm_intents, HomeAssistant integration)",
+                language="en",
+                max_retries=1,
+                retry_wait=1,
+            )
 
-                search_data = await resp.json()
-                search_results = search_data.get("query", {}).get("search", [])
+            search_results = await wiki.search(query, limit=num_results)
 
-                if not search_results:
-                    return {"result": f"No Wikipedia articles found for '{query}'"}
+            if not search_results.pages:
+                return {"result": f"No Wikipedia articles found for '{query}'"}
 
-                # Get summaries for each result
-                results = []
-                for result in search_results:
-                    title = result.get("title", "")
-                    snippet = result.get("snippet", "")
+            results = []
+            for title, page in search_results.pages.items():
+                sections_raw = await page.sections
 
-                    # Clean HTML tags from snippet
-                    snippet = re.sub(r"<[^>]+>", "", snippet)
+                sections = _flatten_sections(sections_raw)
+                best_section = _find_best_section(query, sections)
 
-                    # Try to get full summary
-                    summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
-                    try:
-                        async with session.get(summary_url) as summary_resp:
-                            if summary_resp.status == HTTPStatus.OK:
-                                summary_data = await summary_resp.json()
-                                extract = summary_data.get("extract", snippet)
-                            else:
-                                extract = snippet
-                    except Exception:
-                        extract = snippet
+                result: dict = {
+                    "title": title,
+                    "url": await page.fullurl,
+                }
 
-                    results.append({"title": title, "summary": extract})
+                if best_section is not None:
+                    result["section"] = best_section
 
-                if results:
-                    cache.set(__name__, search_params, {"results": results})
+                results.append(result)
 
-                return {"results": results}
+            response = {"results": results}
+            cache.set(__name__, cache_key, response)
+            return response
 
+        except WikipediaException as e:
+            _LOGGER.exception("Wikipedia API error")
+            return {"error": f"Wikipedia API error: {e!s}"}
         except Exception as e:
-            _LOGGER.exception(msg="Wikipedia search encountered an error")
+            _LOGGER.exception("Wikipedia search encountered an error")
             return {"error": f"Error searching Wikipedia: {e!s}"}
