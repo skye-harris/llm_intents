@@ -367,7 +367,7 @@ def test_get_video_capable_media_players(
             [],
             None,
             False,
-            "Could not find area 'Nowhere'. Please check the area name.",
+            "Could not find area 'Nowhere'. Please check the area name and try again.",
             None,
         ),
         # Area with no video players -> error
