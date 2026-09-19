@@ -663,10 +663,12 @@ async def test_get_hourly_forecast_no_forecast(
 
 @pytest.mark.asyncio
 @pytest.mark.freeze_time("2026-05-03")
-async def test_async_call_daily_forecast(
-    tool: WeatherForecastTool, hass: HomeAssistant
-) -> None:
+async def test_async_call_daily_forecast(hass: HomeAssistant) -> None:
     """Test async_call with daily forecast."""
+    tool = WeatherForecastTool(
+        {"weather_daily_entity": "sensor.test_weather"},
+        hass,
+    )
     tool_input = llm.ToolInput(
         tool_args={"range": "tomorrow"},
         tool_name="get_weather_forecast",
@@ -692,18 +694,6 @@ async def test_async_call_daily_forecast(
     mock_states.get.return_value = mock_entity
     tool.hass.states = mock_states
 
-    # Set up mock hass data and config_entries
-    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
-    hass.data = {
-        DOMAIN: {
-            "config": {
-                "weather_daily_entity": "sensor.test_weather",
-            },
-        },
-    }
-    mock_entry.add_to_hass(hass)
-
-    # Make async_call return an awaitable coroutine
     async def mock_async_call(*args: object, **kwargs: Any) -> dict:
         return {"sensor.test_weather": {"forecast": forecast_data}}
 
@@ -725,6 +715,7 @@ async def test_async_call_with_temperature_sensor(hass: HomeAssistant) -> None:
     """Test async_call with current temperature sensor included."""
     tool = WeatherForecastTool(
         {
+            "weather_hourly_entity": "sensor.test_weather",
             "current_temperature_entity": "sensor.temperature",
         },
         hass,
@@ -758,18 +749,6 @@ async def test_async_call_with_temperature_sensor(hass: HomeAssistant) -> None:
     mock_states.get.return_value = entity
     tool.hass.states = mock_states
 
-    # Set up mock hass data and config_entries
-    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
-    hass.data = {
-        DOMAIN: {
-            "config": {
-                "weather_hourly_entity": "sensor.test_weather",
-                "current_temperature_entity": "sensor.temperature",
-            },
-        },
-    }
-    mock_entry.add_to_hass(hass)
-
     result = await tool.async_call(
         hass,
         tool_input,
@@ -790,10 +769,12 @@ async def test_async_call_with_temperature_sensor(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_call_no_forecast_available(
-    tool: WeatherForecastTool, hass: HomeAssistant
-) -> None:
+async def test_async_call_no_forecast_available(hass: HomeAssistant) -> None:
     """Test async_call when no forecast is available."""
+    tool = WeatherForecastTool(
+        {"weather_daily_entity": "sensor.test_weather"},
+        hass,
+    )
     tool_input = llm.ToolInput(
         tool_args={"range": "week"},
         tool_name="get_weather_forecast",
@@ -810,17 +791,6 @@ async def test_async_call_no_forecast_available(
     tool.hass.states = MagicMock()
     tool.hass.states.get.return_value = mock_entity
 
-    # Set up mock hass data and config_entries
-    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
-    hass.data = {
-        DOMAIN: {
-            "config": {
-                "weather_daily_entity": "sensor.test_weather",
-            },
-        },
-    }
-    mock_entry.add_to_hass(hass)
-
     result = await tool.async_call(
         hass,
         tool_input,
@@ -832,10 +802,12 @@ async def test_async_call_no_forecast_available(
 
 
 @pytest.mark.asyncio
-async def test_async_call_error_handling(
-    tool: WeatherForecastTool, hass: HomeAssistant
-) -> None:
+async def test_async_call_error_handling(hass: HomeAssistant) -> None:
     """Test async_call error handling."""
+    tool = WeatherForecastTool(
+        {"weather_daily_entity": "sensor.test_weather"},
+        hass,
+    )
     tool_input = llm.ToolInput(
         tool_args={"range": "today"},
         tool_name="get_weather_forecast",
@@ -847,17 +819,6 @@ async def test_async_call_error_handling(
     tool.hass.services = mock_services
     tool.hass.states = MagicMock()
     tool.hass.states.get.return_value = None
-
-    # Set up mock hass data and config_entries
-    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
-    hass.data = {
-        DOMAIN: {
-            "config": {
-                "weather_daily_entity": "sensor.test_weather",
-            },
-        },
-    }
-    mock_entry.add_to_hass(hass)
 
     result = await tool.async_call(
         hass,
@@ -878,10 +839,12 @@ def test_format_date_returns_today() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.freeze_time("2026-05-03")
-async def test_async_call_twice_daily_forecast(
-    tool: WeatherForecastTool, hass: HomeAssistant
-) -> None:
+async def test_async_call_twice_daily_forecast(hass: HomeAssistant) -> None:
     """Test async_call takes the twice-daily forecast path."""
+    tool = WeatherForecastTool(
+        {"weather_daily_entity": "sensor.test_weather"},
+        hass,
+    )
     tool_input = llm.ToolInput(
         tool_args={"range": "tomorrow"},
         tool_name="get_weather_forecast",
@@ -918,16 +881,6 @@ async def test_async_call_twice_daily_forecast(
     }
     tool.hass.states = MagicMock()
     tool.hass.states.get.return_value = mock_entity
-
-    mock_entry = MockConfigEntry(domain=DOMAIN, options={})
-    hass.data = {
-        DOMAIN: {
-            "config": {
-                "weather_daily_entity": "sensor.test_weather",
-            },
-        },
-    }
-    mock_entry.add_to_hass(hass)
 
     result = await tool.async_call(
         hass,

@@ -16,7 +16,6 @@ from .const import (
     CONF_DAILY_WEATHER_ENTITY,
     CONF_HOURLY_WEATHER_ENTITY,
     CONF_WEATHER_TEMPERATURE_SENSOR,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -398,9 +397,7 @@ class WeatherForecastTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        config_data = hass.data[DOMAIN].get("config", {})
-        entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        config_data = self.config
 
         date_range = tool_input.tool_args.get("range", "week").lower()
         _LOGGER.info("Weather forecast for the period: %s", date_range)

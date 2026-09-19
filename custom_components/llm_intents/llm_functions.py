@@ -2,8 +2,8 @@
 
 import logging
 import types
-from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.llm import selector_serializer
@@ -88,15 +88,20 @@ class BaseAPI(llm.API):
     _TOOLS_CONF_MAP = None
     _API_PROMPT = ""
 
-    def __init__(self, hass: HomeAssistant, name: str, id: str | None = None) -> None:  # noqa: A002
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config: dict,
+        name: str,
+        id: str | None = None,  # noqa: A002
+    ) -> None:
         """Initialize the API."""
         super().__init__(hass=hass, id=id or name.lower().replace(" ", "_"), name=name)
+        self.config = config
 
     def get_enabled_tools(self) -> list:
         """Get all enabled tools for this service."""
-        config_data = self.hass.data[DOMAIN].get("config", {})
-        entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        config_data = self.config
         tools = []
 
         for key, tool_class in self._TOOLS_CONF_MAP or []:
@@ -143,9 +148,9 @@ class SearchAPI(BaseAPI):
     _TOOLS_CONF_MAP = SEARCH_CONF_ENABLED_MAP
     _API_PROMPT = SEARCH_SERVICES_PROMPT
 
-    def __init__(self, hass: HomeAssistant, name: str) -> None:
+    def __init__(self, hass: HomeAssistant, config: dict, name: str) -> None:
         """Initialise the API."""
-        super().__init__(hass=hass, id=DOMAIN, name=name)
+        super().__init__(hass=hass, config=config, name=name, id=DOMAIN)
 
 
 class WeatherAPI(BaseAPI):
@@ -169,76 +174,50 @@ class BasicUtilitiesAPI(BaseAPI):
     _API_PROMPT = BASIC_UTILITIES_SERVICES_PROMPT
 
 
-async def setup_llm_functions(hass: HomeAssistant, config_data: dict[str, Any]) -> None:
+async def setup_llm_functions(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up LLM functions for search services."""
+    config = {**entry.data, **(entry.options or {})}
+
     # Check if already set up with same config to avoid unnecessary work
-    if (
-        DOMAIN in hass.data
-        and "api" in hass.data[DOMAIN]
-        and hass.data[DOMAIN].get("config") == config_data
-    ):
+    existing = getattr(entry, "runtime_data", None)
+    if existing and existing.get("config") == config:
         return
 
-    # Only clean up if we already have an API registered
-    if DOMAIN in hass.data and "api" in hass.data[DOMAIN]:
-        await cleanup_llm_functions(hass)
+    # Clean up previous setup if present
+    if existing and "api" in existing:
+        await cleanup_llm_functions(entry)
 
-    # Store API instance and config in hass.data
-    hass.data.setdefault(DOMAIN, {})
-    search_api = SearchAPI(hass, SEARCH_API_NAME)
-    weather_api = WeatherAPI(hass, WEATHER_API_NAME)
-    media_api = MediaAPI(hass, MEDIA_API_NAME)
-    basic_utilities_api = BasicUtilitiesAPI(hass, BASIC_UTILITIES_API_NAME)
-    home_control_api = HomeControlAPI(hass)
+    search_api = SearchAPI(hass, config, SEARCH_API_NAME)
+    weather_api = WeatherAPI(hass, config, WEATHER_API_NAME)
+    media_api = MediaAPI(hass, config, MEDIA_API_NAME)
+    basic_utilities_api = BasicUtilitiesAPI(hass, config, BASIC_UTILITIES_API_NAME)
+    home_control_api = HomeControlAPI(hass, config)
 
-    hass.data[DOMAIN]["api"] = search_api
-    hass.data[DOMAIN]["weather_api"] = weather_api
-    hass.data[DOMAIN]["media_api"] = media_api
-    hass.data[DOMAIN]["basic_utilities_api"] = basic_utilities_api
-    hass.data[DOMAIN]["customised_assist"] = home_control_api
-    hass.data[DOMAIN]["config"] = config_data.copy()
-    hass.data[DOMAIN]["unregister_api"] = []
+    apis = [search_api, weather_api, media_api, basic_utilities_api]
+    unregister_api = [
+        llm.async_register_api(hass, api) for api in apis if api.get_enabled_tools()
+    ]
+    if config.get(CONF_HOME_CONTROL_ENABLED, False):
+        unregister_api.append(llm.async_register_api(hass, home_control_api))
 
-    # Register the API with Home Assistant's LLM system
-    try:
-        if search_api.get_enabled_tools():
-            hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, search_api),
-            )
-
-        if weather_api.get_enabled_tools():
-            hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, weather_api),
-            )
-
-        if media_api.get_enabled_tools():
-            hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, media_api),
-            )
-
-        if basic_utilities_api.get_enabled_tools():
-            hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, basic_utilities_api),
-            )
-
-        if config_data.get(CONF_HOME_CONTROL_ENABLED, False):
-            hass.data[DOMAIN]["unregister_api"].append(
-                llm.async_register_api(hass, home_control_api)
-            )
-    except Exception:
-        _LOGGER.exception("Failed to register LLM API")
-        raise
+    entry.runtime_data = {
+        "config": config,
+        "api": search_api,
+        "weather_api": weather_api,
+        "media_api": media_api,
+        "basic_utilities_api": basic_utilities_api,
+        "customised_assist": home_control_api,
+        "unregister_api": unregister_api,
+    }
 
 
-async def cleanup_llm_functions(hass: HomeAssistant) -> None:
+async def cleanup_llm_functions(entry: ConfigEntry) -> None:
     """Clean up LLM functions."""
-    if DOMAIN in hass.data:
-        # Unregister API if we have the unregister function
-        for unreg_func in hass.data[DOMAIN].get("unregister_api", []):
+    runtime = entry.runtime_data
+    if runtime:
+        for unreg_func in runtime.get("unregister_api", []):
             try:
                 unreg_func()
             except Exception as e:
                 _LOGGER.debug("Error unregistering LLM API: %s", e)
-
-        # Clean up stored data
-        hass.data.pop(DOMAIN, None)
+    entry.runtime_data = None

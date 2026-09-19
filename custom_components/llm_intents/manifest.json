@@ -14,8 +14,9 @@
   "loggers": [
     "custom_components.llm_intents"
   ],
-  "requirements": [
-    "sympy>=1.14.0"
-  ],
+    "requirements": [
+        "sympy>=1.14.0",
+        "wikipedia-api>=0.16.0"
+    ],
   "version": "1.10.2"
 }

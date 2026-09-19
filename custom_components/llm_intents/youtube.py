@@ -13,7 +13,6 @@ from .base_tool import BaseTool
 from .cache import SQLiteCache
 from .const import (
     CONF_PROVIDER_API_KEYS,
-    DOMAIN,
     PROVIDER_GOOGLE,
 )
 
@@ -64,9 +63,7 @@ class SearchYouTubeTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        config_data = hass.data[DOMAIN].get("config", {})
-        entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        config_data = self.config
 
         query = tool_input.tool_args["query"]
         num_results = tool_input.tool_args.get("num_results", 1)

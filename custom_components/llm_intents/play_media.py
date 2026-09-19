@@ -197,7 +197,7 @@ class PlayVideoTool(BaseTool):
                 ): str,
                 vol.Optional(
                     "entity_id",
-                    description="The entity_id of the media player (e.g., media_player.living_room_tv)",
+                    description="The entity_id of the media player",
                 ): SelectSelector(
                     SelectSelectorConfig(
                         options=video_players,
@@ -206,7 +206,7 @@ class PlayVideoTool(BaseTool):
                 ),
                 vol.Optional(
                     "area",
-                    description="The area name or ID to target all media players in that area (e.g., 'Living Room' or 'living_room')",
+                    description="The area name or ID to target all media players in that area",
                 ): str,
                 vol.Optional(
                     "device_id",
@@ -251,7 +251,7 @@ class PlayVideoTool(BaseTool):
                 )
                 return {
                     "success": False,
-                    "error": f"Could not find area '{area_input}'. Please check the area name.",
+                    "error": f"Could not find area '{area_input}'. Please check the area name and try again.",
                 }
 
             _LOGGER.debug("Resolved area '%s' to area_id '%s'", area_input, area_id)

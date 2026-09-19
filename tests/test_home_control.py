@@ -78,7 +78,7 @@ async def test_get_tools_filters_disabled_tools(
             HomeControlAPI, "_async_get_api_prompt", return_value="test prompt"
         ),
     ):
-        api = HomeControlAPI(hass)
+        api = HomeControlAPI(hass, config_entry.options)
         result = await api.async_get_api_instance(mock_llm_context_no_device)
 
         # super()._async_get_tools returns 2 mocked tools, EntityHistoryTool is appended (3 total)
@@ -123,7 +123,7 @@ async def test_get_tools_excludes_entity_history_when_disabled(
             HomeControlAPI, "_async_get_api_prompt", return_value="test prompt"
         ),
     ):
-        api = HomeControlAPI(hass)
+        api = HomeControlAPI(hass, disabled_entry.options)
         result = await api.async_get_api_instance(mock_llm_context_no_device)
 
         assert len(result.tools) == 1
@@ -192,7 +192,7 @@ async def test_async_get_api_prompt_generates_correct_prompt(
             CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
         ),
     ):
-        api = HomeControlAPI(hass)
+        api = HomeControlAPI(hass, config_entry.options)
         result = api._async_get_api_prompt(mock_llm_context_with_device)
 
         assert result is not None
@@ -255,7 +255,7 @@ async def test_async_get_api_prompt_encloses_entity_names_in_backticks(
             return_value=False,
         ),
     ):
-        api = HomeControlAPI(hass)
+        api = HomeControlAPI(hass, config_entry.options)
         result = api._async_get_api_prompt(mock_llm_context_with_device)
 
         assert "`Living Room Light`, `Living Room Lamp`, `LR Light`" in result
