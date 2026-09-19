@@ -25,7 +25,6 @@ from .const import (
     CONF_HOME_CONTROL_DEFAULT_PROMPT_TEMPLATE,
     CONF_HOME_CONTROL_DISABLED_TOOLS,
     CONF_HOME_CONTROL_PROMPT_TEMPLATE,
-    DOMAIN,
 )
 from .entity_history import EntityHistoryTool
 
@@ -35,17 +34,16 @@ _LOGGER = logging.getLogger(__name__)
 class HomeControlAPI(AssistAPI):
     """Subclass and modify Assist."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, config: dict) -> None:
         """Init the class."""
         super().__init__(hass)
+        self.config = config
         self.name = "Home Control"
         self.id = "HomeControl"
 
     def _get_config_data(self) -> dict:
         """Return the merged config data for this integration."""
-        config_data = self.hass.data[DOMAIN].get("config", {})
-        entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
-        return {**config_data, **entry.options}
+        return self.config
 
     async def async_get_api_instance(
         self, llm_context: llm.LLMContext

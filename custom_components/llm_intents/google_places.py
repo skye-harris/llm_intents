@@ -20,7 +20,6 @@ from .const import (
     CONF_GOOGLE_PLACES_RADIUS,
     CONF_GOOGLE_PLACES_RANKING,
     CONF_PROVIDER_API_KEYS,
-    DOMAIN,
     PROVIDER_GOOGLE,
     SERVICE_DEFAULTS,
 )
@@ -72,9 +71,7 @@ class FindPlacesTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        config_data = hass.data[DOMAIN].get("config", {})
-        entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        config_data = self.config
 
         query = tool_input.tool_args["query"]
 

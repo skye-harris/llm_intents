@@ -19,7 +19,6 @@ from .const import (
     CONF_GOOGLE_ROUTES_HOME_ADDRESS,
     CONF_GOOGLE_ROUTES_TRAVEL_MODES,
     CONF_PROVIDER_API_KEYS,
-    DOMAIN,
     PROVIDER_GOOGLE,
 )
 
@@ -114,10 +113,7 @@ class GetRouteTool(BaseTool):
 
     def _get_default_travel_mode(self) -> str:
         """Return the default travel mode."""
-        config_data = self.hass.data[DOMAIN].get("config", {})
-        entry = next(iter(self.hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
-        return config_data.get(CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE)
+        return self.config.get(CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE, "DRIVE")
 
     def _resolve_departure_time(self, value: str | None) -> str | None:
         """Convert an LLM-supplied departure time into an RFC3339 UTC string."""
@@ -224,14 +220,12 @@ class GetRouteTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        config_data = hass.data[DOMAIN].get("config", {})
-        entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        config_data = self.config
 
         provider_keys = config_data.get(CONF_PROVIDER_API_KEYS) or {}
         api_key = provider_keys.get(PROVIDER_GOOGLE, "")
         home_address = config_data.get(CONF_GOOGLE_ROUTES_HOME_ADDRESS, "").strip()
-        default_mode = config_data.get(CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE, "DRIVE")
+        default_mode = self._get_default_travel_mode()
 
         if not api_key:
             return {"error": "Google API key not configured"}

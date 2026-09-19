@@ -39,8 +39,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Tools for Assist from a config entry."""
     _LOGGER.info("Setting up %s for entry: %s", ADDON_NAME, entry.entry_id)
-    config = {**entry.data, **(entry.options or {})}
-    await setup_llm_functions(hass, config)
+    await setup_llm_functions(hass, entry)
     _LOGGER.info("%s functions successfully set up", ADDON_NAME)
     return True
 
@@ -48,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info("Unloading %s for entry: %s", ADDON_NAME, entry.entry_id)
-    await cleanup_llm_functions(hass)
+    await cleanup_llm_functions(entry)
     _LOGGER.info("%s functions successfully unloaded", ADDON_NAME)
     return True
 

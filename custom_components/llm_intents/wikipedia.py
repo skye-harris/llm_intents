@@ -15,7 +15,6 @@ from .base_tool import BaseTool
 from .cache import SQLiteCache
 from .const import (
     CONF_WIKIPEDIA_NUM_RESULTS,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,9 +43,7 @@ class SearchWikipediaTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
         """Call the tool."""
-        config_data = hass.data[DOMAIN].get("config", {})
-        entry = next(iter(hass.config_entries.async_entries(DOMAIN)))
-        config_data = {**config_data, **entry.options}
+        config_data = self.config
 
         query = tool_input.tool_args["query"]
         _LOGGER.info("Wikipedia search requested for: %s", query)
