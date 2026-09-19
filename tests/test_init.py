@@ -56,18 +56,19 @@ class TestLlmIntentsIntegration:
             result = await async_setup_entry(hass, config_entry)
 
             assert result is True
-            mock_setup.assert_called_once_with(hass, config_entry.data)
+            mock_setup.assert_called_once_with(hass, config_entry)
 
     async def test_async_unload_entry(
         self, hass: HomeAssistant, config_entry: ConfigEntry
     ) -> None:
         """Test unloading a config entry."""
-        # Set up initial data as it would be after setup
-        hass.data[DOMAIN] = {
+        # Set up runtime_data as it would be after setup
+        config_entry.runtime_data = {
+            "config": config_entry.data,
             "api": Mock(),
-            "current_config": config_entry.data,
             "unregister_api": [],
         }
+        config_entry.add_to_hass(hass)
 
         with patch(
             "custom_components.llm_intents.cleanup_llm_functions"
@@ -75,7 +76,7 @@ class TestLlmIntentsIntegration:
             result = await async_unload_entry(hass, config_entry)
 
             assert result is True
-            mock_cleanup.assert_called_once_with(hass)
+            mock_cleanup.assert_called_once_with(config_entry)
 
     async def test_async_migrate_entry_v2_to_v3_migrates_places_key(
         self, hass: HomeAssistant
