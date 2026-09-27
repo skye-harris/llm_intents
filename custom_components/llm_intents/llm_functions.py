@@ -22,6 +22,7 @@ from .const import (
     CONF_HOME_CONTROL_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
+    CONF_SEARCH_PROVIDER_YOUCOM,
     CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -43,6 +44,7 @@ from .searxng_search import SearXngSearchTool
 from .unit_converter import UnitConverterTool
 from .weather import WeatherForecastTool
 from .wikipedia import SearchWikipediaTool
+from .youcom_search import YoucomSearchTool
 from .youtube import SearchYouTubeTool
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,6 +61,10 @@ SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         SearXngSearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_YOUCOM,
+        YoucomSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_GOOGLE_ROUTES_ENABLED, GetRouteTool),

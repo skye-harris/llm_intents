@@ -56,6 +56,17 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "youcom": {
+        "title": "Configure You.com Web Search",
+        "description": "Configure You.com web search settings. API key is optional — works keylessly out of the box.",
+        "data": {
+          "youcom_api_key": "API Key (optional)",
+          "youcom_num_results": "Number of Results"
+        },
+        "data_description": {
+          "youcom_api_key": "Get a free key at https://you.com/platform/api-keys. Leave blank for keyless free tier."
+        }
+      },
       "google_api_key": {
         "title": "Configure Google API Key",
         "description": "Enter your Google API key. This key is shared by Google Places and Google Routes.",
@@ -205,6 +216,17 @@
         },
         "data_description": {
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
+        }
+      },
+      "youcom": {
+        "title": "Configure You.com Web Search",
+        "description": "Configure You.com web search settings. API key is optional — works keylessly out of the box.",
+        "data": {
+          "youcom_api_key": "API Key (optional)",
+          "youcom_num_results": "Number of Results"
+        },
+        "data_description": {
+          "youcom_api_key": "Get a free key at https://you.com/platform/api-keys. Leave blank for keyless free tier."
         }
       },
       "google_api_key": {

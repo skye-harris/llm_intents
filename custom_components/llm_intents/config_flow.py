@@ -80,10 +80,13 @@ from .const import (
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
+    CONF_SEARCH_PROVIDER_YOUCOM,
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
     CONF_UNIT_CONVERTER_ENABLED,
+    CONF_YOUCOM_API_KEY,
+    CONF_YOUCOM_NUM_RESULTS,
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
@@ -92,6 +95,7 @@ from .const import (
     DOMAIN,
     PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
+    PROVIDER_YOUCOM,
     SERVICE_DEFAULTS,
 )
 
@@ -106,6 +110,7 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
+STEP_YOUCOM = "youcom"
 STEP_GOOGLE_API_KEY = "google_api_key"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_GOOGLE_ROUTES = "google_routes"
@@ -174,6 +179,7 @@ def expand_config_for_schema(config: dict) -> dict:
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
+    result[CONF_YOUCOM_API_KEY] = provider_keys.get(PROVIDER_YOUCOM, "")
     return result
 
 
@@ -183,6 +189,8 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
 
     if CONF_BRAVE_API_KEY in user_input:
         provider_keys[PROVIDER_BRAVE] = user_input[CONF_BRAVE_API_KEY]
+    if CONF_YOUCOM_API_KEY in user_input:
+        provider_keys[PROVIDER_YOUCOM] = user_input[CONF_YOUCOM_API_KEY]
     if CONF_GOOGLE_API_KEY in user_input:
         provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
 
@@ -324,6 +332,34 @@ async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
             vol.Required(
                 CONF_SEARXNG_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_SEARXNG_NUM_RESULTS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                ),
+            ),
+        },
+    )
+
+
+async def get_youcom_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the static schema for You.com service configuration."""
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_YOUCOM_API_KEY,
+                default=SERVICE_DEFAULTS.get(CONF_YOUCOM_API_KEY),
+            ): TextSelector(
+                TextSelectorConfig(
+                    type=TextSelectorType.PASSWORD,
+                ),
+            ),
+            vol.Required(
+                CONF_YOUCOM_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_YOUCOM_NUM_RESULTS),
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
@@ -618,6 +654,10 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         get_searxng_schema,
     ],
+    STEP_YOUCOM: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_YOUCOM,
+        get_youcom_schema,
+    ],
     STEP_GOOGLE_API_KEY: [
         lambda data: (
             data.get(CONF_GOOGLE_PLACES_ENABLED) or data.get(CONF_GOOGLE_ROUTES_ENABLED)
@@ -774,6 +814,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle SearXNG configuration step."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_youcom(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle You.com configuration step."""
+        return await self.handle_step(STEP_YOUCOM, user_input)
 
     async def async_step_google_api_key(
         self,
@@ -1034,6 +1081,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> FlowResult:
         """Handle SearXNG configuration step in options flow."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_youcom(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle You.com configuration step in options flow."""
+        return await self.handle_step(STEP_YOUCOM, user_input)
 
     async def async_step_google_api_key(
         self,
