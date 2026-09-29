@@ -9,7 +9,10 @@ from homeassistant.core import HomeAssistant
 from wikipediaapi import WikipediaException
 
 from custom_components.llm_intents.const import CONF_WIKIPEDIA_NUM_RESULTS
-from custom_components.llm_intents.wikipedia import SearchWikipediaTool
+from custom_components.llm_intents.wikipedia import (
+    SearchWikipediaTool,
+    _flatten_sections,
+)
 
 
 def _tool_input(**args: Any) -> Mock:
@@ -216,6 +219,7 @@ async def test_wikipedia_search_with_section(
         )
 
     assert result["results"][0]["section"] == "This is the first section text."
+    assert result["results"][0]["section_title"] == "Start and end dates"
     assert "summary" not in result["results"][0]
     assert "url" in result["results"][0]
 
@@ -269,6 +273,7 @@ async def test_wikipedia_search_section_matching(
         result["results"][0]["section"]
         == "Hyenas mate during the wet season and form monogamous pairs."
     )
+    assert result["results"][0]["section_title"] == "Mating behavior"
 
 
 async def test_wikipedia_search_no_results(
@@ -451,6 +456,43 @@ async def test_wikipedia_num_results_from_config(
     assert call_kwargs["limit"] == 2
 
 
+async def test_wikipedia_nested_sections_flatten() -> None:
+    """Nested subsections are flattened into a single list."""
+    top = _MockSection("Top", "top text")
+    mid = _MockSection(
+        "Mid",
+        "mid text",
+        subsections=[
+            _MockSection("Mid-A", "mid-a text"),
+            _MockSection("Mid-B", "mid-b text"),
+        ],
+    )
+    deep = _MockSection(
+        "Deep",
+        "deep text",
+        subsections=[
+            _MockSection("Deep-1", "deep-1 text"),
+        ],
+    )
+    root = _MockSection("Root", "root text", subsections=[top, mid, deep])
+
+    flat = _flatten_sections([root])
+
+    assert len(flat) == 7
+    titles = [s["title"] for s in flat]
+    assert titles == ["Root", "Top", "Mid", "Mid-A", "Mid-B", "Deep", "Deep-1"]
+    texts = [s["text"] for s in flat]
+    assert texts == [
+        "root text",
+        "top text",
+        "mid text",
+        "mid-a text",
+        "mid-b text",
+        "deep text",
+        "deep-1 text",
+    ]
+
+
 async def test_wikipedia_fallback_on_embedding_failure(
     tool: SearchWikipediaTool,
     cache_miss: Any,
@@ -495,3 +537,4 @@ async def test_wikipedia_fallback_on_embedding_failure(
     assert (
         result["results"][0]["section"] == "The word hyena derives from ancient Greek."
     )
+    assert result["results"][0]["section_title"] == "Etymology"

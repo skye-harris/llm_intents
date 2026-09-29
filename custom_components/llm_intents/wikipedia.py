@@ -1,6 +1,8 @@
 """Wikipedia tool using wikipedia-api library."""
 
+import asyncio
 import logging
+import time
 
 import nanoe5
 import numpy as np
@@ -27,30 +29,51 @@ def _flatten_sections(sections: list) -> list[dict]:
     return result
 
 
-def _find_best_section(
+def _compute_embeddings(query: str, section_texts: list[str]) -> tuple:
+    """Compute embeddings synchronously for use in a thread pool."""
+    t0 = time.perf_counter()
+    query_emb = nanoe5.query(query)
+    t1 = time.perf_counter()
+    section_embs = nanoe5.passage(section_texts)
+    t2 = time.perf_counter()
+    _LOGGER.debug(
+        "Embedding timings — query: %.3fs, passages (%d): %.3fs",
+        t1 - t0,
+        len(section_texts),
+        t2 - t1,
+    )
+    return query_emb, section_embs
+
+
+async def _find_best_section(
     query: str,
     sections: list[dict],
-) -> str | None:
-    """Return the section text most similar to the query using embeddings."""
+) -> dict[str, str] | None:
+    """Return the section most similar to the query using embeddings."""
     if not sections:
         return None
 
     try:
-        query_emb = nanoe5.query(query)
-        section_texts = [s["text"] for s in sections if s["text"]]
-        if not section_texts:
+        section_data = [s for s in sections if s["text"]]
+        if not section_data:
             _LOGGER.debug("no section texts found")
             return None
-        section_embs = nanoe5.passage(section_texts)
+
+        query_emb, section_embs = await asyncio.to_thread(
+            _compute_embeddings, query, [s["text"] for s in section_data]
+        )
+
         scores = section_embs @ query_emb
         best_idx = int(np.argmax(scores))
-        _LOGGER.debug("Best score = %s", scores[best_idx])
-        return section_texts[best_idx]
+        return section_data[best_idx]
     except Exception:
         _LOGGER.debug(
             "Embedding search failed, falling back to first section", exc_info=True
         )
-        return sections[0]["text"] if sections else None
+        return (
+            sections[0] if sections
+            else None
+        )
 
 
 class SearchWikipediaTool(BaseTool):
@@ -106,7 +129,7 @@ class SearchWikipediaTool(BaseTool):
                 sections_raw = await page.sections
 
                 sections = _flatten_sections(sections_raw)
-                best_section = _find_best_section(query, sections)
+                best_section = await _find_best_section(query, sections)
 
                 result: dict = {
                     "title": title,
@@ -114,7 +137,8 @@ class SearchWikipediaTool(BaseTool):
                 }
 
                 if best_section is not None:
-                    result["section"] = best_section
+                    result["section_title"] = best_section["title"]
+                    result["section"] = best_section["text"]
 
                 results.append(result)
 
