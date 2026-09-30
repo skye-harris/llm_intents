@@ -44,12 +44,23 @@ CONF_SEARCH_PROVIDER = "search_provider"
 CONF_SEARCH_PROVIDER_BRAVE = "Brave"
 CONF_SEARCH_PROVIDER_BRAVE_LLM = "Brave LLM Context"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
+CONF_SEARCH_PROVIDER_YOUCOM = "You.com"
 
 CONF_SEARCH_PROVIDERS = {
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
     "Brave LLM Context": CONF_SEARCH_PROVIDER_BRAVE_LLM,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
+    "You.com": CONF_SEARCH_PROVIDER_YOUCOM,
 }
+
+# You.com-specific constants
+
+CONF_YOUCOM_API_KEY = "youcom_api_key"
+CONF_YOUCOM_NUM_RESULTS = "youcom_num_results"
+
+YOUCOM_BASE_URL = "https://api.you.com/mcp"
+YOUCOM_FREE_URL = "https://api.you.com/mcp?profile=free"
+PROVIDER_YOUCOM = "youcom"
 
 # SearXNG-specific constants
 
@@ -62,11 +73,13 @@ CONF_PROVIDER_API_KEYS = "provider_api_keys"
 PROVIDER_GOOGLE = "google"
 PROVIDER_BRAVE = "brave"
 PROVIDER_BRAVE_LLM = "brave_llm"
+PROVIDER_YOUCOM = "youcom"
 
 # Form field keys for provider API keys
 
 CONF_GOOGLE_API_KEY = "google_api_key"
 CONF_BRAVE_API_KEY = "brave_api_key"
+CONF_YOUCOM_API_KEY = "youcom_api_key"
 
 # Brave-specific constants
 
@@ -233,6 +246,7 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
+    CONF_YOUCOM_NUM_RESULTS: 4,
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",
     CONF_GOOGLE_PLACES_LONGITUDE: "",

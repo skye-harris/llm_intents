@@ -2,7 +2,7 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _SearXNG_, or _You.com_
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
@@ -149,6 +149,36 @@ Uses a self-hosted SearXNG search service to return summarized results.
 | Setting             | Required | Default | Description                             |
 |---------------------|----------|---------|-----------------------------------------|
 | `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM |
+
+---
+
+### 🔍 You.com Web Search
+
+Uses the You.com Search API to return web search results. Works keylessly out of the box — no API key required for basic free-tier access.
+
+##### Keyless (Free Tier)
+
+- No API key needed.
+- Uses the keyless endpoint at `https://api.you.com/mcp?profile=free`.
+- Suitable for basic web search with up to 100 queries/day.
+
+##### Authenticated (API Key)
+
+- Get a free API key at [you.com/platform/api-keys](https://you.com/platform/api-keys).
+- Higher rate limits and access to additional You.com MCP tools.
+
+#### Configuration Steps
+
+1. Select "You.com" as the search provider during setup.
+2. Optionally, enter your You.com API key (leave blank for keyless free tier).
+3. Configure the number of results to return.
+
+#### Options
+
+| Setting             | Required | Default | Description                                                           |
+|---------------------|----------|---------|-----------------------------------------------------------------------|
+| `API Key`           | ❌        | —       | You.com API key. Leave blank for keyless free tier                    |
+| `Number of Results` | ✅        | `4`     | Number of results to provide to the LLM                               |
 
 ---
 
