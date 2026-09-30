@@ -64,7 +64,7 @@
           "youcom_num_results": "Number of Results"
         },
         "data_description": {
-          "youcom_api_key": "Get a free key at https://you.com/platform/api-keys. Leave blank for keyless free tier."
+          "youcom_api_key": "Optional You.com API key. Leave blank to use the free keyless tier."
         }
       },
       "google_api_key": {
@@ -226,7 +226,7 @@
           "youcom_num_results": "Number of Results"
         },
         "data_description": {
-          "youcom_api_key": "Get a free key at https://you.com/platform/api-keys. Leave blank for keyless free tier."
+          "youcom_api_key": "Optional You.com API key. Leave blank to use the free keyless tier."
         }
       },
       "google_api_key": {

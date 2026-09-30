@@ -72,10 +72,12 @@ class YoucomSearchTool(SearchWebTool):
                     if content_item.get("type") == "text":
                         text = content_item.get("text", "")
                         # Parse the text result — it's formatted markdown with citations
-                        results.append({
-                            "title": f"You.com search result",
-                            "content": await self.cleanup_text(text),
-                        })
+                        results.append(
+                            {
+                                "title": "You.com search result",
+                                "content": await self.cleanup_text(text),
+                            }
+                        )
                 return results
             error_msg = (
                 f"Web search received a HTTP {resp.status} error from You.com: {data}"
