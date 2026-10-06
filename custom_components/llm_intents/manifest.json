@@ -18,5 +18,5 @@
         "sympy>=1.14.0",
         "wikipedia-api>=0.16.0"
     ],
-  "version": "1.10.2"
+  "version": "1.10.3"
 }
