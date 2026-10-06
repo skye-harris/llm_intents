@@ -27,6 +27,7 @@ WIKIPEDIA_HEADERS = {
     "User-Agent": "HomeAssistant-llm_intents/1.0 (https://github.com/skye-harris/llm_intents)"
 }
 
+
 class SearchWikipediaTool(BaseTool):
     """Tool for searching Wikipedia."""
 
@@ -104,7 +105,9 @@ class SearchWikipediaTool(BaseTool):
                     # Try to get full summary
                     summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
                     try:
-                        async with session.get(summary_url, headers=WIKIPEDIA_HEADERS) as summary_resp:
+                        async with session.get(
+                            summary_url, headers=WIKIPEDIA_HEADERS
+                        ) as summary_resp:
                             if summary_resp.status == HTTPStatus.OK:
                                 summary_data = await summary_resp.json()
                                 extract = summary_data.get("extract", snippet)
