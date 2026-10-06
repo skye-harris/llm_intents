@@ -57,7 +57,7 @@ async def test_get_tools_filters_disabled_tools(
     config_entry: MockConfigEntry,
 ) -> None:
     """Test that tools in disabled_tools list are filtered out."""
-    hass.data = {DOMAIN: {"config": {}}}
+    hass.data.setdefault(DOMAIN, {})["config"] = {}
     config_entry.options[CONF_HOME_CONTROL_DISABLED_TOOLS].append("HassTimerStart")
     config_entry.add_to_hass(hass)
 
@@ -95,7 +95,7 @@ async def test_get_tools_excludes_entity_history_when_disabled(
     config_entry: MockConfigEntry,
 ) -> None:
     """Test that EntityHistoryTool is excluded when CONF_ENTITY_HISTORY_ENABLED is False."""
-    hass.data = {DOMAIN: {"config": {}}}
+    hass.data.setdefault(DOMAIN, {})["config"] = {}
     disabled_entry = MockConfigEntry(
         domain=DOMAIN,
         entry_id="test_home_control_entry_disabled",
@@ -138,7 +138,7 @@ async def test_async_get_api_prompt_generates_correct_prompt(
     config_entry: MockConfigEntry,
 ) -> None:
     """Test that _async_get_api_prompt returns rendered prompt with context."""
-    hass.data = {DOMAIN: {"config": {}}}
+    hass.data.setdefault(DOMAIN, {})["config"] = {}
     config_entry.add_to_hass(hass)
 
     mock_llm_context_with_device.assistant = "assist_test"
@@ -210,7 +210,7 @@ async def test_async_get_api_prompt_encloses_entity_names_in_backticks(
     config_entry: MockConfigEntry,
 ) -> None:
     """Test that entity names/aliases are wrapped in backticks in the rendered prompt."""
-    hass.data = {DOMAIN: {"config": {}}}
+    hass.data.setdefault(DOMAIN, {})["config"] = {}
     config_entry.add_to_hass(hass)
 
     mock_llm_context_with_device.assistant = "assist_test"
