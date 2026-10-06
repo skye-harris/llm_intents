@@ -19,6 +19,13 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Wikimedia rejects/throttles requests with generic client signatures
+# (e.g. a bare aiohttp default User-Agent) per its API etiquette policy:
+# https://meta.wikimedia.org/wiki/User-Agent_policy - without this,
+# both calls below can 403/429 even under normal, light usage.
+WIKIPEDIA_HEADERS = {
+    "User-Agent": "HomeAssistant-llm_intents/1.0 (https://github.com/skye-harris/llm_intents)"
+}
 
 class SearchWikipediaTool(BaseTool):
     """Tool for searching Wikipedia."""
@@ -70,6 +77,7 @@ class SearchWikipediaTool(BaseTool):
             async with session.get(
                 "https://en.wikipedia.org/w/api.php",
                 params=search_params,
+                headers=WIKIPEDIA_HEADERS,
             ) as resp:
                 if resp.status != HTTPStatus.OK:
                     _LOGGER.error(
@@ -96,7 +104,7 @@ class SearchWikipediaTool(BaseTool):
                     # Try to get full summary
                     summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
                     try:
-                        async with session.get(summary_url) as summary_resp:
+                        async with session.get(summary_url, headers=WIKIPEDIA_HEADERS) as summary_resp:
                             if summary_resp.status == HTTPStatus.OK:
                                 summary_data = await summary_resp.json()
                                 extract = summary_data.get("extract", snippet)
