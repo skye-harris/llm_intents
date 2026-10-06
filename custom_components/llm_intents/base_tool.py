@@ -3,9 +3,13 @@
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
+from .const import DOMAIN
+
 
 class BaseTool(llm.Tool):
     """Base tool class from which all others extend."""
+
+    integration = DOMAIN
 
     def __init__(self, config: dict, hass: HomeAssistant) -> None:
         """Init our tool."""
