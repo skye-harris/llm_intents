@@ -55,6 +55,13 @@ class GetRouteTool(BaseTool):
 
     parameters: vol.Schemable
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=True,
+    )
+
     def __init__(self, config: dict, hass: HomeAssistant) -> None:
         """Initialize the tool."""
         # Inject the default travel mode into the description

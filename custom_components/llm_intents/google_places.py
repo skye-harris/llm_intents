@@ -30,6 +30,13 @@ _LOGGER = logging.getLogger(__name__)
 class FindPlacesTool(BaseTool):
     """Tool for finding places."""
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=True,
+    )
+
     name = "find_places"
 
     description = (

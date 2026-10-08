@@ -39,6 +39,13 @@ class SearchWebTool(BaseTool):
         },
     )
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=True,
+    )
+
     def with_instructions(self, response: dict) -> dict:
         """Wrap our response with instructions."""
         response["instruction"] = self.response_instruction

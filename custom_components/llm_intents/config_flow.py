@@ -549,7 +549,7 @@ async def get_brave_llm_schema(
 def get_timer_device_id(hass: HomeAssistant) -> str | None:
     """Return a timer-capable device id, if one is available."""
     device_reg = dr.async_get(hass)
-    for device in device_reg.devices.values():
+    for device in device_reg:
         if async_device_supports_timers(hass, device.id):
             return device.id
 

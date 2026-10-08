@@ -132,6 +132,13 @@ class WeatherForecastTool(BaseTool):
         },
     )
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=False,
+        open_world=False,
+    )
+
     @staticmethod
     def _find_target_date(date_range: str) -> date | None:
         """Find our target date based on the input."""

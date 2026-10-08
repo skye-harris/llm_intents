@@ -11,6 +11,13 @@ class BaseTool(llm.Tool):
 
     integration = DOMAIN
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=False,
+    )
+
     def __init__(self, config: dict, hass: HomeAssistant) -> None:
         """Init our tool."""
         super().__init__()

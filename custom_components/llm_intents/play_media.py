@@ -181,6 +181,13 @@ class PlayVideoTool(BaseTool):
 
     parameters = vol.Schema({})
 
+    annotations = llm.ToolAnnotations(
+        read_only=False,
+        destructive=False,
+        idempotent=False,
+        open_world=True,
+    )
+
     @staticmethod
     def update_args(hass: HomeAssistant) -> None:
         """

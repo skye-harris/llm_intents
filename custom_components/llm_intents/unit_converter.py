@@ -120,6 +120,13 @@ class UnitConverterTool(BaseTool):
         },
     )
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=False,
+    )
+
     async def async_call(
         self,
         hass: HomeAssistant,
