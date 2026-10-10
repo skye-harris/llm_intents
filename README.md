@@ -2,7 +2,7 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _Tavily_ or _SearXNG_
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
@@ -127,6 +127,44 @@ Uses the Brave LLM Context Search API to return pre-extracted web context optimi
 | `Longitude`               | ❌        | —          | Optional longitude for local result relevance (recommended)          |
 | `Timezone`                | ❌        | —          | Optional TZ timezone identifier for local result relevance           |
 | `Post Code`               | ❌        | —          | Optional post code for local result relevance                        |
+
+---
+
+### 🔍 Tavily Web Search
+
+Uses the Tavily Search API to return concise, relevant results, with an optional generated answer.
+
+##### Requirements
+
+* Requires a [Tavily API key](https://app.tavily.com/home).
+    * Tavily provide 1,000 free API credits per month, no card required.
+    * `Basic`, `Fast` and `Ultra fast` searches cost one credit each, an `Advanced` search costs two.
+
+#### Configuration Steps
+
+1. Select "Tavily" as the search provider during setup.
+2. Enter your [Tavily API key](https://app.tavily.com/home).
+3. Configure the number of results, chunks per source, search depth, whether to include a generated answer or full page content, and optionally a country to boost results from.
+
+#### Options
+
+| Setting                    | Required | Default | Description                                                                        |
+|----------------------------|----------|---------|------------------------------------------------------------------------------------|
+| `API Key`                  | ✅        | —       | Tavily API key                                                                     |
+| `Number of Results`        | ✅        | `2`     | Number of results to provide to the LLM                                            |
+| `Search Depth`             | ❌        | `Basic` | Costs are per search. `Basic`, `Fast` and `Ultra fast` cost 1 credit, `Advanced` costs 2. `Fast` and `Ultra fast` are beta options that trade relevance for latency |
+| `Chunks Per Source`        | ❌        | `1`     | How many content chunks Tavily returns per result. Honoured on `Basic`, `Advanced` and `Fast`. `Ultra fast` returns a single summary per result |
+| `Include Generated Answer` | ❌        | `false` | Also return a short Tavily generated answer alongside the search results            |
+| `Include Full Page Content`| ❌        | `false` | Return extracted page content instead of Tavily's snippets. Full pages are large, and arrive whitespace-normalised |
+| `Country`                  | ❌        | —       | Supported country name, chosen from a list. Boosts results from it. General searches only, and not with the `fast` or `ultra-fast` search depths. Choose `No country boost` to turn it off |
+
+#### LLM-provided arguments
+
+| Argument     | Required | Description                                                          |
+|--------------|----------|----------------------------------------------------------------------|
+| `query`      | ✅        | The query to search for                                              |
+| `topic`      | ❌        | `general`, `news` or `finance`. `news` adds published dates          |
+| `time_range` | ❌        | `day`, `week`, `month` or `year` recency filter                      |
 
 ---
 
