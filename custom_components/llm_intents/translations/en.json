@@ -56,6 +56,26 @@
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
         }
       },
+      "tavily": {
+        "title": "Configure Tavily Web Search",
+        "description": "Configure Tavily Search API settings.",
+        "data": {
+          "tavily_api_key": "API Key",
+          "tavily_num_results": "Number of Results",
+          "tavily_search_depth": "Search Depth",
+          "tavily_include_answer": "Include Generated Answer",
+          "tavily_include_raw_content": "Include Full Page Content",
+          "tavily_country": "Country (optional)",
+          "tavily_chunks_per_source": "Chunks Per Source"
+        },
+        "data_description": {
+          "tavily_search_depth": "Fast and Ultra fast are beta options that trade relevance for latency.",
+          "tavily_include_answer": "Also return a short Tavily generated answer alongside the search results.",
+          "tavily_include_raw_content": "Return extracted page content instead of Tavily's snippets. Full pages are large, and arrive whitespace-normalised.",
+          "tavily_country": "Boosts results from that country. Choose \"No country boost\" to turn it off. Only applies to general searches, and not with the fast or ultra-fast search depths.",
+          "tavily_chunks_per_source": "How many content chunks Tavily returns per result. Honoured on the basic, advanced and fast search depths. Ultra fast returns a single summary per result instead."
+        }
+      },
       "google_api_key": {
         "title": "Configure Google API Key",
         "description": "Enter your Google API key. This key is shared by Google Places and Google Routes.",
@@ -205,6 +225,26 @@
         },
         "data_description": {
           "searxng_server_url": "Protocol, host, and port, eg: http://localhost:8080"
+        }
+      },
+      "tavily": {
+        "title": "Configure Tavily Web Search",
+        "description": "Configure Tavily Search API settings.",
+        "data": {
+          "tavily_api_key": "API Key",
+          "tavily_num_results": "Number of Results",
+          "tavily_search_depth": "Search Depth",
+          "tavily_include_answer": "Include Generated Answer",
+          "tavily_include_raw_content": "Include Full Page Content",
+          "tavily_country": "Country (optional)",
+          "tavily_chunks_per_source": "Chunks Per Source"
+        },
+        "data_description": {
+          "tavily_search_depth": "Fast and Ultra fast are beta options that trade relevance for latency.",
+          "tavily_include_answer": "Also return a short Tavily generated answer alongside the search results.",
+          "tavily_include_raw_content": "Return extracted page content instead of Tavily's snippets. Full pages are large, and arrive whitespace-normalised.",
+          "tavily_country": "Boosts results from that country. Choose \"No country boost\" to turn it off. Only applies to general searches, and not with the fast or ultra-fast search depths.",
+          "tavily_chunks_per_source": "How many content chunks Tavily returns per result. Honoured on the basic, advanced and fast search depths. Ultra fast returns a single summary per result instead."
         }
       },
       "google_api_key": {

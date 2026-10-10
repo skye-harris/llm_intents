@@ -80,9 +80,19 @@ from .const import (
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
+    CONF_SEARCH_PROVIDER_TAVILY,
     CONF_SEARCH_PROVIDERS,
     CONF_SEARXNG_NUM_RESULTS,
     CONF_SEARXNG_URL,
+    CONF_TAVILY_API_KEY,
+    CONF_TAVILY_CHUNKS_PER_SOURCE,
+    CONF_TAVILY_COUNTRIES,
+    CONF_TAVILY_COUNTRY,
+    CONF_TAVILY_INCLUDE_ANSWER,
+    CONF_TAVILY_INCLUDE_RAW_CONTENT,
+    CONF_TAVILY_NUM_RESULTS,
+    CONF_TAVILY_SEARCH_DEPTH,
+    CONF_TAVILY_SEARCH_DEPTHS,
     CONF_UNIT_CONVERTER_ENABLED,
     CONF_WEATHER_ENABLED,
     CONF_WEATHER_TEMPERATURE_SENSOR,
@@ -92,6 +102,7 @@ from .const import (
     DOMAIN,
     PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
+    PROVIDER_TAVILY,
     SERVICE_DEFAULTS,
 )
 
@@ -106,6 +117,7 @@ STEP_USER = "user"
 STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
+STEP_TAVILY = "tavily"
 STEP_GOOGLE_API_KEY = "google_api_key"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_GOOGLE_ROUTES = "google_routes"
@@ -163,6 +175,33 @@ def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
     return vol.Schema(schema)
 
 
+def tavily_country_options() -> list[SelectOptionDict]:
+    """
+    Return the Tavily country list as selector options.
+
+    Tavily expects one of its supported country names and rejects ISO codes
+    such as "US" with a HTTP 400.
+
+    The empty entry comes first so the boost can be turned off again. A select
+    only accepts values from its own options, so without it a country that had
+    been chosen could never be cleared.
+    """
+    options = [SelectOptionDict(value="", label="No country boost")]
+
+    for country in CONF_TAVILY_COUNTRIES:
+        options.append(
+            SelectOptionDict(
+                value=country,
+                label=" ".join(
+                    word if word in {"and", "of"} else word.capitalize()
+                    for word in country.split()
+                ),
+            )
+        )
+
+    return options
+
+
 def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
     """Convert a dict to a list of select options."""
     return [SelectOptionDict(value=key, label=opts[key]) for key in opts]
@@ -174,6 +213,7 @@ def expand_config_for_schema(config: dict) -> dict:
     provider_keys = config.get(CONF_PROVIDER_API_KEYS) or {}
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
+    result[CONF_TAVILY_API_KEY] = provider_keys.get(PROVIDER_TAVILY, "")
     return result
 
 
@@ -185,6 +225,11 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
         provider_keys[PROVIDER_BRAVE] = user_input[CONF_BRAVE_API_KEY]
     if CONF_GOOGLE_API_KEY in user_input:
         provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
+    # The form offers the stored key as a suggested value and the field is
+    # required, so an empty submission means "keep what is stored" rather than
+    # "store an empty key".
+    if user_input.get(CONF_TAVILY_API_KEY):
+        provider_keys[PROVIDER_TAVILY] = user_input[CONF_TAVILY_API_KEY]
 
     if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
         provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
@@ -193,6 +238,7 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     # Remove form keys - store only in provider_api_keys
     config_data.pop(CONF_BRAVE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_API_KEY, None)
+    config_data.pop(CONF_TAVILY_API_KEY, None)
 
 
 async def get_brave_schema(
@@ -331,6 +377,70 @@ async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
                     step=1,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="Results",
+                ),
+            ),
+        },
+    )
+
+
+async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the static schema for the Tavily service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_TAVILY_API_KEY,
+            ): TextSelector(
+                TextSelectorConfig(
+                    type=TextSelectorType.PASSWORD,
+                ),
+            ),
+            vol.Required(
+                CONF_TAVILY_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_NUM_RESULTS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                ),
+            ),
+            vol.Optional(
+                CONF_TAVILY_CHUNKS_PER_SOURCE,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_CHUNKS_PER_SOURCE),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=3,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Chunks",
+                ),
+            ),
+            vol.Optional(
+                CONF_TAVILY_SEARCH_DEPTH,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_SEARCH_DEPTH),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=options_to_selections_dict(CONF_TAVILY_SEARCH_DEPTHS),
+                ),
+            ),
+            vol.Optional(
+                CONF_TAVILY_INCLUDE_ANSWER,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_ANSWER),
+            ): bool,
+            vol.Optional(
+                CONF_TAVILY_INCLUDE_RAW_CONTENT,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_RAW_CONTENT),
+            ): bool,
+            vol.Optional(
+                CONF_TAVILY_COUNTRY,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=tavily_country_options(),
                 ),
             ),
         },
@@ -618,6 +728,10 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_SEARXNG,
         get_searxng_schema,
     ],
+    STEP_TAVILY: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_TAVILY,
+        get_tavily_schema,
+    ],
     STEP_GOOGLE_API_KEY: [
         lambda data: (
             data.get(CONF_GOOGLE_PLACES_ENABLED) or data.get(CONF_GOOGLE_ROUTES_ENABLED)
@@ -774,6 +888,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle SearXNG configuration step."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_tavily(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Tavily configuration step."""
+        return await self.handle_step(STEP_TAVILY, user_input)
 
     async def async_step_google_api_key(
         self,
@@ -1034,6 +1155,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> FlowResult:
         """Handle SearXNG configuration step in options flow."""
         return await self.handle_step(STEP_SEARXNG, user_input)
+
+    async def async_step_tavily(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Tavily configuration step in options flow."""
+        return await self.handle_step(STEP_TAVILY, user_input)
 
     async def async_step_google_api_key(
         self,
