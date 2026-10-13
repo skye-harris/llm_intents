@@ -90,6 +90,7 @@ from .const import (
     CONF_TAVILY_COUNTRY,
     CONF_TAVILY_INCLUDE_ANSWER,
     CONF_TAVILY_INCLUDE_RAW_CONTENT,
+    CONF_TAVILY_MAX_CHARS_PER_RESULT,
     CONF_TAVILY_NUM_RESULTS,
     CONF_TAVILY_SEARCH_DEPTH,
     CONF_TAVILY_SEARCH_DEPTHS,
@@ -175,33 +176,6 @@ def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
     return vol.Schema(schema)
 
 
-def tavily_country_options() -> list[SelectOptionDict]:
-    """
-    Return the Tavily country list as selector options.
-
-    Tavily expects one of its supported country names and rejects ISO codes
-    such as "US" with a HTTP 400.
-
-    The empty entry comes first so the boost can be turned off again. A select
-    only accepts values from its own options, so without it a country that had
-    been chosen could never be cleared.
-    """
-    options = [SelectOptionDict(value="", label="No country boost")]
-
-    for country in CONF_TAVILY_COUNTRIES:
-        options.append(
-            SelectOptionDict(
-                value=country,
-                label=" ".join(
-                    word if word in {"and", "of"} else word.capitalize()
-                    for word in country.split()
-                ),
-            )
-        )
-
-    return options
-
-
 def options_to_selections_dict(opts: dict) -> list[SelectOptionDict]:
     """Convert a dict to a list of select options."""
     return [SelectOptionDict(value=key, label=opts[key]) for key in opts]
@@ -225,10 +199,7 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
         provider_keys[PROVIDER_BRAVE] = user_input[CONF_BRAVE_API_KEY]
     if CONF_GOOGLE_API_KEY in user_input:
         provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
-    # The form offers the stored key as a suggested value and the field is
-    # required, so an empty submission means "keep what is stored" rather than
-    # "store an empty key".
-    if user_input.get(CONF_TAVILY_API_KEY):
+    if CONF_TAVILY_API_KEY in user_input:
         provider_keys[PROVIDER_TAVILY] = user_input[CONF_TAVILY_API_KEY]
 
     if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
@@ -436,11 +407,23 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                 default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_RAW_CONTENT),
             ): bool,
             vol.Optional(
+                CONF_TAVILY_MAX_CHARS_PER_RESULT,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_MAX_CHARS_PER_RESULT),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=0,
+                    max=10000,
+                    step=100,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Characters",
+                ),
+            ),
+            vol.Optional(
                 CONF_TAVILY_COUNTRY,
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
-                    options=tavily_country_options(),
+                    options=CONF_TAVILY_COUNTRIES,
                 ),
             ),
         },

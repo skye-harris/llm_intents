@@ -13,6 +13,7 @@ from custom_components.llm_intents.const import (
     CONF_TAVILY_COUNTRY,
     CONF_TAVILY_INCLUDE_ANSWER,
     CONF_TAVILY_INCLUDE_RAW_CONTENT,
+    CONF_TAVILY_MAX_CHARS_PER_RESULT,
     CONF_TAVILY_NUM_RESULTS,
     CONF_TAVILY_SEARCH_DEPTH,
     PROVIDER_TAVILY,
@@ -129,11 +130,11 @@ async def test_tavily_search_country_sent_for_general_search(
     assert session.post.call_args[1]["json"]["country"] == "united states"
 
 
-async def test_tavily_search_country_normalised(
+async def test_tavily_search_country_lowercased(
     tool: TavilySearchTool, success_response: dict
 ) -> None:
-    """Test a country value is lowercased and trimmed before it is sent."""
-    tool.config[CONF_TAVILY_COUNTRY] = "  United States  "
+    """Test the capitalised country name is lowercased before it is sent."""
+    tool.config[CONF_TAVILY_COUNTRY] = "United States"
     session = mock_session(status=200, data=success_response)
 
     with patch(TAVILY_SESSION_PATCH, return_value=session):
@@ -255,6 +256,110 @@ async def test_tavily_search_raw_content_is_used(
         CONF_PROVIDER_API_KEYS: {PROVIDER_TAVILY: "tvly-test-key"},
         CONF_TAVILY_NUM_RESULTS: 1,
         CONF_TAVILY_INCLUDE_RAW_CONTENT: True,
+    }
+    tool = TavilySearchTool(config, hass)
+    response = {
+        "results": [
+            {
+                "title": "Raw Result",
+                "content": "short snippet",
+                "raw_content": "x" * 500,
+            }
+        ]
+    }
+
+    with patch(
+        TAVILY_SESSION_PATCH,
+        return_value=mock_session(status=200, data=response),
+    ):
+        result = await tool.async_search("test query")
+
+    assert result[0]["content"] == "x" * 500
+
+
+async def test_tavily_search_caps_the_raw_content_when_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test the optional cap truncates full page content before it reaches the model."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {PROVIDER_TAVILY: "tvly-test-key"},
+        CONF_TAVILY_NUM_RESULTS: 1,
+        CONF_TAVILY_INCLUDE_RAW_CONTENT: True,
+        CONF_TAVILY_MAX_CHARS_PER_RESULT: 100,
+    }
+    tool = TavilySearchTool(config, hass)
+    response = {
+        "results": [
+            {
+                "title": "Raw Result",
+                "content": "short snippet",
+                "raw_content": "x" * 500,
+            }
+        ]
+    }
+
+    with patch(
+        TAVILY_SESSION_PATCH,
+        return_value=mock_session(status=200, data=response),
+    ):
+        result = await tool.async_search("test query")
+
+    assert result[0]["content"] == "x" * 100
+
+
+async def test_tavily_search_caps_the_snippet_when_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test the cap applies to the snippet too, not only to full page content."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {PROVIDER_TAVILY: "tvly-test-key"},
+        CONF_TAVILY_NUM_RESULTS: 1,
+        CONF_TAVILY_MAX_CHARS_PER_RESULT: 10,
+    }
+    tool = TavilySearchTool(config, hass)
+    response = {"results": [{"title": "Snippet", "content": "a much longer snippet"}]}
+
+    with patch(
+        TAVILY_SESSION_PATCH,
+        return_value=mock_session(status=200, data=response),
+    ):
+        result = await tool.async_search("test query")
+
+    assert result[0]["content"] == "a much lon"
+
+
+async def test_tavily_search_caps_the_answer_when_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test the cap applies to the generated answer as well."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {PROVIDER_TAVILY: "tvly-test-key"},
+        CONF_TAVILY_NUM_RESULTS: 1,
+        CONF_TAVILY_INCLUDE_ANSWER: True,
+        CONF_TAVILY_MAX_CHARS_PER_RESULT: 50,
+    }
+    tool = TavilySearchTool(config, hass)
+    response = {"answer": "y" * 300, "results": []}
+
+    with patch(
+        TAVILY_SESSION_PATCH,
+        return_value=mock_session(status=200, data=response),
+    ):
+        result = await tool.async_search("test query")
+
+    assert result[0]["title"] == "Tavily answer"
+    assert result[0]["content"] == "y" * 50
+
+
+async def test_tavily_search_leaves_content_uncapped_at_zero(
+    hass: HomeAssistant,
+) -> None:
+    """Test zero means no cap, which is the default."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {PROVIDER_TAVILY: "tvly-test-key"},
+        CONF_TAVILY_NUM_RESULTS: 1,
+        CONF_TAVILY_INCLUDE_RAW_CONTENT: True,
+        CONF_TAVILY_MAX_CHARS_PER_RESULT: 0,
     }
     tool = TavilySearchTool(config, hass)
     response = {

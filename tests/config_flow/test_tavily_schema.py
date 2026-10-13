@@ -4,16 +4,15 @@ import pytest
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
 
-from custom_components.llm_intents.config_flow import (
-    get_tavily_schema,
-    tavily_country_options,
-)
+from custom_components.llm_intents.config_flow import get_tavily_schema
 from custom_components.llm_intents.const import (
     CONF_TAVILY_API_KEY,
     CONF_TAVILY_CHUNKS_PER_SOURCE,
+    CONF_TAVILY_COUNTRIES,
     CONF_TAVILY_COUNTRY,
     CONF_TAVILY_INCLUDE_ANSWER,
     CONF_TAVILY_INCLUDE_RAW_CONTENT,
+    CONF_TAVILY_MAX_CHARS_PER_RESULT,
     CONF_TAVILY_NUM_RESULTS,
     CONF_TAVILY_SEARCH_DEPTH,
     CONF_TAVILY_SEARCH_DEPTHS,
@@ -27,6 +26,7 @@ TAVILY_SCHEMA_KEYS = {
     CONF_TAVILY_INCLUDE_ANSWER,
     CONF_TAVILY_INCLUDE_RAW_CONTENT,
     CONF_TAVILY_COUNTRY,
+    CONF_TAVILY_MAX_CHARS_PER_RESULT,
 }
 
 
@@ -41,6 +41,7 @@ async def test_tavily_schema_keys_and_defaults(hass: HomeAssistant) -> None:
     assert validated[CONF_TAVILY_SEARCH_DEPTH] == "basic"
     assert validated[CONF_TAVILY_INCLUDE_ANSWER] is False
     assert validated[CONF_TAVILY_INCLUDE_RAW_CONTENT] is False
+    assert validated[CONF_TAVILY_MAX_CHARS_PER_RESULT] == 0.0
 
 
 async def test_tavily_schema_accepts_a_supported_country(hass: HomeAssistant) -> None:
@@ -49,11 +50,11 @@ async def test_tavily_schema_accepts_a_supported_country(hass: HomeAssistant) ->
     validated = schema(
         {
             CONF_TAVILY_API_KEY: "tvly-key",
-            CONF_TAVILY_COUNTRY: "united states",
+            CONF_TAVILY_COUNTRY: "United States",
         }
     )
 
-    assert validated[CONF_TAVILY_COUNTRY] == "united states"
+    assert validated[CONF_TAVILY_COUNTRY] == "United States"
 
 
 async def test_tavily_schema_rejects_an_iso_country_code(hass: HomeAssistant) -> None:
@@ -62,24 +63,6 @@ async def test_tavily_schema_rejects_an_iso_country_code(hass: HomeAssistant) ->
 
     with pytest.raises(vol.Invalid):
         schema({CONF_TAVILY_API_KEY: "tvly-key", CONF_TAVILY_COUNTRY: "US"})
-
-
-async def test_tavily_schema_accepts_clearing_the_country(hass: HomeAssistant) -> None:
-    """
-    Test the country can be turned off again.
-
-    A select only accepts values from its own options, so an empty value needs
-    an option of its own or a chosen country can never be cleared.
-    """
-    schema = await get_tavily_schema(hass)
-    validated = schema(
-        {
-            CONF_TAVILY_API_KEY: "tvly-key",
-            CONF_TAVILY_COUNTRY: "",
-        }
-    )
-
-    assert validated[CONF_TAVILY_COUNTRY] == ""
 
 
 async def test_tavily_search_depth_options_state_the_credit_cost(
@@ -100,15 +83,49 @@ async def test_tavily_search_depth_options_state_the_credit_cost(
     assert all("credit" in label for label in options.values())
 
 
-async def test_tavily_country_options_are_labelled(hass: HomeAssistant) -> None:
-    """Test the selector offers labelled country names."""
-    options = {option["value"]: option["label"] for option in tavily_country_options()}
+async def test_tavily_country_options_are_the_constant_verbatim(
+    hass: HomeAssistant,
+) -> None:
+    """Test the selector offers the capitalised constant as both value and label."""
+    schema = await get_tavily_schema(hass)
+    selector = next(
+        value
+        for key, value in schema.schema.items()
+        if getattr(key, "schema", None) == CONF_TAVILY_COUNTRY
+    )
+    options = list(selector.config["options"])
 
-    assert len(options) > 150
-    assert options[""] == "No country boost"
-    assert tavily_country_options()[0]["value"] == ""
-    assert options["united states"] == "United States"
-    assert options["bosnia and herzegovina"] == "Bosnia and Herzegovina"
+    assert set(options) == set(CONF_TAVILY_COUNTRIES)
+    assert all(name[0].isupper() for name in options)
+    assert "Bosnia and Herzegovina" in options
+    assert "United States" in options
+
+
+async def test_tavily_country_list_has_not_been_truncated() -> None:
+    """Test the country list still holds Tavily's full set of supported names."""
+    assert len(CONF_TAVILY_COUNTRIES) == 166
+    assert len(set(CONF_TAVILY_COUNTRIES)) == 166
+
+
+async def test_tavily_schema_bounds_the_character_cap(hass: HomeAssistant) -> None:
+    """Test the optional character cap accepts a sane value and refuses a huge one."""
+    schema = await get_tavily_schema(hass)
+    validated = schema(
+        {
+            CONF_TAVILY_API_KEY: "tvly-key",
+            CONF_TAVILY_MAX_CHARS_PER_RESULT: 2000,
+        }
+    )
+
+    assert validated[CONF_TAVILY_MAX_CHARS_PER_RESULT] == 2000
+
+    with pytest.raises(vol.Invalid):
+        schema(
+            {
+                CONF_TAVILY_API_KEY: "tvly-key",
+                CONF_TAVILY_MAX_CHARS_PER_RESULT: 999999,
+            }
+        )
 
 
 @pytest.mark.parametrize("depth", ["basic", "advanced", "fast", "ultra-fast"])

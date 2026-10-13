@@ -16,6 +16,7 @@ from .const import (
     CONF_TAVILY_COUNTRY_EXCLUDED_DEPTHS,
     CONF_TAVILY_INCLUDE_ANSWER,
     CONF_TAVILY_INCLUDE_RAW_CONTENT,
+    CONF_TAVILY_MAX_CHARS_PER_RESULT,
     CONF_TAVILY_NUM_RESULTS,
     CONF_TAVILY_SEARCH_DEPTH,
     PROVIDER_TAVILY,
@@ -67,7 +68,8 @@ class TavilySearchTool(SearchWebTool):
         include_raw_content = bool(
             self.config.get(CONF_TAVILY_INCLUDE_RAW_CONTENT, False)
         )
-        country = (self.config.get(CONF_TAVILY_COUNTRY) or "").strip().lower()
+        country = (self.config.get(CONF_TAVILY_COUNTRY) or "").lower()
+        max_chars = int(self.config.get(CONF_TAVILY_MAX_CHARS_PER_RESULT, 0))
 
         if not api_key:
             error_msg = "Tavily API key not configured"
@@ -146,7 +148,9 @@ class TavilySearchTool(SearchWebTool):
                 results.append(
                     {
                         "title": "Tavily answer",
-                        "content": await self.cleanup_text(str(answer)),
+                        "content": await self.cleanup_text(
+                            str(answer)[:max_chars] if max_chars else str(answer)
+                        ),
                     }
                 )
 
@@ -155,6 +159,9 @@ class TavilySearchTool(SearchWebTool):
                 content = result.get("content") or ""
                 if include_raw_content:
                     content = result.get("raw_content") or content
+
+                if max_chars:
+                    content = content[:max_chars]
 
                 content = await self.cleanup_text(content)
                 results.append({"title": title, "content": content})

@@ -156,7 +156,8 @@ Uses the Tavily Search API to return concise, relevant results, with an optional
 | `Chunks Per Source`        | ❌        | `1`     | How many content chunks Tavily returns per result. Honoured on `Basic`, `Advanced` and `Fast`. `Ultra fast` returns a single summary per result |
 | `Include Generated Answer` | ❌        | `false` | Also return a short Tavily generated answer alongside the search results            |
 | `Include Full Page Content`| ❌        | `false` | Return extracted page content instead of Tavily's snippets. Full pages are large, and arrive whitespace-normalised |
-| `Country`                  | ❌        | —       | Supported country name, chosen from a list. Boosts results from it. General searches only, and not with the `fast` or `ultra-fast` search depths. Choose `No country boost` to turn it off |
+| `Country`                  | ❌        | —       | Supported country name, chosen from a list. Boosts results from it. General searches only, and not with the `fast` or `ultra-fast` search depths |
+| `Maximum Characters Per Result` | ❌   | `0`     | Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. `0` means no cap |
 
 #### LLM-provided arguments
 
@@ -438,6 +439,7 @@ I would like to thank the following people for their contributions.
   <td align="center"><a href="https://github.com/QuadroKnoX"><img src="https://avatars.githubusercontent.com/u/9086677?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/QuadroKnoX">QuadroKnoX</a></b></sub></td>
   <td align="center"><a href="https://github.com/Thyraz"><img src="https://avatars.githubusercontent.com/u/170099?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Thyraz">Thyraz</a></b></sub></td>
   <td align="center"><a href="https://github.com/ianlunam"><img src="https://avatars.githubusercontent.com/u/2317877?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/ianlunam">ianlunam</a></b></sub></td>
+  <td align="center"><a href="https://github.com/professor-sagittarius"><img src="https://avatars.githubusercontent.com/u/165941485?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/professor-sagittarius">professor-sagittarius</a></b></sub></td>
 </tr>
 </table>
 
