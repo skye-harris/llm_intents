@@ -390,6 +390,18 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                 ),
             ),
             vol.Optional(
+                CONF_TAVILY_MAX_CHARS_PER_RESULT,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_MAX_CHARS_PER_RESULT),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=0,
+                    max=10000,
+                    step=100,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Characters",
+                ),
+            ),
+            vol.Optional(
                 CONF_TAVILY_SEARCH_DEPTH,
                 default=SERVICE_DEFAULTS.get(CONF_TAVILY_SEARCH_DEPTH),
             ): SelectSelector(
@@ -406,18 +418,6 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                 CONF_TAVILY_INCLUDE_RAW_CONTENT,
                 default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_RAW_CONTENT),
             ): bool,
-            vol.Optional(
-                CONF_TAVILY_MAX_CHARS_PER_RESULT,
-                default=SERVICE_DEFAULTS.get(CONF_TAVILY_MAX_CHARS_PER_RESULT),
-            ): NumberSelector(
-                NumberSelectorConfig(
-                    min=0,
-                    max=10000,
-                    step=100,
-                    mode=NumberSelectorMode.BOX,
-                    unit_of_measurement="Characters",
-                ),
-            ),
             vol.Optional(
                 CONF_TAVILY_COUNTRY,
             ): SelectSelector(

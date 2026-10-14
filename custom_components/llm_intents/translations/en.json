@@ -67,7 +67,7 @@
           "tavily_include_raw_content": "Include Full Page Content",
           "tavily_country": "Country (optional)",
           "tavily_max_chars_per_result": "Maximum Characters Per Result",
-          "tavily_chunks_per_source": "Chunks Per Source"
+          "tavily_chunks_per_source": "Chunks Per Result"
         },
         "data_description": {
           "tavily_search_depth": "Fast and Ultra-fast are beta options that trade relevance for speed.",
@@ -240,7 +240,7 @@
           "tavily_include_raw_content": "Include Full Page Content",
           "tavily_country": "Country (optional)",
           "tavily_max_chars_per_result": "Maximum Characters Per Result",
-          "tavily_chunks_per_source": "Chunks Per Source"
+          "tavily_chunks_per_source": "Chunks Per Result"
         },
         "data_description": {
           "tavily_search_depth": "Fast and Ultra-fast are beta options that trade relevance for speed.",
