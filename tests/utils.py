@@ -9,6 +9,30 @@ import json
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.llm_intents.const import (
+    CONF_SEARCH_PROVIDER,
+    CONF_SEARCH_PROVIDER_TAVILY,
+)
+
+
+async def open_tavily_step(hass: HomeAssistant, entry: MockConfigEntry) -> str:
+    """Open the options flow and stop at the Tavily step, returning its flow id."""
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"next_step_id": "configure"},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_TAVILY},
+    )
+
+    assert result["step_id"] == "tavily"
+    return result["flow_id"]
+
 
 class MockContext:
     """

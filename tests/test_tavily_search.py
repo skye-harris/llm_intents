@@ -1,5 +1,6 @@
 """Tests for the Tavily Web Search tool."""
 
+import logging
 import re
 from unittest.mock import patch
 
@@ -128,6 +129,43 @@ async def test_tavily_search_country_sent_for_general_search(
         await tool.async_search("test query")
 
     assert session.post.call_args[1]["json"]["country"] == "united states"
+
+
+async def test_tavily_search_reports_the_settings_it_drops(
+    tool: TavilySearchTool,
+    success_response: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test the settings that do not apply are reported at debug level."""
+    tool.config[CONF_TAVILY_SEARCH_DEPTH] = "ultra-fast"
+    tool.config[CONF_TAVILY_COUNTRY] = "United States"
+    session = mock_session(status=200, data=success_response)
+
+    with (
+        caplog.at_level(
+            logging.DEBUG, logger="custom_components.llm_intents.tavily_search"
+        ),
+        patch(TAVILY_SESSION_PATCH, return_value=session),
+    ):
+        await tool.async_search("test query")
+
+    assert "Tavily country boost (united states) not sent" in caplog.text
+    assert (
+        "Tavily chunks_per_source not sent for search_depth=ultra-fast" in caplog.text
+    )
+
+
+async def test_tavily_search_country_none_is_not_sent(
+    tool: TavilySearchTool, success_response: dict
+) -> None:
+    """Test a cleared country, stored as None, is left out of the payload."""
+    tool.config[CONF_TAVILY_COUNTRY] = None
+    session = mock_session(status=200, data=success_response)
+
+    with patch(TAVILY_SESSION_PATCH, return_value=session):
+        await tool.async_search("test query")
+
+    assert "country" not in session.post.call_args[1]["json"]
 
 
 async def test_tavily_search_country_lowercased(
@@ -351,6 +389,36 @@ async def test_tavily_search_caps_the_answer_when_configured(
     assert result[0]["content"] == "y" * 50
 
 
+async def test_tavily_search_caps_the_cleaned_text(
+    hass: HomeAssistant,
+) -> None:
+    """Test the cap counts the text that reaches the model, not the raw markup."""
+    config = {
+        CONF_PROVIDER_API_KEYS: {PROVIDER_TAVILY: "tvly-test-key"},
+        CONF_TAVILY_NUM_RESULTS: 1,
+        CONF_TAVILY_INCLUDE_RAW_CONTENT: True,
+        CONF_TAVILY_MAX_CHARS_PER_RESULT: 20,
+    }
+    tool = TavilySearchTool(config, hass)
+    response = {
+        "results": [
+            {
+                "title": "Markup",
+                "content": "snippet",
+                "raw_content": "<p>" + "x" * 200 + "</p>",
+            }
+        ]
+    }
+
+    with patch(
+        TAVILY_SESSION_PATCH,
+        return_value=mock_session(status=200, data=response),
+    ):
+        result = await tool.async_search("test query")
+
+    assert result[0]["content"] == "x" * 20
+
+
 async def test_tavily_search_leaves_content_uncapped_at_zero(
     hass: HomeAssistant,
 ) -> None:
@@ -381,11 +449,11 @@ async def test_tavily_search_leaves_content_uncapped_at_zero(
     assert result[0]["content"] == "x" * 500
 
 
-async def test_tavily_search_raw_content_is_normalised(
+async def test_tavily_search_raw_content_is_normalized(
     hass: HomeAssistant,
 ) -> None:
     """
-    Test raw content is whitespace-normalised, as the sibling providers are.
+    Test raw content is whitespace-normalized, as the sibling providers are.
 
     Tavily returns raw content as markdown-ish text; the shared cleanup step
     collapses the whitespace and strips tags, so it does not arrive verbatim.
@@ -502,7 +570,7 @@ async def test_tavily_search_chunks_per_source_reaches_the_payload(
 async def test_tavily_search_chunks_sent_on_supported_depths(
     tool: TavilySearchTool, success_response: dict, depth: str
 ) -> None:
-    """Test chunks_per_source is sent on the depths that honour it."""
+    """Test chunks_per_source is sent on the depths that support it."""
     tool.config[CONF_TAVILY_CHUNKS_PER_SOURCE] = 3
     tool.config[CONF_TAVILY_SEARCH_DEPTH] = depth
     session = mock_session(status=200, data=success_response)

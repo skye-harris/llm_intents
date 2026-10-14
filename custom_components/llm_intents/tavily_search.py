@@ -27,6 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 
 TAVILY_TOPICS = ["general", "news", "finance"]
+TAVILY_TOPIC_GENERAL = TAVILY_TOPICS[0]
 TAVILY_TIME_RANGES = ["day", "week", "month", "year"]
 
 
@@ -90,14 +91,14 @@ class TavilySearchTool(SearchWebTool):
             "include_raw_content": include_raw_content,
         }
 
-        topic = kwargs.get("topic") or "general"
+        topic = kwargs.get("topic") or TAVILY_TOPIC_GENERAL
 
         # Only send the settings that apply to this search. Tavily applies the
         # country boost to general searches only and rejects it on the fast and
         # ultra-fast depths, and it returns a single summary per result on
         # ultra-fast, where chunks_per_source has no effect.
         country_applies = (
-            topic == "general"
+            topic == TAVILY_TOPIC_GENERAL
             and search_depth not in CONF_TAVILY_COUNTRY_EXCLUDED_DEPTHS
         )
         chunks_apply = search_depth not in CONF_TAVILY_CHUNKS_EXCLUDED_DEPTHS
@@ -143,16 +144,16 @@ class TavilySearchTool(SearchWebTool):
             response_content = await resp.json()
             results = []
 
+            # The cap counts what reaches the model, so it is applied after the
+            # cleanup. Slicing the raw text first would spend the cap on markup
+            # and could cut inside a tag, leaving a fragment that survives.
             answer = response_content.get("answer")
             if include_answer and answer:
-                results.append(
-                    {
-                        "title": "Tavily answer",
-                        "content": await self.cleanup_text(
-                            str(answer)[:max_chars] if max_chars else str(answer)
-                        ),
-                    }
-                )
+                answer_text = await self.cleanup_text(str(answer))
+                if max_chars:
+                    answer_text = answer_text[:max_chars]
+
+                results.append({"title": "Tavily answer", "content": answer_text})
 
             for result in response_content.get("results", []):
                 title = result.get("title", "")
@@ -160,10 +161,10 @@ class TavilySearchTool(SearchWebTool):
                 if include_raw_content:
                     content = result.get("raw_content") or content
 
+                content = await self.cleanup_text(content)
                 if max_chars:
                     content = content[:max_chars]
 
-                content = await self.cleanup_text(content)
                 results.append({"title": title, "content": content})
 
             return results

@@ -128,6 +128,28 @@ async def test_tavily_schema_bounds_the_character_cap(hass: HomeAssistant) -> No
         )
 
 
+def _marker(schema: vol.Schema, key: str) -> vol.Marker:
+    """Return the schema marker for a field, which carries its required flag."""
+    return next(
+        marker for marker in schema.schema if getattr(marker, "schema", None) == key
+    )
+
+
+async def test_tavily_numeric_fields_match_the_other_providers(
+    hass: HomeAssistant,
+) -> None:
+    """Test the numeric fields carry the marking the other providers use."""
+    schema = await get_tavily_schema(hass)
+
+    results = _marker(schema, CONF_TAVILY_NUM_RESULTS)
+    chunks = _marker(schema, CONF_TAVILY_CHUNKS_PER_SOURCE)
+    cap = _marker(schema, CONF_TAVILY_MAX_CHARS_PER_RESULT)
+
+    assert isinstance(results, vol.Required)
+    assert isinstance(chunks, vol.Required)
+    assert isinstance(cap, vol.Optional)
+
+
 @pytest.mark.parametrize("depth", ["basic", "advanced", "fast", "ultra-fast"])
 async def test_tavily_schema_accepts_each_depth(
     hass: HomeAssistant, depth: str

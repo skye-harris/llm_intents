@@ -377,7 +377,7 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                     unit_of_measurement="Results",
                 ),
             ),
-            vol.Optional(
+            vol.Required(
                 CONF_TAVILY_CHUNKS_PER_SOURCE,
                 default=SERVICE_DEFAULTS.get(CONF_TAVILY_CHUNKS_PER_SOURCE),
             ): NumberSelector(
@@ -1144,6 +1144,12 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle Tavily configuration step in options flow."""
+        if user_input is not None:
+            # A cleared select arrives as a missing key and the flow merges the
+            # submission over what is stored, so the country has to be seeded
+            # here to be clearable at all. The Brave steps do the same.
+            self.config_data[CONF_TAVILY_COUNTRY] = None
+
         return await self.handle_step(STEP_TAVILY, user_input)
 
     async def async_step_google_api_key(

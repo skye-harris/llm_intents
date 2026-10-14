@@ -13,6 +13,7 @@ from custom_components.llm_intents.const import (
     DOMAIN,
     PROVIDER_TAVILY,
 )
+from tests.utils import open_tavily_step
 
 STORED_KEY = "tvly-stored-key"
 
@@ -32,22 +33,6 @@ def config_entry() -> MockConfigEntry:
     )
 
 
-async def _walk_to_tavily(hass: HomeAssistant, entry: MockConfigEntry) -> str:
-    """Open the options flow and stop at the Tavily step, returning its flow id."""
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {"next_step_id": "configure"},
-    )
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_TAVILY},
-    )
-
-    assert result["step_id"] == "tavily"
-    return result["flow_id"]
-
-
 async def test_options_flow_stores_a_replaced_key(
     recorder_mock: None,
     enable_custom_integrations: None,
@@ -56,7 +41,7 @@ async def test_options_flow_stores_a_replaced_key(
 ) -> None:
     """Test that a key entered in the form replaces the stored one."""
     config_entry.add_to_hass(hass)
-    flow_id = await _walk_to_tavily(hass, config_entry)
+    flow_id = await open_tavily_step(hass, config_entry)
 
     result = await hass.config_entries.options.async_configure(
         flow_id,

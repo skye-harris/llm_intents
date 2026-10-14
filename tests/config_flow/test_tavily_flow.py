@@ -12,6 +12,7 @@ from custom_components.llm_intents.const import (
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_TAVILY,
     CONF_TAVILY_API_KEY,
+    CONF_TAVILY_COUNTRY,
     CONF_TAVILY_INCLUDE_ANSWER,
     CONF_TAVILY_INCLUDE_RAW_CONTENT,
     CONF_TAVILY_NUM_RESULTS,
@@ -56,3 +57,29 @@ async def test_tavily_config_flow_creates_entry(
     assert entry.data[CONF_SEARCH_PROVIDER] == CONF_SEARCH_PROVIDER_TAVILY
     assert entry.data[CONF_PROVIDER_API_KEYS][PROVIDER_TAVILY] == "tvly-key"
     assert CONF_TAVILY_API_KEY not in entry.data
+
+
+async def test_tavily_config_flow_stores_a_country(
+    recorder_mock: None,
+    enable_custom_integrations: None,
+    hass: HomeAssistant,
+) -> None:
+    """Test a country chosen during first-time setup is stored."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_TAVILY},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_TAVILY_API_KEY: "tvly-key",
+            CONF_TAVILY_NUM_RESULTS: 2,
+            CONF_TAVILY_COUNTRY: "Japan",
+        },
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["result"].data[CONF_TAVILY_COUNTRY] == "Japan"

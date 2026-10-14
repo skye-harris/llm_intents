@@ -252,7 +252,7 @@ CONF_TAVILY_SEARCH_DEPTHS = {
     "basic": "Basic (1 credit)",
     "advanced": "Advanced (2 credits)",
     "fast": "Fast (1 credit)",
-    "ultra-fast": "Ultra fast (1 credit)",
+    "ultra-fast": "Ultra-fast (1 credit)",
 }
 
 # Provider API keys - shared across tools using the same backend
