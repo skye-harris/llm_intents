@@ -144,19 +144,19 @@ Uses the Tavily Search API to return concise, relevant results, with an optional
 
 1. Select "Tavily" as the search provider during setup.
 2. Enter your [Tavily API key](https://app.tavily.com/home).
-3. Configure the number of results, chunks per result, search depth, whether to include a generated answer or full page content, and optionally a country to boost results from.
+3. Configure the search depth, the number of results, chunks per result, whether to include a generated answer or full page content, a cap on the characters returned per result, and optionally a country to boost results from.
 
 #### Options
 
 | Setting                    | Required | Default | Description                                                                        |
 |----------------------------|----------|---------|------------------------------------------------------------------------------------|
 | `API Key`                  | ✅        | —       | Tavily API key                                                                     |
+| `Search Depth`             | ❌        | `Basic` | Costs are per search. `Basic`, `Fast` and `Ultra-fast` cost 1 credit, `Advanced` costs 2. `Fast` and `Ultra-fast` are beta options that trade relevance for speed |
 | `Number of Results`        | ✅        | `2`     | Number of results to provide to the LLM                                            |
 | `Chunks Per Result`        | ✅        | `1`     | How many content chunks Tavily returns per result. Honored on `Basic`, `Advanced` and `Fast`. `Ultra-fast` returns a single summary per result |
-| `Maximum Characters Per Result` | ❌   | `0`     | Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. `0` means no cap |
-| `Search Depth`             | ❌        | `Basic` | Costs are per search. `Basic`, `Fast` and `Ultra-fast` cost 1 credit, `Advanced` costs 2. `Fast` and `Ultra-fast` are beta options that trade relevance for speed |
 | `Include Generated Answer` | ❌        | `false` | Also return a short Tavily-generated answer alongside the search results            |
-| `Include Full Page Content`| ❌        | `false` | Return extracted page content instead of Tavily's snippets. Full pages are large, so their HTML and repeated whitespace are removed before they are returned |
+| `Include Full Page Content`| ❌        | `false` | Return the full extracted page content instead of Tavily's snippets. The content arrives as markdown, and the repeated whitespace is collapsed before it is returned. Full pages are large, so use Maximum Characters Per Result to cap them |
+| `Maximum Characters Per Result` | ❌   | `0`     | Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. `0` means no cap |
 | `Country`                  | ❌        | —       | Supported country name, chosen from a list. Boosts results from it. Sent on a general web search only, so a news or finance search does not use it, and it is not sent with the `fast` or `ultra-fast` search depths |
 
 #### LLM-provided arguments

@@ -365,6 +365,15 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                     type=TextSelectorType.PASSWORD,
                 ),
             ),
+            vol.Optional(
+                CONF_TAVILY_SEARCH_DEPTH,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_SEARCH_DEPTH),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=options_to_selections_dict(CONF_TAVILY_SEARCH_DEPTHS),
+                ),
+            ),
             vol.Required(
                 CONF_TAVILY_NUM_RESULTS,
                 default=SERVICE_DEFAULTS.get(CONF_TAVILY_NUM_RESULTS),
@@ -390,6 +399,14 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                 ),
             ),
             vol.Optional(
+                CONF_TAVILY_INCLUDE_ANSWER,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_ANSWER),
+            ): bool,
+            vol.Optional(
+                CONF_TAVILY_INCLUDE_RAW_CONTENT,
+                default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_RAW_CONTENT),
+            ): bool,
+            vol.Optional(
                 CONF_TAVILY_MAX_CHARS_PER_RESULT,
                 default=SERVICE_DEFAULTS.get(CONF_TAVILY_MAX_CHARS_PER_RESULT),
             ): NumberSelector(
@@ -401,23 +418,6 @@ async def get_tavily_schema(hass: HomeAssistant) -> vol.Schema:
                     unit_of_measurement="Characters",
                 ),
             ),
-            vol.Optional(
-                CONF_TAVILY_SEARCH_DEPTH,
-                default=SERVICE_DEFAULTS.get(CONF_TAVILY_SEARCH_DEPTH),
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    mode=SelectSelectorMode.DROPDOWN,
-                    options=options_to_selections_dict(CONF_TAVILY_SEARCH_DEPTHS),
-                ),
-            ),
-            vol.Optional(
-                CONF_TAVILY_INCLUDE_ANSWER,
-                default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_ANSWER),
-            ): bool,
-            vol.Optional(
-                CONF_TAVILY_INCLUDE_RAW_CONTENT,
-                default=SERVICE_DEFAULTS.get(CONF_TAVILY_INCLUDE_RAW_CONTENT),
-            ): bool,
             vol.Optional(
                 CONF_TAVILY_COUNTRY,
             ): SelectSelector(
