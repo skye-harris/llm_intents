@@ -2,7 +2,7 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _Tavily_ or _SearXNG_
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
@@ -127,6 +127,45 @@ Uses the Brave LLM Context Search API to return pre-extracted web context optimi
 | `Longitude`               | ❌        | —          | Optional longitude for local result relevance (recommended)          |
 | `Timezone`                | ❌        | —          | Optional TZ timezone identifier for local result relevance           |
 | `Post Code`               | ❌        | —          | Optional post code for local result relevance                        |
+
+---
+
+### 🔍 Tavily Web Search
+
+Uses the Tavily Search API to return concise, relevant results, with an optional generated answer.
+
+##### Requirements
+
+* Requires a [Tavily API key](https://app.tavily.com/home).
+    * Tavily provides 1,000 free API credits per month, no card required.
+    * `Basic`, `Fast` and `Ultra-fast` searches cost one credit each, an `Advanced` search costs two.
+
+#### Configuration Steps
+
+1. Select "Tavily" as the search provider during setup.
+2. Enter your [Tavily API key](https://app.tavily.com/home).
+3. Configure the search depth, the number of results, chunks per result, whether to include a generated answer or full page content, a cap on the characters returned per result, and optionally a country to boost results from.
+
+#### Options
+
+| Setting                    | Required | Default | Description                                                                        |
+|----------------------------|----------|---------|------------------------------------------------------------------------------------|
+| `API Key`                  | ✅        | —       | Tavily API key                                                                     |
+| `Search Depth`             | ❌        | `Basic` | Costs are per search. `Basic`, `Fast` and `Ultra-fast` cost 1 credit, `Advanced` costs 2. `Fast` and `Ultra-fast` are beta options that trade relevance for speed |
+| `Number of Results`        | ✅        | `2`     | Number of results to provide to the LLM                                            |
+| `Chunks Per Result`        | ✅        | `1`     | How many content chunks Tavily returns per result. Honored on `Basic`, `Advanced` and `Fast`. `Ultra-fast` returns a single summary per result |
+| `Include Generated Answer` | ❌        | `false` | Also return a short Tavily-generated answer alongside the search results            |
+| `Include Full Page Content`| ❌        | `false` | Return the full extracted page content instead of Tavily's snippets. The content arrives as markdown, and the repeated whitespace is collapsed before it is returned. Full pages are large, so use Maximum Characters Per Result to cap them |
+| `Maximum Characters Per Result` | ❌   | `0`     | Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. `0` means no cap |
+| `Country`                  | ❌        | —       | Supported country name, chosen from a list. Boosts results from it. Sent on a general web search only, so a news or finance search does not use it, and it is not sent with the `fast` or `ultra-fast` search depths |
+
+#### LLM-provided arguments
+
+| Argument     | Required | Description                                                          |
+|--------------|----------|----------------------------------------------------------------------|
+| `query`      | ✅        | The query to search for                                              |
+| `topic`      | ❌        | `general`, `news` or `finance`. `news` adds published dates          |
+| `time_range` | ❌        | `day`, `week`, `month` or `year` recency filter                      |
 
 ---
 
@@ -400,6 +439,7 @@ I would like to thank the following people for their contributions.
   <td align="center"><a href="https://github.com/QuadroKnoX"><img src="https://avatars.githubusercontent.com/u/9086677?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/QuadroKnoX">QuadroKnoX</a></b></sub></td>
   <td align="center"><a href="https://github.com/Thyraz"><img src="https://avatars.githubusercontent.com/u/170099?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Thyraz">Thyraz</a></b></sub></td>
   <td align="center"><a href="https://github.com/ianlunam"><img src="https://avatars.githubusercontent.com/u/2317877?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/ianlunam">ianlunam</a></b></sub></td>
+  <td align="center"><a href="https://github.com/professor-sagittarius"><img src="https://avatars.githubusercontent.com/u/165941485?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/professor-sagittarius">professor-sagittarius</a></b></sub></td>
 </tr>
 </table>
 

@@ -43,11 +43,13 @@ CONF_DATE_INFO_ENABLED = "date_info_enabled"
 CONF_SEARCH_PROVIDER = "search_provider"
 CONF_SEARCH_PROVIDER_BRAVE = "Brave"
 CONF_SEARCH_PROVIDER_BRAVE_LLM = "Brave LLM Context"
+CONF_SEARCH_PROVIDER_TAVILY = "Tavily"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
 
 CONF_SEARCH_PROVIDERS = {
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
     "Brave LLM Context": CONF_SEARCH_PROVIDER_BRAVE_LLM,
+    "Tavily": CONF_SEARCH_PROVIDER_TAVILY,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
 }
 
@@ -56,17 +58,216 @@ CONF_SEARCH_PROVIDERS = {
 CONF_SEARXNG_URL = "searxng_server_url"
 CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
 
+# Tavily-specific constants
+
+CONF_TAVILY_NUM_RESULTS = "tavily_num_results"
+CONF_TAVILY_CHUNKS_PER_SOURCE = "tavily_chunks_per_source"
+CONF_TAVILY_SEARCH_DEPTH = "tavily_search_depth"
+CONF_TAVILY_INCLUDE_ANSWER = "tavily_include_answer"
+CONF_TAVILY_INCLUDE_RAW_CONTENT = "tavily_include_raw_content"
+CONF_TAVILY_COUNTRY = "tavily_country"
+# Optional cap on the content forwarded per result. Tavily has no such
+# parameter on the Search endpoint, so the integration applies it.
+CONF_TAVILY_MAX_CHARS_PER_RESULT = "tavily_max_chars_per_result"
+
+# Tavily expects a country NAME from this list, not an ISO code. An ISO code such as
+# "US" is rejected with a HTTP 400. The tool lowercases the value before sending it.
+# Source: the country enum in https://docs.tavily.com/documentation/api-reference/endpoint/search
+CONF_TAVILY_COUNTRIES = [
+    "Afghanistan",
+    "Albania",
+    "Algeria",
+    "Andorra",
+    "Angola",
+    "Argentina",
+    "Armenia",
+    "Australia",
+    "Austria",
+    "Azerbaijan",
+    "Bahamas",
+    "Bahrain",
+    "Bangladesh",
+    "Barbados",
+    "Belarus",
+    "Belgium",
+    "Belize",
+    "Benin",
+    "Bhutan",
+    "Bolivia",
+    "Bosnia and Herzegovina",
+    "Botswana",
+    "Brazil",
+    "Brunei",
+    "Bulgaria",
+    "Burkina Faso",
+    "Burundi",
+    "Cambodia",
+    "Cameroon",
+    "Canada",
+    "Cape Verde",
+    "Central African Republic",
+    "Chad",
+    "Chile",
+    "China",
+    "Colombia",
+    "Comoros",
+    "Congo",
+    "Costa Rica",
+    "Croatia",
+    "Cuba",
+    "Cyprus",
+    "Czech Republic",
+    "Denmark",
+    "Djibouti",
+    "Dominican Republic",
+    "Ecuador",
+    "Egypt",
+    "El Salvador",
+    "Equatorial Guinea",
+    "Eritrea",
+    "Estonia",
+    "Ethiopia",
+    "Fiji",
+    "Finland",
+    "France",
+    "Gabon",
+    "Gambia",
+    "Georgia",
+    "Germany",
+    "Ghana",
+    "Greece",
+    "Guatemala",
+    "Guinea",
+    "Haiti",
+    "Honduras",
+    "Hungary",
+    "Iceland",
+    "India",
+    "Indonesia",
+    "Iran",
+    "Iraq",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Jamaica",
+    "Japan",
+    "Jordan",
+    "Kazakhstan",
+    "Kenya",
+    "Kuwait",
+    "Kyrgyzstan",
+    "Latvia",
+    "Lebanon",
+    "Lesotho",
+    "Liberia",
+    "Libya",
+    "Liechtenstein",
+    "Lithuania",
+    "Luxembourg",
+    "Madagascar",
+    "Malawi",
+    "Malaysia",
+    "Maldives",
+    "Mali",
+    "Malta",
+    "Mauritania",
+    "Mauritius",
+    "Mexico",
+    "Moldova",
+    "Monaco",
+    "Mongolia",
+    "Montenegro",
+    "Morocco",
+    "Mozambique",
+    "Myanmar",
+    "Namibia",
+    "Nepal",
+    "Netherlands",
+    "New Zealand",
+    "Nicaragua",
+    "Niger",
+    "Nigeria",
+    "North Korea",
+    "North Macedonia",
+    "Norway",
+    "Oman",
+    "Pakistan",
+    "Panama",
+    "Papua New Guinea",
+    "Paraguay",
+    "Peru",
+    "Philippines",
+    "Poland",
+    "Portugal",
+    "Qatar",
+    "Romania",
+    "Russia",
+    "Rwanda",
+    "Saudi Arabia",
+    "Senegal",
+    "Serbia",
+    "Singapore",
+    "Slovakia",
+    "Slovenia",
+    "Somalia",
+    "South Africa",
+    "South Korea",
+    "South Sudan",
+    "Spain",
+    "Sri Lanka",
+    "Sudan",
+    "Sweden",
+    "Switzerland",
+    "Syria",
+    "Taiwan",
+    "Tajikistan",
+    "Tanzania",
+    "Thailand",
+    "Togo",
+    "Trinidad and Tobago",
+    "Tunisia",
+    "Turkey",
+    "Turkmenistan",
+    "Uganda",
+    "Ukraine",
+    "United Arab Emirates",
+    "United Kingdom",
+    "United States",
+    "Uruguay",
+    "Uzbekistan",
+    "Venezuela",
+    "Vietnam",
+    "Yemen",
+    "Zambia",
+    "Zimbabwe",
+]
+
+# Tavily rejects the country boost on these search depths with a HTTP 400.
+CONF_TAVILY_COUNTRY_EXCLUDED_DEPTHS = ("fast", "ultra-fast")
+# ultra-fast returns a single NLP summary per result, so chunks_per_source has
+# no effect there and is not sent.
+CONF_TAVILY_CHUNKS_EXCLUDED_DEPTHS = ("ultra-fast",)
+
+CONF_TAVILY_SEARCH_DEPTHS = {
+    "basic": "Basic (1 credit)",
+    "advanced": "Advanced (2 credits)",
+    "fast": "Fast (1 credit)",
+    "ultra-fast": "Ultra-fast (1 credit)",
+}
+
 # Provider API keys - shared across tools using the same backend
 
 CONF_PROVIDER_API_KEYS = "provider_api_keys"
 PROVIDER_GOOGLE = "google"
 PROVIDER_BRAVE = "brave"
 PROVIDER_BRAVE_LLM = "brave_llm"
+PROVIDER_TAVILY = "tavily"
 
 # Form field keys for provider API keys
 
 CONF_GOOGLE_API_KEY = "google_api_key"
 CONF_BRAVE_API_KEY = "brave_api_key"
+CONF_TAVILY_API_KEY = "tavily_api_key"
 
 # Brave-specific constants
 
@@ -233,6 +434,13 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
+    CONF_TAVILY_NUM_RESULTS: 2,
+    CONF_TAVILY_CHUNKS_PER_SOURCE: 1,
+    CONF_TAVILY_SEARCH_DEPTH: "basic",
+    CONF_TAVILY_INCLUDE_ANSWER: False,
+    CONF_TAVILY_INCLUDE_RAW_CONTENT: False,
+    CONF_TAVILY_COUNTRY: "",
+    CONF_TAVILY_MAX_CHARS_PER_RESULT: 0,
     CONF_GOOGLE_PLACES_NUM_RESULTS: 2,
     CONF_GOOGLE_PLACES_LATITUDE: "",
     CONF_GOOGLE_PLACES_LONGITUDE: "",
