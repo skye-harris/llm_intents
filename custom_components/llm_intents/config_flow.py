@@ -269,7 +269,7 @@ async def get_brave_schema(
                     unit_of_measurement="Tokens",
                 ),
             ),
-            vol.Optional(
+            vol.Required(
                 CONF_BRAVE_CONTEXT_THRESHOLD_MODE,
                 default=SERVICE_DEFAULTS.get(CONF_BRAVE_CONTEXT_THRESHOLD_MODE),
             ): SelectSelector(
@@ -975,6 +975,9 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle the configure menu option."""
+        if user_input is not None:
+            self.config_data[CONF_SEARCH_PROVIDER] = None
+
         if user_input is None:
             schema_dict = {
                 vol.Optional(
@@ -1119,6 +1122,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle Brave configuration step in options flow."""
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
+            self.config_data[CONF_BRAVE_TIMEZONE] = None
 
         return await self.handle_step(STEP_BRAVE, user_input)
 
@@ -1129,6 +1133,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle Brave LLM Context Search configuration step in options flow."""
         if user_input is not None:
             self.config_data[CONF_BRAVE_COUNTRY_CODE] = None
+            self.config_data[CONF_BRAVE_TIMEZONE] = None
 
         return await self.handle_step(STEP_BRAVE_LLM, user_input)
 
