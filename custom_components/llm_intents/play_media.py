@@ -1,8 +1,10 @@
 """Play video tool for Tools for Assist integration."""
 
 import logging
+from dataclasses import dataclass
 
 import voluptuous as vol
+from homeassistant.components.homeassistant.exposed_entities import async_should_expose
 from homeassistant.components.media_player import (
     MediaPlayerEntityFeature,
 )
@@ -11,7 +13,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import llm
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
@@ -25,6 +26,14 @@ _LOGGER = logging.getLogger(__name__)
 VIDEO_CAPABLE_DEVICE_CLASSES = {"tv", "receiver"}
 # Device classes that are explicitly audio-only
 AUDIO_ONLY_DEVICE_CLASSES = {"speaker"}
+
+
+@dataclass
+class MediaPlayerInfo:
+    """Information about a video-capable media player."""
+
+    entity_id: str
+    area_id: str | None
 
 
 def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
@@ -70,10 +79,9 @@ def resolve_area_id(hass: HomeAssistant, area_input: str) -> str | None:
 
 def get_video_capable_media_players(
     hass: HomeAssistant,
-    area_id: str | None,
-) -> list[str]:
+) -> list[MediaPlayerInfo]:
     """
-    Find media players in an area that support video playback.
+    Find media players that support video playback.
 
     Uses device_class to determine video capability:
     - tv, receiver = video capable
@@ -82,37 +90,20 @@ def get_video_capable_media_players(
 
     Args:
         hass: Home Assistant instance
-        area_id: The area ID to search in, or none to return all supported media players
 
     Returns:
         List of entity_ids for video-capable media players
 
     """
     entity_registry = er.async_get(hass)
-    device_registry = dr.async_get(hass)
 
     video_capable_entities = []
-    all_media_players_in_area = []
 
-    for entity in entity_registry.entities.values():
-        if not entity.entity_id.startswith("media_player."):
+    for state in hass.states.async_all():
+        if not state.entity_id.startswith("media_player."):
             continue
 
-        if area_id:
-            entity_area_id = entity.area_id
-
-            if not entity_area_id and entity.device_id:
-                device = device_registry.async_get(entity.device_id)
-                if device:
-                    entity_area_id = device.area_id
-
-            if entity_area_id != area_id:
-                continue
-
-        all_media_players_in_area.append(entity.entity_id)
-
-        state = hass.states.get(entity.entity_id)
-        if not state:
+        if not async_should_expose(hass, "conversation", state.entity_id):
             continue
 
         # Use device_class to determine video capability
@@ -120,7 +111,7 @@ def get_video_capable_media_players(
         if not device_class:
             _LOGGER.debug(
                 "Entity %s has no device_class set, skipping",
-                entity.entity_id,
+                state.entity_id,
             )
             continue
 
@@ -128,35 +119,46 @@ def get_video_capable_media_players(
         if not (features & MediaPlayerEntityFeature.PLAY_MEDIA):
             _LOGGER.debug(
                 "Entity %s does not support MediaPlayerEntityFeature.PLAY_MEDIA, skipping",
-                entity.entity_id,
+                state.entity_id,
             )
             continue
 
         device_class_lower = device_class.lower()
-        if device_class_lower in VIDEO_CAPABLE_DEVICE_CLASSES:
-            _LOGGER.debug(
-                "Entity %s has video-capable device_class: %s",
-                entity.entity_id,
-                device_class,
-            )
-            video_capable_entities.append(entity.entity_id)
-        elif device_class_lower in AUDIO_ONLY_DEVICE_CLASSES:
+
+        if device_class_lower in AUDIO_ONLY_DEVICE_CLASSES:
             _LOGGER.debug(
                 "Entity %s has audio-only device_class: %s, skipping",
-                entity.entity_id,
+                state.entity_id,
                 device_class,
             )
-        else:
+            continue
+        elif device_class_lower not in VIDEO_CAPABLE_DEVICE_CLASSES:
             _LOGGER.debug(
                 "Entity %s has unknown device_class: %s, skipping",
-                entity.entity_id,
+                state.entity_id,
                 device_class,
             )
+            continue
+
+        _LOGGER.debug(
+            "Entity %s has video-capable device_class: %s",
+            state.entity_id,
+            device_class,
+        )
+
+        # Lifted from homeassistant/components/homeassistant/llm.py
+        # Only do the additional work to retrieve area names if we've passed the basic checks already
+        entity_entry = entity_registry.async_get(state.entity_id)
+
+        video_capable_entities.append(
+            MediaPlayerInfo(
+                entity_id=state.entity_id,
+                area_id=entity_entry.area_id if entity_entry else None,
+            )
+        )
 
     _LOGGER.debug(
-        "Area %s has media players: %s, video-capable: %s",
-        area_id,
-        all_media_players_in_area,
+        "Video-capable media players: %s",
         video_capable_entities,
     )
 
@@ -181,14 +183,14 @@ class PlayVideoTool(BaseTool):
 
     parameters = vol.Schema({})
 
-    @staticmethod
-    def update_args(hass: HomeAssistant) -> None:
-        """
-        Update the tool args with the currently available media players, in case this has changed since we were last called.
+    def __init__(self, config: dict, hass: HomeAssistant) -> None:
+        """Initialize the play video tool."""
+        super().__init__(config, hass)
+        self.video_players = sorted(
+            get_video_capable_media_players(hass=self.hass),
+            key=lambda p: p.entity_id,
+        )
 
-        This is called every time the LLM integration is about to query the model.
-        """
-        video_players = get_video_capable_media_players(hass, None)
         PlayVideoTool.parameters = vol.Schema(
             {
                 vol.Required(
@@ -200,7 +202,9 @@ class PlayVideoTool(BaseTool):
                     description="The entity_id of the media player",
                 ): SelectSelector(
                     SelectSelectorConfig(
-                        options=video_players,
+                        options=[player.entity_id for player in self.video_players]
+                        if self.video_players
+                        else ["no video-capable devices available"],
                         multiple=True,
                     ),
                 ),
@@ -256,7 +260,9 @@ class PlayVideoTool(BaseTool):
 
             _LOGGER.debug("Resolved area '%s' to area_id '%s'", area_input, area_id)
 
-            video_players = get_video_capable_media_players(hass, area_id)
+            video_players = [
+                player for player in self.video_players if area_id == player.area_id
+            ]
 
             if not video_players:
                 _LOGGER.warning(
@@ -268,14 +274,15 @@ class PlayVideoTool(BaseTool):
                     "error": f"No video-capable media players found in area '{area_input}'.",
                 }
 
+            player_entity_ids = [player.entity_id for player in video_players]
             if "entity_id" in target:
                 existing = target["entity_id"]
                 if isinstance(existing, str):
-                    target["entity_id"] = [existing, *video_players]
+                    target["entity_id"] = [existing, *player_entity_ids]
                 else:
-                    target["entity_id"] = list(existing) + video_players
+                    target["entity_id"] = list(existing) + player_entity_ids
             else:
-                target["entity_id"] = video_players
+                target["entity_id"] = player_entity_ids
 
             _LOGGER.debug("Targeting video-capable players: %s", video_players)
 
@@ -284,17 +291,17 @@ class PlayVideoTool(BaseTool):
 
         if not target:
             # If there is only a single capable media player, just use it
-            video_players = get_video_capable_media_players(hass, None)
+            video_players = list(self.video_players)
 
             if not video_players:
                 _LOGGER.warning("No video-capable media players found")
                 return {
                     "success": False,
-                    "error": "No video-capable media players found in.",
+                    "error": "No video-capable media players found.",
                 }
 
             if len(video_players) == 1:
-                target["entity_id"] = video_players
+                target["entity_id"] = [player.entity_id for player in video_players]
                 _LOGGER.debug("Targeting video-capable player: %s", video_players)
             else:
                 # No player specified and we dont have exactly 1 player result

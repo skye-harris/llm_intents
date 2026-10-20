@@ -10,6 +10,7 @@ from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
 
 from custom_components.llm_intents.play_media import (
+    MediaPlayerInfo,
     PlayVideoTool,
     get_video_capable_media_players,
     resolve_area_id,
@@ -117,13 +118,11 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
 @pytest.mark.parametrize(
     (
         "entities",
-        "devices",
         "states",
-        "area_id",
         "expected",
     ),
     [
-        # TV in area -> included
+        # TV -> included
         (
             {
                 "media_player.tv": {
@@ -132,12 +131,10 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                     "device_class": "tv",
                 },
             },
-            {"dev_1": {"area_id": "area_1"}},
             {"media_player.tv": {"device_class": "tv", "supported_features": 512}},
-            "area_1",
             ["media_player.tv"],
         ),
-        # Receiver in area -> included
+        # Receiver -> included
         (
             {
                 "media_player.receiver": {
@@ -146,17 +143,15 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                     "device_class": "receiver",
                 },
             },
-            {"dev_2": {"area_id": "area_1"}},
             {
                 "media_player.receiver": {
                     "device_class": "receiver",
                     "supported_features": 512,
                 }
             },
-            "area_1",
             ["media_player.receiver"],
         ),
-        # Speaker in area -> skipped (audio-only)
+        # Speaker -> skipped (audio-only)
         (
             {
                 "media_player.speaker": {
@@ -165,14 +160,12 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                     "device_class": "speaker",
                 },
             },
-            {"dev_3": {"area_id": "area_1"}},
             {
                 "media_player.speaker": {
                     "device_class": "speaker",
                     "supported_features": 512,
                 }
             },
-            "area_1",
             [],
         ),
         # Entity without PLAY_MEDIA feature -> skipped
@@ -184,12 +177,10 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                     "device_class": "tv",
                 },
             },
-            {"dev_1": {"area_id": "area_1"}},
-            {"media_player.tv": {"device_class": "tv", "supported_features": 0}},
-            "area_1",
+            {"media_player.tv": {"device_class": "tv"}},
             [],
         ),
-        # No device_class -> skipped
+        # Entity without device_class -> skipped
         (
             {
                 "media_player.tv": {
@@ -198,12 +189,10 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                     "device_class": None,
                 },
             },
-            {"dev_1": {"area_id": "area_1"}},
             {"media_player.tv": {"supported_features": 512}},
-            "area_1",
             [],
         ),
-        # No area_id -> returns all capable players
+        # Multiple capable players -> all returned
         (
             {
                 "media_player.tv": {
@@ -218,32 +207,13 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                 },
             },
             {
-                "dev_1": {"area_id": "area_1"},
-                "dev_2": {"area_id": "area_2"},
-            },
-            {
                 "media_player.tv": {"device_class": "tv", "supported_features": 512},
                 "media_player.receiver": {
                     "device_class": "receiver",
                     "supported_features": 512,
                 },
             },
-            None,
             ["media_player.tv", "media_player.receiver"],
-        ),
-        # Entity not in area -> excluded
-        (
-            {
-                "media_player.tv": {
-                    "device_id": "dev_1",
-                    "area_id": "area_2",
-                    "device_class": "tv",
-                },
-            },
-            {"dev_1": {"area_id": "area_2"}},
-            {"media_player.tv": {"device_class": "tv", "supported_features": 512}},
-            "area_1",
-            [],
         ),
         # Entity with no state -> skipped
         (
@@ -254,9 +224,7 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
                     "device_class": "tv",
                 },
             },
-            {"dev_1": {"area_id": "area_1"}},
             {},
-            "area_1",
             [],
         ),
     ],
@@ -264,18 +232,19 @@ def test_resolve_area_id(input_val: str, areas: dict, expected: str | None) -> N
 def test_get_video_capable_media_players(
     hass: HomeAssistant,
     entities: dict,
-    devices: dict,
     states: dict,
-    area_id: str | None,
     expected: list[str],
 ) -> None:
     """Test video-capable player discovery with various configurations."""
+    mock_state_entries = []
+    for eid, attrs in states.items():
+        entry = MagicMock()
+        entry.entity_id = eid
+        entry.attributes = attrs
+        mock_state_entries.append(entry)
+
     mock_states = MagicMock()
-    mock_states.get = MagicMock(
-        side_effect=lambda eid: (
-            MagicMock(attributes=states.get(eid, {})) if eid in states else None
-        ),
-    )
+    mock_states.async_all = MagicMock(return_value=mock_state_entries)
     hass.states = mock_states
 
     with (
@@ -284,12 +253,12 @@ def test_get_video_capable_media_players(
             return_value=_make_entity_reg(entities),
         ),
         patch(
-            "custom_components.llm_intents.play_media.dr.async_get",
-            return_value=_make_device_reg(devices),
+            "custom_components.llm_intents.play_media.async_should_expose",
+            return_value=True,
         ),
     ):
-        result = get_video_capable_media_players(hass, area_id)
-    assert result == expected
+        result = get_video_capable_media_players(hass)
+    assert [r.entity_id for r in result] == expected
 
 
 # ---------------------------------------------------------------------------
@@ -349,7 +318,7 @@ def test_get_video_capable_media_players(
             [],
             None,
             False,
-            "No video-capable media players found in.",
+            "No video-capable media players found.",
             None,
         ),
         # No target, multiple players -> error
@@ -413,7 +382,9 @@ async def test_async_call(
     expected_target: dict | None,
 ) -> None:
     """Test PlayVideoTool.async_call with various input combinations."""
-    tool = PlayVideoTool({}, hass)
+    mp_info_players = [
+        MediaPlayerInfo(entity_id=eid, area_id=area_id) for eid in video_players
+    ]
 
     # Mock area registry
     area_reg = MagicMock(spec=AreaRegistry)
@@ -443,9 +414,10 @@ async def test_async_call(
         ),
         patch(
             "custom_components.llm_intents.play_media.get_video_capable_media_players",
-            return_value=video_players,
+            return_value=mp_info_players,
         ),
     ):
+        tool = PlayVideoTool({}, hass)
         result = await tool.async_call(hass, _tool_input(**tool_args), MagicMock())
 
     if expected_success:
