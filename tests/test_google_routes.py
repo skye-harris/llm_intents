@@ -107,9 +107,9 @@ def tool(routes_hass: HomeAssistant, config: dict) -> GetRouteTool:
 
 @pytest.fixture
 def cache_miss() -> Any:
-    """Patch SQLiteCache so every lookup is a miss."""
+    """Patch InMemoryCache so every lookup is a miss."""
     with patch(
-        "custom_components.llm_intents.google_routes.SQLiteCache",
+        "custom_components.llm_intents.google_routes.InMemoryCache",
     ) as cache_cls:
         cache_cls.return_value.get.return_value = None
         yield cache_cls
@@ -421,7 +421,7 @@ async def test_places_cache_hit_skips_places_call(
             return_value=session,
         ),
         patch(
-            "custom_components.llm_intents.google_routes.SQLiteCache",
+            "custom_components.llm_intents.google_routes.InMemoryCache",
         ) as cache_cls,
     ):
         cache_cls.return_value.get.return_value = {

@@ -12,7 +12,7 @@ from homeassistant.util import dt
 from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_GOOGLE_PLACES_LATITUDE,
     CONF_GOOGLE_PLACES_LONGITUDE,
@@ -118,7 +118,7 @@ class FindPlacesTool(BaseTool):
                     },
                 }
 
-            cache = SQLiteCache()
+            cache = InMemoryCache()
             cached_response = cache.get(__name__, params)
             if cached_response:
                 return cached_response

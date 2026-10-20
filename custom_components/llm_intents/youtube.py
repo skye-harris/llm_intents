@@ -10,7 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_PROVIDER_API_KEYS,
     PROVIDER_GOOGLE,
@@ -75,7 +75,7 @@ class SearchYouTubeTool(BaseTool):
             return {"error": "Google API key not configured"}
 
         try:
-            cache = SQLiteCache()
+            cache = InMemoryCache()
             cache_params = {"query": query, "maxResults": num_results}
             cached_response = cache.get(__name__, cache_params)
             if cached_response:

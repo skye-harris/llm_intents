@@ -132,7 +132,7 @@ def get_video_capable_media_players(
                 device_class,
             )
             continue
-        elif device_class_lower not in VIDEO_CAPABLE_DEVICE_CLASSES:
+        if device_class_lower not in VIDEO_CAPABLE_DEVICE_CLASSES:
             _LOGGER.debug(
                 "Entity %s has unknown device_class: %s, skipping",
                 state.entity_id,

@@ -62,9 +62,9 @@ def tool(youtube_hass: HomeAssistant, config: dict) -> SearchYouTubeTool:
 
 @pytest.fixture
 def cache_miss() -> Any:
-    """Patch SQLiteCache so every lookup is a miss."""
+    """Patch InMemoryCache so every lookup is a miss."""
     with patch(
-        "custom_components.llm_intents.youtube.SQLiteCache",
+        "custom_components.llm_intents.youtube.InMemoryCache",
     ) as cache_cls:
         cache_cls.return_value.get.return_value = None
         yield cache_cls
@@ -215,7 +215,7 @@ async def test_cache_hit_skips_api_call(
 
     with (
         patch(
-            "custom_components.llm_intents.youtube.SQLiteCache",
+            "custom_components.llm_intents.youtube.InMemoryCache",
         ) as cache_cls,
         patch(
             "custom_components.llm_intents.youtube.async_get_clientsession",
