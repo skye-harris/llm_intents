@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import llm
 from homeassistant.helpers.area_registry import AreaRegistry
 from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
@@ -21,6 +22,16 @@ def _tool_input(**args: Any) -> MagicMock:
     tool_input = MagicMock()
     tool_input.tool_args = args
     return tool_input
+
+
+def _llm_context(assistant: str = "conversation") -> llm.LLMContext:
+    return llm.LLMContext(
+        platform="test",
+        context=None,
+        language="en",
+        assistant=assistant,
+        device_id=None,
+    )
 
 
 class _AreaEntry:
@@ -58,6 +69,7 @@ def _make_entity_reg(entities: dict[str, dict]) -> MagicMock:
         entry.area_id = props.get("area_id")
         entries[eid] = entry
     entity_reg.entities = entries
+    entity_reg.async_get = MagicMock(side_effect=entries.get)
     return entity_reg
 
 
@@ -75,6 +87,20 @@ def _make_device_reg(devices: dict[str, dict]) -> MagicMock:
 
     device_reg.async_get = MagicMock(side_effect=get_device)
     return device_reg
+
+
+def _make_states(states: dict[str, dict]) -> MagicMock:
+    """Create mocked state objects for the given attributes."""
+    mock_state_entries = []
+    for eid, attrs in states.items():
+        entry = MagicMock()
+        entry.entity_id = eid
+        entry.attributes = attrs
+        mock_state_entries.append(entry)
+
+    mock_states = MagicMock()
+    mock_states.async_all = MagicMock(return_value=mock_state_entries)
+    return mock_states
 
 
 # ---------------------------------------------------------------------------
@@ -236,16 +262,8 @@ def test_get_video_capable_media_players(
     expected: list[str],
 ) -> None:
     """Test video-capable player discovery with various configurations."""
-    mock_state_entries = []
-    for eid, attrs in states.items():
-        entry = MagicMock()
-        entry.entity_id = eid
-        entry.attributes = attrs
-        mock_state_entries.append(entry)
-
-    mock_states = MagicMock()
-    mock_states.async_all = MagicMock(return_value=mock_state_entries)
-    hass.states = mock_states
+    hass.states = _make_states(states)
+    exposed_entities = {entity_id: {} for entity_id in states}
 
     with (
         patch(
@@ -253,17 +271,102 @@ def test_get_video_capable_media_players(
             return_value=_make_entity_reg(entities),
         ),
         patch(
-            "custom_components.llm_intents.play_media.async_should_expose",
-            return_value=True,
+            "custom_components.llm_intents.play_media.dr.async_get",
+            return_value=_make_device_reg({}),
+        ),
+        patch(
+            "custom_components.llm_intents.play_media.async_get_exposed_entities",
+            return_value=exposed_entities,
         ),
     ):
-        result = get_video_capable_media_players(hass)
-    assert [r.entity_id for r in result] == expected
+        result = get_video_capable_media_players(hass, "conversation")
+    assert [player.entity_id for player in result] == expected
+
+
+def test_get_video_capable_media_players_excludes_unexposed(
+    hass: HomeAssistant,
+) -> None:
+    """Only players exposed to the assistant are returned."""
+    states = {
+        "media_player.tv": {"device_class": "tv", "supported_features": 512},
+        "media_player.receiver": {
+            "device_class": "receiver",
+            "supported_features": 512,
+        },
+    }
+    entities = {
+        "media_player.tv": {"area_id": "area_1"},
+        "media_player.receiver": {"area_id": "area_2"},
+    }
+    hass.states = _make_states(states)
+
+    with (
+        patch(
+            "custom_components.llm_intents.play_media.er.async_get",
+            return_value=_make_entity_reg(entities),
+        ),
+        patch(
+            "custom_components.llm_intents.play_media.dr.async_get",
+            return_value=_make_device_reg({}),
+        ),
+        patch(
+            "custom_components.llm_intents.play_media.async_get_exposed_entities",
+            return_value={"media_player.tv": {}},
+        ),
+    ):
+        result = get_video_capable_media_players(hass, "conversation")
+
+    assert [player.entity_id for player in result] == ["media_player.tv"]
+
+
+def test_get_video_capable_media_players_uses_device_area(
+    hass: HomeAssistant,
+) -> None:
+    """Fall back to the device area when the entity has no area."""
+    hass.states = _make_states(
+        {"media_player.tv": {"device_class": "tv", "supported_features": 512}}
+    )
+    entities = {
+        "media_player.tv": {"device_id": "dev_1", "area_id": None},
+    }
+
+    with (
+        patch(
+            "custom_components.llm_intents.play_media.er.async_get",
+            return_value=_make_entity_reg(entities),
+        ),
+        patch(
+            "custom_components.llm_intents.play_media.dr.async_get",
+            return_value=_make_device_reg({"dev_1": {"area_id": "area_2"}}),
+        ),
+        patch(
+            "custom_components.llm_intents.play_media.dr.async_get_effective_area_id",
+            side_effect=lambda _hass, device: device.area_id,
+        ),
+        patch(
+            "custom_components.llm_intents.play_media.async_get_exposed_entities",
+            return_value={"media_player.tv": {}},
+        ),
+    ):
+        result = get_video_capable_media_players(hass, "conversation")
+
+    assert result == [MediaPlayerInfo(entity_id="media_player.tv", area_id="area_2")]
 
 
 # ---------------------------------------------------------------------------
 # PlayVideoTool.async_call
 # ---------------------------------------------------------------------------
+
+
+def test_play_video_uses_llm_context_assistant(hass: HomeAssistant) -> None:
+    """The tool discovers players using the active assistant's exposure."""
+    with patch(
+        "custom_components.llm_intents.play_media.get_video_capable_media_players",
+        return_value=[],
+    ) as get_players:
+        PlayVideoTool({}, hass, _llm_context("custom_assistant"))
+
+    get_players.assert_called_once_with(hass=hass, assistant="custom_assistant")
 
 
 @pytest.mark.parametrize(
@@ -283,7 +386,7 @@ def test_get_video_capable_media_players(
             None,
             True,
             None,
-            {"entity_id": "media_player.tv"},
+            {"entity_id": ["media_player.tv"]},
         ),
         # Success via area
         (
@@ -294,14 +397,14 @@ def test_get_video_capable_media_players(
             None,
             {"entity_id": ["media_player.tv"]},
         ),
-        # Success via device_id
+        # device_id is no longer supported and is ignored
         (
             {"video_url": "https://youtu.be/abc", "device_id": "dev_1"},
-            [],
+            ["media_player.tv"],
             None,
             True,
             None,
-            {"device_id": "dev_1"},
+            {"entity_id": ["media_player.tv"]},
         ),
         # No target, single player -> auto-selected
         (
@@ -318,7 +421,7 @@ def test_get_video_capable_media_players(
             [],
             None,
             False,
-            "No video-capable media players found.",
+            "No video-capable media players exposed to this assistant.",
             None,
         ),
         # No target, multiple players -> error
@@ -327,7 +430,7 @@ def test_get_video_capable_media_players(
             ["media_player.tv", "media_player.receiver"],
             None,
             False,
-            "Must specify at least one of: entity_id, area, or device_id",
+            "Must specify at least one of: entity_id or area",
             None,
         ),
         # Unresolved area -> error
@@ -355,11 +458,23 @@ def test_get_video_capable_media_players(
                 "entity_id": "media_player.tv",
                 "area": "Living Room",
             },
-            ["media_player.speaker"],
+            ["media_player.tv", "media_player.receiver"],
             "area_1",
             True,
             None,
-            {"entity_id": ["media_player.tv", "media_player.speaker"]},
+            {"entity_id": ["media_player.tv", "media_player.receiver"]},
+        ),
+        # Unexposed entity -> error
+        (
+            {
+                "video_url": "https://youtu.be/abc",
+                "entity_id": "media_player.unexposed",
+            },
+            ["media_player.tv"],
+            None,
+            False,
+            "Media player(s) not exposed to this assistant: media_player.unexposed",
+            None,
         ),
         # Service call raises exception -> error
         (
@@ -417,8 +532,8 @@ async def test_async_call(
             return_value=mp_info_players,
         ),
     ):
-        tool = PlayVideoTool({}, hass)
-        result = await tool.async_call(hass, _tool_input(**tool_args), MagicMock())
+        tool = PlayVideoTool({}, hass, _llm_context())
+        result = await tool.async_call(hass, _tool_input(**tool_args), _llm_context())
 
     if expected_success:
         assert result["success"] is True

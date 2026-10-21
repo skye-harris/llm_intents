@@ -105,7 +105,7 @@ class BaseAPI(llm.API):
         super().__init__(hass=hass, id=id or name.lower().replace(" ", "_"), name=name)
         self.config = config
 
-    def get_enabled_tools(self) -> list:
+    def get_enabled_tools(self, llm_context: llm.LLMContext | None = None) -> list:
         """Get all enabled tools for this service."""
         config_data = self.config
         tools = []
@@ -120,7 +120,7 @@ class BaseAPI(llm.API):
                 tool_enabled = key(config_data)
 
             if tool_enabled:
-                tool_instance = tool_class(config_data, self.hass)
+                tool_instance = tool_class(config_data, self.hass, llm_context)
                 tools = [*tools, tool_instance]
 
         return tools
@@ -130,7 +130,7 @@ class BaseAPI(llm.API):
         llm_context: llm.LLMContext,
     ) -> llm.APIInstance:
         """Get API instance."""
-        tools = self.get_enabled_tools()
+        tools = self.get_enabled_tools(llm_context)
 
         prompt = []
         if tools:

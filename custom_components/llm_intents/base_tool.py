@@ -11,8 +11,14 @@ class BaseTool(llm.Tool):
 
     integration = DOMAIN
 
-    def __init__(self, config: dict, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        config: dict,
+        hass: HomeAssistant,
+        llm_context: llm.LLMContext | None = None,
+    ) -> None:
         """Init our tool."""
         super().__init__()
         self.config = config
         self.hass = hass
+        self.llm_context = llm_context
