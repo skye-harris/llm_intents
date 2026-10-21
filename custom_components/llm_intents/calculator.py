@@ -14,7 +14,7 @@ from .base_tool import BaseTool
 
 _LOGGER = logging.getLogger(__name__)
 
-# 1e308 = 1 × 10^308 = 1 followed by 308 zeros.
+# 1e308 = 1 * 10^308 = 1 followed by 308 zeros.
 # This is the largest finite number Python can represent (float("inf") beyond this).
 _MAX_EXPONENT_RESULT = 1e308
 
