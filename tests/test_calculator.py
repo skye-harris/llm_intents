@@ -6,7 +6,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
-from custom_components.llm_intents.calculator import CalculatorTool
+from custom_components.llm_intents.calculator import CalculatorTool, _safe_eval
 
 
 @pytest.fixture
@@ -180,9 +180,7 @@ def test_calculator_matches_reference_eval(
     expression: str,
 ) -> None:
     """Verify our safe evaluator produces the same result as Python's eval."""
-    from custom_components.llm_intents.calculator import _safe_eval
-
-    expected = float(eval(expression))
+    expected = float(eval(expression))  # noqa: S307 we are only using this with hardcoded test cases
     actual = _safe_eval(expression)
     assert actual == expected
 
@@ -255,3 +253,33 @@ async def test_calculator_large_exponent_result_blocked(
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
     assert "error" in result
+
+
+def test_safe_eval_unsupported_constant() -> None:
+    """Test that a non-numeric constant raises TypeError."""
+    with pytest.raises(TypeError, match="Unsupported constant"):
+        _safe_eval('"hello"')
+
+
+def test_safe_eval_unsupported_unary() -> None:
+    """Test that an unsupported unary operator raises ValueError."""
+    with pytest.raises(ValueError, match="Unsupported operator"):
+        _safe_eval("~-5")
+
+
+def test_safe_eval_unsupported_binary() -> None:
+    """Test that an unsupported binary operator raises ValueError."""
+    with pytest.raises(ValueError, match="Unsupported operator"):
+        _safe_eval("5 // 2")
+
+
+def test_safe_eval_base_exponent_too_large() -> None:
+    """Test that exponentiation with a base exceeding the limit raises ValueError."""
+    with pytest.raises(ValueError, match="base exceeds limit"):
+        _safe_eval("1e7**2")
+
+
+def test_safe_eval_result_exceeds_limit() -> None:
+    """Test that exponentiation producing a result exceeding the limit raises ValueError."""
+    with pytest.raises(ValueError, match="result exceeds limit"):
+        _safe_eval("1e6**51.334")

@@ -14,7 +14,13 @@ from .base_tool import BaseTool
 
 _LOGGER = logging.getLogger(__name__)
 
+# 1e308 = 1 × 10^308 = 1 followed by 308 zeros.
+# This is the largest finite number Python can represent (float("inf") beyond this).
 _MAX_EXPONENT_RESULT = 1e308
+
+# 1e6 = 1,000,000 (one million).
+# Prevents runaway computation: either a base > 1M squared, or an exponent > 1M,
+# both of which would produce astronomically large results and waste CPU cycles.
 _MAX_EXPONENT_OPERAND = 1e6
 
 _SAFE_BIN_OPS = {
@@ -100,7 +106,7 @@ class CalculatorTool(BaseTool):
     """Tool for performing math operations."""
 
     name = "calculate"
-    description = "Calculator for math operations."
+    description = "Calculator for math operations.\nExpressions support +, -, *, /, %, ** for exponentiation, and parentheses."
     prompt_description = None
 
     parameters = vol.Schema(
