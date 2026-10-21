@@ -105,7 +105,7 @@ class BaseAPI(llm.API):
         super().__init__(hass=hass, id=id or name.lower().replace(" ", "_"), name=name)
         self.config = config
 
-    def get_enabled_tools(self) -> list:
+    def get_enabled_tools(self, llm_context: llm.LLMContext | None = None) -> list:
         """Get all enabled tools for this service."""
         config_data = self.config
         tools = []
@@ -120,8 +120,8 @@ class BaseAPI(llm.API):
                 tool_enabled = key(config_data)
 
             if tool_enabled:
-                tool_class.update_args(self.hass)
-                tools = [*tools, tool_class(config_data, self.hass)]
+                tool_instance = tool_class(config_data, self.hass, llm_context)
+                tools = [*tools, tool_instance]
 
         return tools
 
@@ -130,20 +130,23 @@ class BaseAPI(llm.API):
         llm_context: llm.LLMContext,
     ) -> llm.APIInstance:
         """Get API instance."""
-        tools = self.get_enabled_tools()
-        tool_prompts = "\n".join(
-            tool.prompt_description for tool in tools if tool.prompt_description
-        )
+        tools = self.get_enabled_tools(llm_context)
 
-        prompt = [self._API_PROMPT]
-        if tool_prompts:
-            prompt.append(tool_prompts)
+        prompt = []
+        if tools:
+            tool_prompts = "\n".join(
+                tool.prompt_description for tool in tools if tool.prompt_description
+            )
+
+            prompt = [self._API_PROMPT]
+            if tool_prompts:
+                prompt.append(tool_prompts)
 
         return llm.APIInstance(
             api=self,
             api_prompt="\n\n".join(prompt),
             llm_context=llm_context,
-            tools=self.get_enabled_tools(),
+            tools=tools,
             custom_serializer=selector_serializer,
         )
 

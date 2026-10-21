@@ -14,10 +14,6 @@ MEDIA_API_NAME = "Media Services"
 BASIC_UTILITIES_API_NAME = "Basic Utilities"
 HOME_CONTROL_API_NAME = "Home Control"
 
-# SQLite Cache
-
-CONF_CACHE_MAX_AGE = "cache_max_age"
-
 SEARCH_SERVICES_PROMPT = "You may utilise the Search Services tools to lookup up-to-date information from the internet."
 
 WEATHER_SERVICES_PROMPT = """

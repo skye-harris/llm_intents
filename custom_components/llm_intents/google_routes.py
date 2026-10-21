@@ -13,7 +13,7 @@ from homeassistant.util.json import JsonObjectType
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
     CONF_GOOGLE_ROUTES_HOME_ADDRESS,
@@ -55,10 +55,15 @@ class GetRouteTool(BaseTool):
 
     parameters: vol.Schemable
 
-    def __init__(self, config: dict, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        config: dict,
+        hass: HomeAssistant,
+        llm_context: llm.LLMContext | None = None,
+    ) -> None:
         """Initialize the tool."""
         # Inject the default travel mode into the description
-        super().__init__(config, hass)
+        super().__init__(config, hass, llm_context)
         default_mode = self._get_default_travel_mode()
         self.parameters = vol.Schema(
             {
@@ -161,7 +166,7 @@ class GetRouteTool(BaseTool):
                 },
             }
 
-        cache = SQLiteCache()
+        cache = InMemoryCache()
         cache_key_params = {k: v for k, v in body.items() if k != "languageCode"}
         cached = cache.get(__name__ + ":places", cache_key_params)
         if cached is not None:

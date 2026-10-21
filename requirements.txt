@@ -14,4 +14,3 @@ ruff
 voluptuous
 pre-commit
 wikipedia-api>=0.16.0
-sympy>=1.14.0

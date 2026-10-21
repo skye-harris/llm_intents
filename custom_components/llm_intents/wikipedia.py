@@ -12,7 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_WIKIPEDIA_NUM_RESULTS,
 )
@@ -70,7 +70,7 @@ class SearchWikipediaTool(BaseTool):
                 "srlimit": num_results,
             }
 
-            cache = SQLiteCache()
+            cache = InMemoryCache()
             cached_response = cache.get(__name__, search_params)
             if cached_response:
                 return cached_response

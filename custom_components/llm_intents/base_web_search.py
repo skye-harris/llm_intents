@@ -11,7 +11,7 @@ from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class SearchWebTool(BaseTool):
         _LOGGER.info("Web search requested for: %s", query)
 
         try:
-            cache = SQLiteCache()
+            cache = InMemoryCache()
             cache_key = {"query": query, **search_kwargs}
             cached_response = cache.get(__name__, cache_key)
             if cached_response:
