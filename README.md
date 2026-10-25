@@ -40,7 +40,7 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 <details><summary>Manual Install</summary>
 
-* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [
+* Copy the `llm_intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [
   `custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
 * Restart the Home Assistant.
 
