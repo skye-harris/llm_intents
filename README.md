@@ -8,7 +8,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Wikipedia**
 * **Weather Forecast**
 * **YouTube Search and Playback**
-* **Basic Utilities** — Calculator, Kitchen Unit Converter, and Date Information
+* **Basic Utilities** — Calculator, Unit Converter, and Date Information
 * **Entity History** — Part of the `Home control` domain
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
@@ -380,11 +380,16 @@ Evaluate mathematical expressions and return the result.
 
 Calculator supports mathematical expression evaluation, along with calculating the minimum, maximum, and average of a series of values.
 
-#### 🥄 Kitchen Unit Converter
+#### 📏 Unit Converter
 
-Converts kitchen quantities between common volume units. Supports fractional amounts such as `1/8` or `1 1/2`.
+Converts quantities between common volume, weight, length, and temperature units. Supports fractional amounts such as `1/8` or `1 1/2`.
 
-**Supported units:** `cup`, `tablespoon`, `teaspoon`, `ml`, `pint`
+**Supported units:**
+
+* **Volume:** `cup`, `tablespoon`, `teaspoon`, `ml`, `dl`, `liter`, `gallon`, `fluid_ounce`, `pint`
+* **Weight:** `gram`, `kilogram`, `milligram`, `pound`, `ounce`, `stone`
+* **Length:** `millimeter`, `centimeter`, `meter`, `kilometer`, `inch`, `foot`, `yard`, `mile`
+* **Temperature:** `celsius`, `fahrenheit`
 
 **Parameters:**
 

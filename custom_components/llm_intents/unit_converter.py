@@ -1,4 +1,4 @@
-"""Unit converter tool for volume, weight, and temperature conversions."""
+"""Unit converter tool for volume, weight, length, and temperature conversions."""
 
 import enum
 import logging
@@ -33,10 +33,22 @@ UNIT_TO_GRAMS: dict[str, float] = {
     "stone": 6350.29,
 }
 
+UNIT_TO_MM: dict[str, float] = {
+    "millimeter": 1.0,
+    "centimeter": 10.0,
+    "meter": 1000.0,
+    "kilometer": 1_000_000.0,
+    "inch": 25.4,
+    "foot": 304.8,
+    "yard": 914.4,
+    "mile": 1_609_344.0,
+}
+
 VOLUME_UNITS = list(UNIT_TO_ML.keys())
 WEIGHT_UNITS = list(UNIT_TO_GRAMS.keys())
+LENGTH_UNITS = list(UNIT_TO_MM.keys())
 TEMPERATURE_UNITS = ["celsius", "fahrenheit"]
-ALLOWED_UNITS = VOLUME_UNITS + WEIGHT_UNITS + TEMPERATURE_UNITS
+ALLOWED_UNITS = VOLUME_UNITS + WEIGHT_UNITS + LENGTH_UNITS + TEMPERATURE_UNITS
 
 
 class UnitDomain(enum.Enum):
@@ -44,6 +56,7 @@ class UnitDomain(enum.Enum):
 
     WEIGHT = "weight"
     VOLUME = "volume"
+    LENGTH = "length"
     TEMPERATURE = "temperature"
 
 
@@ -54,6 +67,8 @@ def _get_unit_domain(unit: str) -> UnitDomain | None:
         if unit_lower in WEIGHT_UNITS
         else UnitDomain.VOLUME
         if unit_lower in VOLUME_UNITS
+        else UnitDomain.LENGTH
+        if unit_lower in LENGTH_UNITS
         else UnitDomain.TEMPERATURE
         if unit_lower in TEMPERATURE_UNITS
         else None
@@ -78,13 +93,15 @@ def _parse_amount(amount: str) -> float:
 
 
 class UnitConverterTool(BaseTool):
-    """Tool for converting quantities between common volume, weight, and temperature units."""
+    """Tool for converting quantities between common volume, weight, length, and temperature units."""
 
     name = "unit_convert"
     description = (
         "Convert quantities between volume units (cups, tablespoons, teaspoons, ml, "
         "liters, gallons, fluid ounces, pints), weight units (grams, kilograms, "
-        "milligrams, pounds, ounces, stone), and temperature units (celsius, fahrenheit). "
+        "milligrams, pounds, ounces, stone), length units (millimeters, centimeters, "
+        "meters, kilometers, inches, feet, yards, miles), and temperature units "
+        "(celsius, fahrenheit). "
         "Supports fractional amounts like '1/8' or '1 1/2'. "
         "Always use this tool for unit conversions instead of calculating manually."
     )
@@ -105,6 +122,8 @@ class UnitConverterTool(BaseTool):
                     "Unit to convert from. Volume: cup, tablespoon, teaspoon, ml, "
                     "liter, gallon, fluid_ounce, pint. "
                     "Weight: gram, kilogram, milligram, pound, ounce, stone. "
+                    "Length: millimeter, centimeter, meter, kilometer, inch, foot, "
+                    "yard, mile. "
                     "Temperature: celsius, fahrenheit."
                 ),
             ): str,
@@ -114,6 +133,8 @@ class UnitConverterTool(BaseTool):
                     "Unit to convert to. Volume: cup, tablespoon, teaspoon, ml, "
                     "liter, gallon, fluid_ounce, pint. "
                     "Weight: gram, kilogram, milligram, pound, ounce, stone. "
+                    "Length: millimeter, centimeter, meter, kilometer, inch, foot, "
+                    "yard, mile. "
                     "Temperature: celsius, fahrenheit."
                 ),
             ): str,
@@ -171,6 +192,9 @@ class UnitConverterTool(BaseTool):
         elif from_domain == UnitDomain.WEIGHT:
             base_value = amount * UNIT_TO_GRAMS[from_unit]
             result = base_value / UNIT_TO_GRAMS[to_unit]
+        elif from_domain == UnitDomain.LENGTH:
+            base_value = amount * UNIT_TO_MM[from_unit]
+            result = base_value / UNIT_TO_MM[to_unit]
         elif from_domain == UnitDomain.TEMPERATURE:
             if from_unit == "celsius" and to_unit == "fahrenheit":
                 result = (amount * 9 / 5) + 32

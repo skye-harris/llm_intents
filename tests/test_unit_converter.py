@@ -168,6 +168,67 @@ async def test_weight_conversions(
 
 
 @pytest.mark.parametrize(
+    ("tool_input_json", "expected_value"),
+    [
+        # Metric length conversions
+        ('{"amount": "10", "from_unit": "millimeter", "to_unit": "centimeter"}', 1.0),
+        ('{"amount": "25", "from_unit": "centimeter", "to_unit": "millimeter"}', 250.0),
+        ('{"amount": "1", "from_unit": "meter", "to_unit": "centimeter"}', 100.0),
+        ('{"amount": "1", "from_unit": "kilometer", "to_unit": "meter"}', 1000.0),
+        ('{"amount": "1500", "from_unit": "millimeter", "to_unit": "meter"}', 1.5),
+        # Imperial length conversions
+        ('{"amount": "1", "from_unit": "foot", "to_unit": "inch"}', 12.0),
+        ('{"amount": "1", "from_unit": "yard", "to_unit": "foot"}', 3.0),
+        ('{"amount": "1", "from_unit": "mile", "to_unit": "yard"}', 1760.0),
+        # Metric to imperial length conversions
+        ('{"amount": "1", "from_unit": "inch", "to_unit": "centimeter"}', 2.54),
+        ('{"amount": "100", "from_unit": "millimeter", "to_unit": "inch"}', 3.937),
+        ('{"amount": "1", "from_unit": "mile", "to_unit": "kilometer"}', 1.6093),
+        ('{"amount": "1", "from_unit": "meter", "to_unit": "foot"}', 3.2808),
+        # Same-unit length conversions
+        ('{"amount": "7", "from_unit": "centimeter", "to_unit": "centimeter"}', 7.0),
+    ],
+)
+async def test_length_conversions(
+    hass: HomeAssistant,
+    unit_converter_tool: UnitConverterTool,
+    tool_input_json: str,
+    expected_value: float,
+) -> None:
+    """Test length conversions with parametrize."""
+    tool_input = llm.ToolInput(
+        tool_name="unit_convert", tool_args=json.loads(tool_input_json)
+    )
+    llm_context = llm.LLMContext(
+        platform="test", context=None, language="en", assistant=None, device_id=None
+    )
+
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+
+    assert "value" in result
+    assert result["value"] == pytest.approx(expected_value, abs=1e-3)
+
+
+async def test_length_to_weight_error(
+    hass: HomeAssistant,
+    unit_converter_tool: UnitConverterTool,
+) -> None:
+    """Test converting length to weight returns error."""
+    tool_input = llm.ToolInput(
+        tool_name="unit_convert",
+        tool_args={"amount": "1", "from_unit": "meter", "to_unit": "kilogram"},
+    )
+    llm_context = llm.LLMContext(
+        platform="test", context=None, language="en", assistant=None, device_id=None
+    )
+
+    result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+
+    assert "error" in result
+    assert "Cannot convert" in result["error"]
+
+
+@pytest.mark.parametrize(
     ("amount_str", "expected"),
     [
         # Plain decimals
@@ -294,6 +355,15 @@ async def test_unknown_temperature_unit(
         ("liter", UnitDomain.VOLUME),
         ("gallon", UnitDomain.VOLUME),
         ("fluid_ounce", UnitDomain.VOLUME),
+        # Length units
+        ("millimeter", UnitDomain.LENGTH),
+        ("centimeter", UnitDomain.LENGTH),
+        ("meter", UnitDomain.LENGTH),
+        ("kilometer", UnitDomain.LENGTH),
+        ("inch", UnitDomain.LENGTH),
+        ("foot", UnitDomain.LENGTH),
+        ("yard", UnitDomain.LENGTH),
+        ("mile", UnitDomain.LENGTH),
         # Temperature units
         ("celsius", UnitDomain.TEMPERATURE),
         ("fahrenheit", UnitDomain.TEMPERATURE),
