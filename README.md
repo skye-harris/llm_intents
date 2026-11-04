@@ -23,20 +23,9 @@ Additionally, a customisable clone of Home Assistants inbuilt `Assist` tooling A
 
 ## Installation
 
-### Install via HACS (recommended)
+Tools for Assist is available on the Home Assistant Marketplace:
 
-Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
-
-* Adding Tools for Assist to HACS can be using this button:
-  [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm_intents&category=integration)
-
-<br>
-
-> [!NOTE]
-> If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
-
-* Click install on the `Tools for Assist` integration.
-* Restart Home Assistant.
+[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm_intents&category=integration)
 
 <details><summary>Manual Install</summary>
 
