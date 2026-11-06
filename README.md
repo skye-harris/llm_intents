@@ -6,7 +6,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
-* **Weather Forecast**
+* **Weather Forecast** from your own weather entities, or any named location via _Open-Meteo_
 * **YouTube Search and Playback**
 * **Basic Utilities** — Calculator, Unit Converter, and Date Information
 * **Entity History** — Part of the `Home control` domain
@@ -308,9 +308,20 @@ It is recommended, though optional, to also specify a weather entity that provid
 For cases where a specific days weather is requested (eg: `today`, `tomorrow`, `wednesday`), the hourly data will be provided if available.
 If data for the week is requested, no hourly forecast entity is set, or the hourly forecast does not contain data for the requested day, the daily weather data will be used instead.
 
+A weather entity can only report the location it was configured for, so when the LLM asks about a named place instead (eg: `What is the weather in Paris this week?`), that forecast is retrieved from [Open-Meteo](https://open-meteo.com/). This requires no API key and no configuration, and your own weather entities continue to serve every request that does not name a place.
+
+A named location is reported in the same shape as your weather entities: a specific day returns hourly data, the week ahead returns daily summaries, and only hours still to come are included. The days and times reported are those of the location being asked about, so requesting `today` in Tokyo returns Tokyo's today, and once that day is over its daily summary is reported instead.
+
+Place names repeat around the world, so a match near your Home Assistant location is preferred over a more populous namesake elsewhere — asking about a nearby suburb returns that suburb, not the city on another continent that shares its name. When nothing of that name is nearby, the best match overall is used, so somewhere you are travelling to still resolves correctly. How far away still counts as nearby is set by the `Nearby Place Distance` option, and setting it to `0` always uses the best match overall.
+
+Temperatures are reported in your Home Assistant unit system. If the user asks for a specific unit (eg: `What is the weather in Paris in fahrenheit?`), that unit is used instead and temperatures are labelled with its symbol so that the unit is unambiguous.
+
+With the `Report Both Temperature Units` option enabled, every temperature is reported in both celsius and fahrenheit (eg: `5°C / 41°F`), so the LLM can state both without converting between them itself. The unit the user asked for, or else your Home Assistant unit, is listed first.
+
 #### Requirements
 
 * An existing weather forecast integration configured within Home Assistant.
+* Weather for a named location additionally requires outbound internet access to Open-Meteo.
 
 #### Configuration Steps
 
@@ -318,14 +329,25 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 2. Select the weather entity that provides daily forecast information.
 3. Optionally, select the weather entity that provides hourly forecast information.
 4. Optionally, select a local temperature sensor entity to display current temperature for today's hourly forecast.
+5. Optionally, adjust the distance within which a named place is matched to a nearby namesake, and whether temperatures are reported in both units.
+
+#### LLM-provided arguments
+
+| Argument   | Required | Default        | Description                                                                |
+|------------|----------|----------------|----------------------------------------------------------------------------|
+| `range`    | ✅        | —              | One of `week`, `today`, `tomorrow`, or a weekday name such as `wednesday`. |
+| `location` | ❌        | local weather  | Place name to report the weather for. Omit to use your weather entities.   |
+| `unit`     | ❌        | HA unit system | `celsius` or `fahrenheit`. Set only when the user asks for a unit.         |
 
 ### Options
 
-| Setting                      | Required | Description                                                                                                 |
-|------------------------------|----------|-------------------------------------------------------------------------------------------------------------|
-| `Daily Weather Entity`       | ✅        | The weather entity to use for daily weather forecast data                                                   |
-| `Hourly Weather Entity`      | ❌        | The weather entity to use for hourly weather forecast data                                                  |
-| `Current Temperature Sensor` | ❌        | Optional local sensor entity to provide current temperature when requesting today's hourly weather forecast |
+| Setting                         | Required | Default | Description                                                                                                    |
+|---------------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------|
+| `Daily Weather Entity`          | ✅        | —       | The weather entity to use for daily weather forecast data                                                      |
+| `Hourly Weather Entity`         | ❌        | —       | The weather entity to use for hourly weather forecast data                                                     |
+| `Current Temperature Sensor`    | ❌        | —       | Optional local sensor entity to provide current temperature when requesting today's hourly weather forecast    |
+| `Nearby Place Distance`         | ✅        | `100`   | Distance in km within which a named place prefers a nearby namesake over a more populous one. `0` turns it off |
+| `Report Both Temperature Units` | ❌        | Off     | Report every temperature in both celsius and fahrenheit                                                        |
 
 ### 🎥 YouTube Search + Playback
 
