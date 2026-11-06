@@ -2,7 +2,7 @@ flake8
 flake8-docstrings
 pytest
 pytest-cov
-pytest-homeassistant-custom-component
+pytest-homeassistant==2026.11.0
 pytest-asyncio
 pytest-freezer
 pytest-tornasync
