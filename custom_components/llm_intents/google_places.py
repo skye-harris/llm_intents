@@ -56,6 +56,14 @@ class FindPlacesTool(BaseTool):
                 "query",
                 description="The place or location to search for",
             ): str,
+            vol.Optional(
+                "longitude",
+                description="The longitude of the location to search for if provided. This can be left blank to use the location provided in the query or the default location.",
+            ): str,
+            vol.Optional(
+                "latitude",
+                description="The latitude of the location to search for if provided. This can be left blank to use the location provided in the query or the default location.",
+            ): str,
         },
     )
 
@@ -63,6 +71,35 @@ class FindPlacesTool(BaseTool):
         """Wrap the response with our instructions."""
         response["instruction"] = self.response_instruction
         return response
+
+    @staticmethod
+    def _resolve_search_coordinates(tool_args: dict) -> tuple[float, float] | None:
+        """Parse optional latitude/longitude from tool arguments."""
+        raw_lat = tool_args.get("latitude")
+        raw_lon = tool_args.get("longitude")
+        if not raw_lat or not raw_lon:
+            return None
+
+        try:
+            latitude = float(raw_lat)
+            longitude = float(raw_lon)
+        except (TypeError, ValueError):
+            _LOGGER.warning(
+                "Invalid search coordinates '%s', '%s' - falling back to configured location",
+                raw_lat,
+                raw_lon,
+            )
+            return None
+
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            _LOGGER.warning(
+                "Search coordinates out of range (%s, %s) - falling back to configured location",
+                latitude,
+                longitude,
+            )
+            return None
+
+        return latitude, longitude
 
     async def async_call(
         self,
@@ -83,8 +120,12 @@ class FindPlacesTool(BaseTool):
                 SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_NUM_RESULTS),
             ),
         )
-        latitude = config_data.get(CONF_GOOGLE_PLACES_LATITUDE)
-        longitude = config_data.get(CONF_GOOGLE_PLACES_LONGITUDE)
+        coordinates = self._resolve_search_coordinates(tool_input.tool_args)
+        if coordinates is not None:
+            latitude, longitude = coordinates
+        else:
+            latitude = config_data.get(CONF_GOOGLE_PLACES_LATITUDE)
+            longitude = config_data.get(CONF_GOOGLE_PLACES_LONGITUDE)
         radius = config_data.get(
             CONF_GOOGLE_PLACES_RADIUS,
             SERVICE_DEFAULTS.get(CONF_GOOGLE_PLACES_RADIUS),
@@ -111,8 +152,8 @@ class FindPlacesTool(BaseTool):
                 params["locationBias"] = {
                     "circle": {
                         "center": {
-                            "latitude": latitude,
-                            "longitude": longitude,
+                            "latitude": float(latitude),
+                            "longitude": float(longitude),
                         },
                         "radius": radius * 1000,
                     },

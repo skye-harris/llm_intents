@@ -41,13 +41,16 @@ class GetRouteTool(BaseTool):
     name = "get_route"
 
     description = (
-        "Estimate travel distance and duration from the user's home to a "
-        "destination, or work out when to leave to arrive on time. Use it for "
-        "questions about how far, how long, or when to leave."
+        "Estimate travel distance and duration from the user's home (or a "
+        "provided starting latitude/longitude) to a destination, or work out "
+        "when to leave to arrive on time. Use it for questions about how far, "
+        "how long, or when to leave."
     )
 
     prompt_description = (
-        f"Use the `{name}` tool to compute travel routes from the user's home address. "
+        f"Use the `{name}` tool to compute travel routes from the user's home address, "
+        "or from an explicit starting point when `origin-latitude` and "
+        "`origin-longitude` are provided. "
         "It returns distance and travel duration. To answer 'when should I leave to "
         "arrive at <time>', call this tool to get the duration and subtract it from "
         "the requested arrival time."
@@ -74,6 +77,14 @@ class GetRouteTool(BaseTool):
                         "user described it. Pass the user's wording verbatim - do "
                         "not invent a specific address."
                     ),
+                ): str,
+                vol.Optional(
+                    "origin-latitude",
+                    description="The latitude of the starting location if provided. This can be left blank to use the location provided in the query or the default location.",
+                ): str,
+                vol.Optional(
+                    "origin-longitude",
+                    description="The longitude of the starting location if provided. This can be left blank to use the location provided in the query or the default location.",
                 ): str,
                 vol.Optional(
                     "departure_time",
@@ -141,11 +152,43 @@ class GetRouteTool(BaseTool):
 
         return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    @staticmethod
+    def _resolve_origin_coordinates(
+        tool_args: dict,
+    ) -> tuple[float, float] | None:
+        """Parse optional origin latitude/longitude from tool arguments."""
+        raw_lat = tool_args.get("origin-latitude")
+        raw_lon = tool_args.get("origin-longitude")
+        if raw_lat is None or raw_lon is None:
+            return None
+
+        try:
+            latitude = float(raw_lat)
+            longitude = float(raw_lon)
+        except (TypeError, ValueError):
+            _LOGGER.warning(
+                "Invalid starting coordinates '%s', '%s' - falling back to home",
+                raw_lat,
+                raw_lon,
+            )
+            return None
+
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            _LOGGER.warning(
+                "Starting coordinates out of range (%s, %s) - falling back to home",
+                latitude,
+                longitude,
+            )
+            return None
+
+        return latitude, longitude
+
     async def _resolve_destination_via_places(
         self,
         hass: HomeAssistant,
         api_key: str,
         query: str,
+        origin_coordinates: tuple[float, float] | None = None,
     ) -> dict | None:
         """Resolve a freeform destination to a precise address via Places."""
         body: dict = {
@@ -155,13 +198,23 @@ class GetRouteTool(BaseTool):
             "languageCode": hass.config.language,
         }
 
-        if hass.config.latitude and hass.config.longitude:
+        if origin_coordinates is not None:
+            bias_center = {
+                "latitude": origin_coordinates[0],
+                "longitude": origin_coordinates[1],
+            }
+        elif hass.config.latitude and hass.config.longitude:
+            bias_center = {
+                "latitude": hass.config.latitude,
+                "longitude": hass.config.longitude,
+            }
+        else:
+            bias_center = None
+
+        if bias_center is not None:
             body["locationBias"] = {
                 "circle": {
-                    "center": {
-                        "latitude": hass.config.latitude,
-                        "longitude": hass.config.longitude,
-                    },
+                    "center": bias_center,
                     "radius": _PLACES_LOCATION_BIAS_RADIUS_M,
                 },
             }
@@ -234,7 +287,12 @@ class GetRouteTool(BaseTool):
 
         if not api_key:
             return {"error": "Google API key not configured"}
-        if not home_address:
+
+        # An explicit starting point supersedes the configured home address
+        origin_coordinates = self._resolve_origin_coordinates(
+            tool_input.tool_args,
+        )
+        if origin_coordinates is None and not home_address:
             return {"error": "Home address for Routes is not configured"}
 
         destination_query = tool_input.tool_args["destination"]
@@ -247,14 +305,32 @@ class GetRouteTool(BaseTool):
             hass,
             api_key,
             destination_query,
+            origin_coordinates,
         )
         destination_address = resolved["address"] if resolved else destination_query
 
         imperial = hass.config.units is US_CUSTOMARY_SYSTEM
         units = "IMPERIAL" if imperial else "METRIC"
 
+        if origin_coordinates is not None:
+            origin: dict = {
+                "location": {
+                    "latLng": {
+                        "latitude": origin_coordinates[0],
+                        "longitude": origin_coordinates[1],
+                    },
+                },
+            }
+            origin_label = (
+                f"{origin_coordinates[0]}, {origin_coordinates[1]} "
+                "(provided starting location)"
+            )
+        else:
+            origin = {"address": home_address}
+            origin_label = home_address
+
         body: dict = {
-            "origin": {"address": home_address},
+            "origin": origin,
             "destination": {"address": destination_address},
             "travelMode": mode,
             "units": units,
@@ -313,7 +389,7 @@ class GetRouteTool(BaseTool):
             )
 
             result: dict = {
-                "origin": home_address,
+                "origin": origin_label,
                 "destination": destination_address,
                 "travel_mode": mode,
                 "distance": _format_distance(distance_meters, imperial=imperial),
