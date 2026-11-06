@@ -9,7 +9,7 @@ import pytest
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.llm_intents.const import DOMAIN
 from custom_components.llm_intents.weather import (

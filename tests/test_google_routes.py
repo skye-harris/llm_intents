@@ -8,7 +8,7 @@ import pytest
 from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.llm_intents.const import (
     CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
