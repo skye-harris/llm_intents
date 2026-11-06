@@ -6,7 +6,7 @@ Additional tools for LLM-backed Assist for Home Assistant:
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
-* **Weather Forecast**
+* **Weather Forecast** from your own weather entities, or any named location via _Open-Meteo_
 * **YouTube Search and Playback**
 * **Basic Utilities** — Calculator, Unit Converter, and Date Information
 * **Entity History** — Part of the `Home control` domain
@@ -284,9 +284,16 @@ It is recommended, though optional, to also specify a weather entity that provid
 For cases where a specific days weather is requested (eg: `today`, `tomorrow`, `wednesday`), the hourly data will be provided if available.
 If data for the week is requested, no hourly forecast entity is set, or the hourly forecast does not contain data for the requested day, the daily weather data will be used instead.
 
+A weather entity can only report the location it was configured for, so when the LLM asks about a named place instead (eg: `What is the weather in Paris this week?`), that forecast is retrieved from [Open-Meteo](https://open-meteo.com/). This requires no API key and no configuration, and your own weather entities continue to serve every request that does not name a place.
+
+A named location is reported in the same shape as your weather entities: a specific day returns hourly data, and the week ahead returns daily summaries. The days and times reported are those of the location being asked about, so requesting `today` in Tokyo returns Tokyo's today.
+
+Temperatures are reported in your Home Assistant unit system. If the user asks for a specific unit (eg: `What is the weather in Paris in fahrenheit?`), that unit is used instead and temperatures are labelled with its symbol so that the unit is unambiguous.
+
 #### Requirements
 
 * An existing weather forecast integration configured within Home Assistant.
+* Weather for a named location additionally requires outbound internet access to Open-Meteo.
 
 #### Configuration Steps
 
@@ -294,6 +301,14 @@ If data for the week is requested, no hourly forecast entity is set, or the hour
 2. Select the weather entity that provides daily forecast information.
 3. Optionally, select the weather entity that provides hourly forecast information.
 4. Optionally, select a local temperature sensor entity to display current temperature for today's hourly forecast.
+
+#### LLM-provided arguments
+
+| Argument   | Required | Default        | Description                                                                |
+|------------|----------|----------------|----------------------------------------------------------------------------|
+| `range`    | ✅        | —              | One of `week`, `today`, `tomorrow`, or a weekday name such as `wednesday`. |
+| `location` | ❌        | local weather  | Place name to report the weather for. Omit to use your weather entities.   |
+| `unit`     | ❌        | HA unit system | `celsius` or `fahrenheit`. Set only when the user asks for a unit.         |
 
 ### Options
 
