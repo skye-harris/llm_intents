@@ -79,9 +79,9 @@ async def test_date_info_valid(
 
     result = await date_info_tool.async_call(hass, tool_input, llm_context)
 
-    assert result["day"] == expected_day
-    assert result["date"] == expected_date
-    assert result["message"] == expected_message
+    assert result.data["day"] == expected_day
+    assert result.data["date"] == expected_date
+    assert result.data["message"] == expected_message
 
 
 @pytest.mark.parametrize(
@@ -112,4 +112,4 @@ async def test_date_info_invalid(
 
     result = await date_info_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
+    assert "error" in result.data

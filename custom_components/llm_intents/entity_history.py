@@ -12,7 +12,7 @@ from homeassistant.components.recorder import history
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.llm import ToolResult
 
 from .base_tool import BaseTool
 from .utils import find_entity_by_name
@@ -201,7 +201,7 @@ class EntityHistoryTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Return state change history of the device entity."""
         entity_name = tool_input.tool_args.get("name")
         area = tool_input.tool_args.get("area")
@@ -211,47 +211,53 @@ class EntityHistoryTool(BaseTool):
 
         if not llm_context.assistant:
             err_msg = "No assistant context available for entity history"
-            raise HomeAssistantError(err_msg)
+            return ToolResult(data={"error": err_msg}, error=True)
 
-        exposed_entities = async_get_exposed_entities(
-            hass, llm_context.assistant, include_state=False
-        )
-
-        entity = find_entity_by_name(
-            hass,
-            entity_name,
-            exposed_entities=exposed_entities,
-            area=area,
-            domain=domain,
-        )
-        entity_id = entity.entity_id
-
-        start_time = _to_datetime(start_time)
-        end_time = _to_datetime(end_time)
-
-        with recorder.util.session_scope(hass=hass, read_only=True) as session:
-            result = await recorder.get_instance(hass).async_add_executor_job(
-                lambda: history.get_significant_states_with_session(
-                    hass,
-                    session,
-                    start_time,
-                    end_time,
-                    [entity_id],
-                    None,
-                    include_start_time_state=True,
-                    significant_changes_only=True,
-                    minimal_response=True,
-                    no_attributes=True,
-                )
+        try:
+            exposed_entities = async_get_exposed_entities(
+                hass, llm_context.assistant, include_state=False
             )
 
-        results: dict[str, Any] = {}
-        for sublist in result.values():
-            if not sublist:
-                continue
-            results = self._process_entity_states(sublist, results)
+            entity = find_entity_by_name(
+                hass,
+                entity_name,
+                exposed_entities=exposed_entities,
+                area=area,
+                domain=domain,
+            )
+            entity_id = entity.entity_id
 
-        return results
+            start_time = _to_datetime(start_time)
+            end_time = _to_datetime(end_time)
+
+            with recorder.util.session_scope(hass=hass, read_only=True) as session:
+                result = await recorder.get_instance(hass).async_add_executor_job(
+                    lambda: history.get_significant_states_with_session(
+                        hass,
+                        session,
+                        start_time,
+                        end_time,
+                        [entity_id],
+                        None,
+                        include_start_time_state=True,
+                        significant_changes_only=True,
+                        minimal_response=True,
+                        no_attributes=True,
+                    )
+                )
+
+            results: dict[str, Any] = {}
+            for sublist in result.values():
+                if not sublist:
+                    continue
+                results = self._process_entity_states(sublist, results)
+
+            return ToolResult(data=results)
+        except Exception as e:
+            _LOGGER.exception("Entity history encountered an error")
+            return ToolResult(
+                data={"error": f"Error retrieving entity history: {e!s}"}, error=True
+            )
 
     def _process_entity_states(
         self, sublist: list, results: dict[str, Any]
@@ -284,9 +290,6 @@ class EntityHistoryTool(BaseTool):
             "state_at_end": _state_value(last_state),
             "total_data_points": 1,
         }
-        results["instruction"] = (
-            "Answer the users question in a naturally-spoken manner"
-        )
         return results
 
     def _build_result_with_stats(
@@ -305,7 +308,4 @@ class EntityHistoryTool(BaseTool):
         sampled = self._downsample(filtered, MAX_HISTORY_RESULTS)
         results["stats"] = stats
         results["sampled_states"] = [self.format_result(s) for s in sampled]
-        results["instruction"] = (
-            "Answer the users question in a naturally-spoken manner"
-        )
         return results
