@@ -91,7 +91,7 @@ class FindPlacesTool(BaseTool):
             )
             return None
 
-        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180): #noqa: PLR2004
             _LOGGER.warning(
                 "Search coordinates out of range (%s, %s) - falling back to configured location",
                 latitude,
