@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.llm import ToolResult
 
 from .base_tool import BaseTool
 from .const import (
@@ -395,7 +395,7 @@ class WeatherForecastTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool."""
         config_data = self.config
 
@@ -450,7 +450,10 @@ class WeatherForecastTool(BaseTool):
             if not forecast:
                 forecast = "No weather forecast available for the selected range"
 
-            return forecast
+            return ToolResult(data={"result": forecast})
         except Exception as e:
             _LOGGER.exception(msg="Weather forecast encountered an error")
-            return {"error": f"Error retrieving weather forecast: {e!s}"}
+            return ToolResult(
+                data={"error": f"Error retrieving weather forecast: {e!s}"},
+                error=True,
+            )

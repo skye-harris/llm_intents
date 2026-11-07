@@ -78,8 +78,8 @@ async def test_calculator_operations(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "value" in result
-    assert result["value"] == expected_value
+    assert "value" in result.data
+    assert result.data["value"] == expected_value
 
 
 async def test_calculator_invalid_operation(
@@ -95,8 +95,8 @@ async def test_calculator_invalid_operation(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
-    assert "Unknown operation" in result["error"]
+    assert "error" in result.data
+    assert "Unknown operation" in result.data["error"]
 
 
 async def test_calculator_empty_data(
@@ -112,7 +112,7 @@ async def test_calculator_empty_data(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
+    assert "error" in result.data
 
 
 async def test_calculator_invalid_expression(
@@ -129,7 +129,7 @@ async def test_calculator_invalid_expression(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
+    assert "error" in result.data
 
 
 @pytest.mark.parametrize(
@@ -217,7 +217,7 @@ async def test_calculator_code_injection_blocked(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
+    assert "error" in result.data
 
 
 async def test_calculator_dos_prevention(
@@ -234,8 +234,8 @@ async def test_calculator_dos_prevention(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
-    assert "too large" in result["error"].lower()
+    assert "error" in result.data
+    assert "too large" in result.data["error"].lower()
 
 
 async def test_calculator_large_exponent_result_blocked(
@@ -252,7 +252,7 @@ async def test_calculator_large_exponent_result_blocked(
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
 
-    assert "error" in result
+    assert "error" in result.data
 
 
 def test_safe_eval_unsupported_constant() -> None:
