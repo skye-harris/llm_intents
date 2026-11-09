@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -156,6 +157,7 @@ async def test_returns_error_without_api_key(
         _tool_input(destination="anywhere"),
         Mock(),
     )
+    assert isinstance(result, ToolResult)
     assert result.data == {"error": "Google API key not configured"}
 
 
@@ -171,6 +173,7 @@ async def test_returns_error_without_home_address(
         _tool_input(destination="anywhere"),
         Mock(),
     )
+    assert isinstance(result, ToolResult)
     assert result.data == {"error": "Home address for Routes is not configured"}
 
 
@@ -209,6 +212,7 @@ async def test_resolves_via_places_then_routes(
             _tool_input(destination="the aquarium"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     body = result.data["result"]
     assert body["destination"] == "100 Water St"
@@ -282,6 +286,7 @@ async def test_falls_back_to_raw_destination_on_places_miss(
             _tool_input(destination="500 Main St"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     body = result.data["result"]
     assert body["destination"] == "500 Main St"
@@ -315,6 +320,7 @@ async def test_uses_configured_default_mode_when_omitted(
             _tool_input(destination="park"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     routes_body = session.post.call_args_list[1].kwargs["json"]
     assert routes_body["travelMode"] == "WALK"
@@ -374,6 +380,7 @@ async def test_routes_api_error_returns_error(
             _tool_input(destination="x"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
     assert result.data == {"error": "Routes API error: 500"}
 
 
@@ -399,6 +406,7 @@ async def test_places_failure_falls_back_to_raw_destination(
             _tool_input(destination="raw place"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     body = result.data["result"]
     assert body["destination"] == "raw place"
@@ -433,6 +441,7 @@ async def test_places_cache_hit_skips_places_call(
             _tool_input(destination="something"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert session.post.call_count == 1
     assert session.post.call_args_list[0].args[0] == ROUTES_URL
@@ -467,6 +476,7 @@ async def test_imperial_units_render_in_miles(
             _tool_input(destination="x"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert result.data["result"]["distance"] == "10.0 mi"
     assert session.post.call_args_list[1].kwargs["json"]["units"] == "IMPERIAL"
@@ -497,6 +507,7 @@ async def test_traffic_duration_emitted_when_different(
             _tool_input(destination="x"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     body = result.data["result"]
     assert body["duration"] == "15 min"
@@ -661,6 +672,7 @@ async def test_async_call_variants(
             ),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     if scenario == "with_departure_time":
         assert "departure_time" in result.data["result"]

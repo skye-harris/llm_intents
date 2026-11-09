@@ -5,6 +5,7 @@ import json
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.unit_converter import (
     UnitConverterTool,
@@ -53,6 +54,7 @@ async def test_temperature_conversions(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "value" in result.data
     assert result.data["value"] == pytest.approx(expected_value, abs=1e-3)
@@ -86,6 +88,7 @@ async def test_volume_conversions(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "value" in result.data
     assert result.data["value"] == pytest.approx(expected_value, abs=1e-3)
@@ -105,6 +108,7 @@ async def test_temperature_to_volume_error(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "Cannot convert" in result.data["error"]
@@ -124,6 +128,7 @@ async def test_volume_to_temperature_error(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "Cannot convert" in result.data["error"]
@@ -162,6 +167,7 @@ async def test_weight_conversions(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "value" in result.data
     assert result.data["value"] == pytest.approx(expected_value, abs=1e-3)
@@ -231,6 +237,7 @@ async def test_async_call_invalid_amount(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "Could not parse amount" in result.data["error"]
@@ -250,6 +257,7 @@ async def test_unknown_to_unit(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "Unknown unit" in result.data["error"]
@@ -269,6 +277,7 @@ async def test_unknown_temperature_unit(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "Unknown unit" in result.data["error"]

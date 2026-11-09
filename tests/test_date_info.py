@@ -5,6 +5,7 @@ import json
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.date_info import DateInfoTool
 
@@ -78,6 +79,7 @@ async def test_date_info_valid(
     )
 
     result = await date_info_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert result.data["day"] == expected_day
     assert result.data["date"] == expected_date
@@ -111,5 +113,6 @@ async def test_date_info_invalid(
     )
 
     result = await date_info_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data

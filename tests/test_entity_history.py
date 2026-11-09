@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant, State
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.entity_history import (
     MAX_HISTORY_RESULTS,
@@ -124,6 +125,7 @@ async def test_downsampling_behavior(
         ),
         MagicMock(),
     )
+    assert isinstance(result, ToolResult)
 
     assert len(result.data["sampled_states"]) == expected_sampled
     assert result.data["stats"]["total_data_points"] == expected_total
@@ -212,6 +214,7 @@ async def test_early_return_no_sampled_states(
         ),
         MagicMock(),
     )
+    assert isinstance(result, ToolResult)
 
     if expect_empty_result:
         assert result.data == {}
@@ -284,6 +287,7 @@ async def test_type_handling(
         ),
         MagicMock(),
     )
+    assert isinstance(result, ToolResult)
 
     assert "stats" in result.data
     assert "min" in result.data["stats"]
@@ -629,5 +633,6 @@ async def test_async_call_ignores_non_exposed_entity(
             ),
             MagicMock(assistant="test_assistant"),
         )
+        assert isinstance(result, ToolResult)
 
     assert "error" in result.data

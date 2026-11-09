@@ -5,6 +5,7 @@ import json
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.calculator import CalculatorTool, _safe_eval
 
@@ -77,6 +78,7 @@ async def test_calculator_operations(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "value" in result.data
     assert result.data["value"] == expected_value
@@ -94,6 +96,7 @@ async def test_calculator_invalid_operation(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "Unknown operation" in result.data["error"]
@@ -111,6 +114,7 @@ async def test_calculator_empty_data(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
 
@@ -128,6 +132,7 @@ async def test_calculator_invalid_expression(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
 
@@ -216,6 +221,7 @@ async def test_calculator_code_injection_blocked(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
 
@@ -233,6 +239,7 @@ async def test_calculator_dos_prevention(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
     assert "too large" in result.data["error"].lower()
@@ -251,6 +258,7 @@ async def test_calculator_large_exponent_result_blocked(
     )
 
     result = await calculator_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
     assert "error" in result.data
 

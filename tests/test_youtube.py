@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.llm import ToolResult
 from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.llm_intents.const import (
@@ -82,6 +83,7 @@ async def test_missing_api_key_returns_error(
         _tool_input(query="test"),
         Mock(),
     )
+    assert isinstance(result, ToolResult)
     assert result.data == {"error": "Google API key not configured"}
 
 
@@ -127,6 +129,7 @@ async def test_successful_search_returns_results(
             _tool_input(query=query, num_results=num_results),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert "results" in result.data
     assert len(result.data["results"]) == expected_count
@@ -152,6 +155,7 @@ async def test_empty_results_returns_no_videos(
             _tool_input(query="nonexistent"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert result.data == {"result": "No videos found"}
 
@@ -192,6 +196,7 @@ async def test_http_error_returns_error(
             _tool_input(query="test"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert result.data == {"error": expected_msg}
 
@@ -228,6 +233,7 @@ async def test_cache_hit_skips_api_call(
             _tool_input(query="cached query"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     session_patch.assert_not_called()
     assert result.data == cached_value
@@ -255,5 +261,6 @@ async def test_exception_returns_error(
             _tool_input(query="test"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert result.data == {"error": "Error searching YouTube"}
