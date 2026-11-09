@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -189,7 +190,8 @@ async def test_missing_api_key(
     """Missing Google API key surfaces a clear error."""
     places_hass.data[DOMAIN]["config"][CONF_PROVIDER_API_KEYS] = {}
     result = await tool.async_call(places_hass, _tool_input(query="x"), Mock())
-    assert result == {"error": "Google Places API key not configured"}
+    assert isinstance(result, ToolResult)
+    assert result.data == {"error": "Google Places API key not configured"}
 
 
 @pytest.mark.parametrize(
@@ -226,7 +228,6 @@ async def test_missing_api_key(
                         "regular_open_hours": ["Mon - Fri 8am - 6pm"],
                     },
                 ],
-                "instruction": FindPlacesTool.response_directive,
             },
         ),
         (
@@ -246,7 +247,6 @@ async def test_missing_api_key(
                         "phone": "Not available",
                     },
                 ],
-                "instruction": FindPlacesTool.response_directive,
             },
         ),
         (
@@ -267,7 +267,6 @@ async def test_missing_api_key(
                         "phone": "Not available",
                     },
                 ],
-                "instruction": FindPlacesTool.response_directive,
             },
         ),
         (
@@ -289,7 +288,6 @@ async def test_missing_api_key(
                         "phone": "+1-555-0200",
                     },
                 ],
-                "instruction": FindPlacesTool.response_directive,
             },
         ),
         (
@@ -317,8 +315,9 @@ async def test_response_parsing(
         return_value=session,
     ):
         result = await tool.async_call(places_hass, _tool_input(query="food"), Mock())
+        assert isinstance(result, ToolResult)
 
-    assert result == expected_result
+    assert result.data == expected_result
 
 
 async def test_http_error_returns_error(
@@ -334,8 +333,9 @@ async def test_http_error_returns_error(
         return_value=session,
     ):
         result = await tool.async_call(places_hass, _tool_input(query="x"), Mock())
+        assert isinstance(result, ToolResult)
 
-    assert result == {"error": "Places search error: 500"}
+    assert result.data == {"error": "Places search error: 500"}
 
 
 async def test_exception_returns_error(
@@ -355,8 +355,9 @@ async def test_exception_returns_error(
         return_value=session,
     ):
         result = await tool.async_call(places_hass, _tool_input(query="x"), Mock())
+        assert isinstance(result, ToolResult)
 
-    assert result == {"error": "Error finding places: network error"}
+    assert result.data == {"error": "Error finding places: network error"}
 
 
 async def test_cache_hit_skips_api(
@@ -378,9 +379,10 @@ async def test_cache_hit_skips_api(
     ):
         cache_cls.return_value.get.return_value = cached
         result = await tool.async_call(places_hass, _tool_input(query="x"), Mock())
+        assert isinstance(result, ToolResult)
 
     assert session.post.call_count == 0
-    assert result == cached
+    assert result.data == cached
 
 
 @freeze_time("2025-01-01 12:00:00")
@@ -419,4 +421,3 @@ async def test_cache_stores_result(
     assert call_args[0][1]["textQuery"] == "test"
     stored = call_args[0][2]
     assert stored["results"][0]["name"] == "Found Place"
-    assert stored["instruction"] == tool.response_directive

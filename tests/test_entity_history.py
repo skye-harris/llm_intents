@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant, State
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.entity_history import (
     MAX_HISTORY_RESULTS,
     EntityHistoryTool,
     _state_value,
 )
-from custom_components.llm_intents.utils import EntityNotFoundError
 
 
 def _make_states(
@@ -125,21 +125,22 @@ async def test_downsampling_behavior(
         ),
         MagicMock(),
     )
+    assert isinstance(result, ToolResult)
 
-    assert len(result["sampled_states"]) == expected_sampled
-    assert result["stats"]["total_data_points"] == expected_total
+    assert len(result.data["sampled_states"]) == expected_sampled
+    assert result.data["stats"]["total_data_points"] == expected_total
     if expect_numeric_stats:
-        assert "min" in result["stats"]
-        assert "max" in result["stats"]
-        assert "avg" in result["stats"]
-        assert "min_max_delta" in result["stats"]
-        assert "start_end_delta" in result["stats"]
+        assert "min" in result.data["stats"]
+        assert "max" in result.data["stats"]
+        assert "avg" in result.data["stats"]
+        assert "min_max_delta" in result.data["stats"]
+        assert "start_end_delta" in result.data["stats"]
     else:
-        assert "min" not in result["stats"]
-        assert "max" not in result["stats"]
-        assert "avg" not in result["stats"]
-        assert "min_max_delta" not in result["stats"]
-        assert "start_end_delta" not in result["stats"]
+        assert "min" not in result.data["stats"]
+        assert "max" not in result.data["stats"]
+        assert "avg" not in result.data["stats"]
+        assert "min_max_delta" not in result.data["stats"]
+        assert "start_end_delta" not in result.data["stats"]
 
 
 # ---------------------------------------------------------------------------
@@ -213,15 +214,16 @@ async def test_early_return_no_sampled_states(
         ),
         MagicMock(),
     )
+    assert isinstance(result, ToolResult)
 
     if expect_empty_result:
-        assert result == {}
+        assert result.data == {}
     else:
-        assert "stats" in result
-        assert "sampled_states" not in result
-        assert result["stats"]["state_at_search_start"] == state_value
+        assert "stats" in result.data
+        assert "sampled_states" not in result.data
+        assert result.data["stats"]["state_at_search_start"] == state_value
         if state_value == "22.0":
-            assert result["stats"]["state_at_end"] == "unavailable"
+            assert result.data["stats"]["state_at_end"] == "unavailable"
 
 
 # ---------------------------------------------------------------------------
@@ -285,13 +287,14 @@ async def test_type_handling(
         ),
         MagicMock(),
     )
+    assert isinstance(result, ToolResult)
 
-    assert "stats" in result
-    assert "min" in result["stats"]
-    assert "max" in result["stats"]
-    assert "min_max_delta" in result["stats"]
-    assert "start_end_delta" in result["stats"]
-    assert "sampled_states" in result
+    assert "stats" in result.data
+    assert "min" in result.data["stats"]
+    assert "max" in result.data["stats"]
+    assert "min_max_delta" in result.data["stats"]
+    assert "start_end_delta" in result.data["stats"]
+    assert "sampled_states" in result.data
 
 
 # ---------------------------------------------------------------------------
@@ -383,7 +386,6 @@ def test_build_empty_result(
     result = tool._build_empty_result(start_state, last_state, results)
     assert "stats" in result
     assert "sampled_states" not in result
-    assert "instruction" in result
     assert result["stats"]["state_at_search_start"] == start_value
     assert result["stats"]["state_at_end"] == last_value
     assert result["stats"]["total_data_points"] == 1
@@ -465,7 +467,6 @@ def test_build_result_with_stats(
 
     assert "stats" in result
     assert "sampled_states" in result
-    assert "instruction" in result
     assert result["stats"]["state_at_search_start"] == _state_value(start_state)
     assert result["stats"]["total_data_points"] == filtered_count + 1
     assert result["stats"]["state_at_end"] == last_state_value
@@ -602,7 +603,7 @@ def test_downsample_preserves_extremes() -> None:
 async def test_async_call_ignores_non_exposed_entity(
     hass: HomeAssistant,
 ) -> None:
-    """Test that non-exposed entities raise EntityNotFoundError."""
+    """Test that non-exposed entities return an error ToolResult."""
     hass.states.async_set("sensor.temperature", "22.0")
     hass.states.async_set("light.living_room", "on")
 
@@ -615,14 +616,11 @@ async def test_async_call_ignores_non_exposed_entity(
     }
 
     tool = EntityHistoryTool({}, hass)
-    with (
-        patch(
-            "custom_components.llm_intents.entity_history.async_get_exposed_entities",
-            return_value=exposed_entities,
-        ),
-        pytest.raises(EntityNotFoundError),
+    with patch(
+        "custom_components.llm_intents.entity_history.async_get_exposed_entities",
+        return_value=exposed_entities,
     ):
-        await tool.async_call(
+        result = await tool.async_call(
             hass,
             MagicMock(
                 tool_args={
@@ -635,3 +633,6 @@ async def test_async_call_ignores_non_exposed_entity(
             ),
             MagicMock(assistant="test_assistant"),
         )
+        assert isinstance(result, ToolResult)
+
+    assert "error" in result.data

@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -75,7 +76,7 @@ def _tool_input(**args: Any) -> Mock:
 
 @pytest.fixture
 def config() -> dict:
-    """Default routes config."""
+    """Return default routes config."""
     return {
         CONF_PROVIDER_API_KEYS: {PROVIDER_GOOGLE: "test_google_key"},
         CONF_GOOGLE_ROUTES_HOME_ADDRESS: "1 Test Lane, Test City",
@@ -156,7 +157,8 @@ async def test_returns_error_without_api_key(
         _tool_input(destination="anywhere"),
         Mock(),
     )
-    assert result == {"error": "Google API key not configured"}
+    assert isinstance(result, ToolResult)
+    assert result.data == {"error": "Google API key not configured"}
 
 
 async def test_returns_error_without_home_address(
@@ -171,7 +173,8 @@ async def test_returns_error_without_home_address(
         _tool_input(destination="anywhere"),
         Mock(),
     )
-    assert result == {"error": "Home address for Routes is not configured"}
+    assert isinstance(result, ToolResult)
+    assert result.data == {"error": "Home address for Routes is not configured"}
 
 
 async def test_resolves_via_places_then_routes(
@@ -209,8 +212,9 @@ async def test_resolves_via_places_then_routes(
             _tool_input(destination="the aquarium"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    body = result["result"]
+    body = result.data["result"]
     assert body["destination"] == "100 Water St"
     assert body["destination_query"] == "the aquarium"
     assert body["destination_name"] == "Aquarium"
@@ -282,8 +286,9 @@ async def test_falls_back_to_raw_destination_on_places_miss(
             _tool_input(destination="500 Main St"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    body = result["result"]
+    body = result.data["result"]
     assert body["destination"] == "500 Main St"
     assert "destination_query" not in body
     assert "destination_name" not in body
@@ -315,12 +320,13 @@ async def test_uses_configured_default_mode_when_omitted(
             _tool_input(destination="park"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     routes_body = session.post.call_args_list[1].kwargs["json"]
     assert routes_body["travelMode"] == "WALK"
     # Walking should not request traffic-aware routing
     assert "routingPreference" not in routes_body
-    assert result["result"]["travel_mode"] == "WALK"
+    assert result.data["result"]["travel_mode"] == "WALK"
 
 
 async def test_explicit_mode_overrides_default(
@@ -374,7 +380,8 @@ async def test_routes_api_error_returns_error(
             _tool_input(destination="x"),
             Mock(),
         )
-    assert result == {"error": "Routes API error: 500"}
+        assert isinstance(result, ToolResult)
+    assert result.data == {"error": "Routes API error: 500"}
 
 
 async def test_places_failure_falls_back_to_raw_destination(
@@ -399,8 +406,9 @@ async def test_places_failure_falls_back_to_raw_destination(
             _tool_input(destination="raw place"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    body = result["result"]
+    body = result.data["result"]
     assert body["destination"] == "raw place"
     routes_body = session.post.call_args_list[1].kwargs["json"]
     assert routes_body["destination"] == {"address": "raw place"}
@@ -433,10 +441,11 @@ async def test_places_cache_hit_skips_places_call(
             _tool_input(destination="something"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     assert session.post.call_count == 1
     assert session.post.call_args_list[0].args[0] == ROUTES_URL
-    body = result["result"]
+    body = result.data["result"]
     assert body["destination"] == "Cached Address"
     assert body["destination_name"] == "Cached Place"
 
@@ -467,8 +476,9 @@ async def test_imperial_units_render_in_miles(
             _tool_input(destination="x"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    assert result["result"]["distance"] == "10.0 mi"
+    assert result.data["result"]["distance"] == "10.0 mi"
     assert session.post.call_args_list[1].kwargs["json"]["units"] == "IMPERIAL"
 
 
@@ -497,8 +507,9 @@ async def test_traffic_duration_emitted_when_different(
             _tool_input(destination="x"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    body = result["result"]
+    body = result.data["result"]
     assert body["duration"] == "15 min"
     assert body["duration_without_traffic"] == "10 min"
 
@@ -661,14 +672,15 @@ async def test_async_call_variants(
             ),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     if scenario == "with_departure_time":
-        assert "departure_time" in result["result"]
-        assert "estimated_arrival" in result["result"]
-        assert result["result"]["departure_time"] == "2026-06-01T12:00:00Z"
+        assert "departure_time" in result.data["result"]
+        assert "estimated_arrival" in result.data["result"]
+        assert result.data["result"]["departure_time"] == "2026-06-01T12:00:00Z"
         routes_body = session.post.call_args_list[1].kwargs["json"]
         assert routes_body["departureTime"] == "2026-06-01T12:00:00Z"
     elif scenario == "no_routes":
-        assert result.get("result") == "No route found"
+        assert result.data.get("result") == "No route found"
     else:
-        assert result.get("error") == "Error computing route"
+        assert result.data.get("error") == "Error computing route"

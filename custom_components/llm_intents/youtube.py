@@ -7,7 +7,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.llm import ToolResult
 
 from .base_tool import BaseTool
 from .cache import InMemoryCache
@@ -61,7 +61,7 @@ class SearchYouTubeTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool."""
         config_data = self.config
 
@@ -72,14 +72,16 @@ class SearchYouTubeTool(BaseTool):
         api_key = provider_keys.get(PROVIDER_GOOGLE, "")
 
         if not api_key:
-            return {"error": "Google API key not configured"}
+            return ToolResult(
+                data={"error": "Google API key not configured"}, error=True
+            )
 
         try:
             cache = InMemoryCache()
             cache_params = {"query": query, "maxResults": num_results}
             cached_response = cache.get(__name__, cache_params)
             if cached_response:
-                return cached_response
+                return ToolResult(data=cached_response)
             session = async_get_clientsession(hass)
 
             params = {
@@ -119,14 +121,13 @@ class SearchYouTubeTool(BaseTool):
                             cache_params,
                             {
                                 "results": results,
-                                "instruction": self.response_directive,
                             },
                         )
 
                     return (
-                        {"results": results, "instruction": self.response_directive}
+                        ToolResult(data={"results": results})
                         if results
-                        else {"result": "No videos found"}
+                        else ToolResult(data={"result": "No videos found"})
                     )
 
                 _LOGGER.error(
@@ -134,8 +135,11 @@ class SearchYouTubeTool(BaseTool):
                     resp.status,
                     await resp.text(),
                 )
-                return {"error": f"YouTube search error: {resp.status}"}
+                return ToolResult(
+                    data={"error": f"YouTube search error: {resp.status}"},
+                    error=True,
+                )
 
         except Exception:
             _LOGGER.exception("YouTube search encountered an error")
-            return {"error": "Error searching YouTube"}
+            return ToolResult(data={"error": "Error searching YouTube"}, error=True)

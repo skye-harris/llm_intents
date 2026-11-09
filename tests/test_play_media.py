@@ -9,6 +9,7 @@ from homeassistant.helpers import llm
 from homeassistant.helpers.area_registry import AreaRegistry
 from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.play_media import (
     MediaPlayerInfo,
@@ -534,14 +535,15 @@ async def test_async_call(
     ):
         tool = PlayVideoTool({}, hass, _llm_context())
         result = await tool.async_call(hass, _tool_input(**tool_args), _llm_context())
+        assert isinstance(result, ToolResult)
 
     if expected_success:
-        assert result["success"] is True
-        assert result["video_url"] == tool_args["video_url"]
+        assert result.data["success"] is True
+        assert result.data["video_url"] == tool_args["video_url"]
         if expected_target:
             mock_services.async_call.assert_awaited_once()
             call_target = mock_services.async_call.call_args[1]["target"]
             assert call_target == expected_target
     else:
-        assert result["success"] is False
-        assert expected_error in result["error"]
+        assert result.error is True
+        assert expected_error in result.data["error"]

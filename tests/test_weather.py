@@ -9,6 +9,7 @@ import pytest
 from homeassistant.components.weather import WeatherEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.llm_intents.const import DOMAIN
@@ -704,9 +705,10 @@ async def test_async_call_daily_forecast(hass: HomeAssistant) -> None:
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
+    assert isinstance(result, ToolResult)
 
-    assert "Sunny" in result
-    assert "Precipitation: possible" in result  # 30% is "possible"
+    assert "Sunny" in result.data["result"]
+    assert "Precipitation: possible" in result.data["result"]  # 30% is "possible"
 
 
 @pytest.mark.asyncio
@@ -754,9 +756,10 @@ async def test_async_call_with_temperature_sensor(hass: HomeAssistant) -> None:
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
+    assert isinstance(result, ToolResult)
 
-    assert "current" in result
-    assert "Temperature: 23" in result
+    assert "current" in result.data["result"]
+    assert "Temperature: 23" in result.data["result"]
 
     # Verify the service was called for hourly forecast (not daily)
     mock_services.async_call.assert_called_once_with(
@@ -796,9 +799,10 @@ async def test_async_call_no_forecast_available(hass: HomeAssistant) -> None:
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
+    assert isinstance(result, ToolResult)
 
     # When forecast retrieval fails, return error message
-    assert "Error retrieving weather forecast" in result.get("error", "")
+    assert "Error retrieving weather forecast" in result.data.get("error", "")
 
 
 @pytest.mark.asyncio
@@ -825,9 +829,10 @@ async def test_async_call_error_handling(hass: HomeAssistant) -> None:
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
+    assert isinstance(result, ToolResult)
 
-    assert "error" in result
-    assert "Error retrieving weather forecast" in result["error"]
+    assert "error" in result.data
+    assert "Error retrieving weather forecast" in result.data["error"]
 
 
 @pytest.mark.freeze_time("2026-01-01")
@@ -887,11 +892,12 @@ async def test_async_call_twice_daily_forecast(hass: HomeAssistant) -> None:
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
+    assert isinstance(result, ToolResult)
 
-    assert "daytime" in result
-    assert "nighttime" in result
-    assert "Sunny" in result
-    assert "Clear" in result
+    assert "daytime" in result.data["result"]
+    assert "nighttime" in result.data["result"]
+    assert "Sunny" in result.data["result"]
+    assert "Clear" in result.data["result"]
 
 
 @pytest.mark.asyncio
@@ -917,5 +923,8 @@ async def test_async_call_no_forecast_fallback(
         tool_input,
         MagicMock(spec=llm.LLMContext),
     )
+    assert isinstance(result, ToolResult)
 
-    assert result == "No weather forecast available for the selected range"
+    assert (
+        result.data["result"] == "No weather forecast available for the selected range"
+    )
