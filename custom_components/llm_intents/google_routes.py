@@ -173,7 +173,7 @@ class GetRouteTool(BaseTool):
             )
             return None
 
-        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180): #noqa: PLR2004
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):  # noqa: PLR2004
             _LOGGER.warning(
                 "Starting coordinates out of range (%s, %s) - falling back to home",
                 latitude,
