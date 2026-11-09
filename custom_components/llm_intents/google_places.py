@@ -59,10 +59,6 @@ class FindPlacesTool(BaseTool):
         },
     )
 
-    def wrap_response(self, response: dict) -> dict:
-        """Wrap the response with our instructions."""
-        response["instruction"] = self.response_instruction
-        return response
 
     async def async_call(
         self,
@@ -195,7 +191,7 @@ class FindPlacesTool(BaseTool):
                             params,
                             {
                                 "results": results,
-                                "instructions": self.response_directive,
+                                "instruction": self.response_directive,
                             },
                         )
 
