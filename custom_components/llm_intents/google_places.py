@@ -59,7 +59,6 @@ class FindPlacesTool(BaseTool):
         },
     )
 
-
     async def async_call(
         self,
         hass: HomeAssistant,
