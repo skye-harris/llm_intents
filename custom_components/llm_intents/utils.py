@@ -167,11 +167,16 @@ def _ranked_matches(
 
 
 def _candidate_dicts(
-    ranked: list[tuple[float, State, str]],
+    ranked: list[tuple[float | None, State, str]],
     exposed_entities: dict[str, dict[str, Any]],
     limit: int,
 ) -> list[dict[str, Any]]:
-    """Format scored matches as LLM-friendly candidate dicts."""
+    """
+    Format matches as LLM-friendly candidate dicts.
+
+    Every candidate carries the same keys; the score is None when
+    there was no query name to score the match against (a browse).
+    """
     candidates: list[dict[str, Any]] = []
     for score, state, display_name in ranked[:limit]:
         entity_info = exposed_entities.get(state.entity_id) or {}
@@ -181,7 +186,7 @@ def _candidate_dicts(
                 "name": display_name,
                 "domain": state.domain,
                 "areas": entity_info.get("areas"),
-                "score": round(score, 1),
+                "score": round(score, 1) if score is not None else None,
             }
         )
     return candidates
@@ -209,24 +214,17 @@ def find_entity_candidates(
 
     domain_norm = domain.lower().strip() if domain else None
     area_norm = area.lower().strip() if area else None
-    candidates: list[dict[str, Any]] = []
+    browse: list[tuple[float | None, State, str]] = []
     for state in hass.states.async_all():
         if state.entity_id not in exposed_entities:
             continue
         if not _passes_filters(state, domain_norm, area_norm, exposed_entities):
             continue
         entity_info = exposed_entities.get(state.entity_id) or {}
-        candidates.append(
-            {
-                "entity_id": state.entity_id,
-                "name": entity_info.get("names") or state.entity_id,
-                "domain": state.domain,
-                "areas": entity_info.get("areas"),
-            }
-        )
-        if len(candidates) >= MAX_CANDIDATES:
+        browse.append((None, state, entity_info.get("names") or state.entity_id))
+        if len(browse) >= MAX_CANDIDATES:
             break
-    return candidates
+    return _candidate_dicts(browse, exposed_entities, MAX_CANDIDATES)
 
 
 def find_entity_by_name(

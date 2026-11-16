@@ -428,6 +428,37 @@ def test_browse_candidates_without_name(hass_with_entities: HomeAssistant) -> No
     assert [c["entity_id"] for c in candidates] == ["sensor.kitchen_temperature"]
 
 
+def test_candidate_dict_shape_is_the_same_for_browse_and_ranked(
+    hass_with_entities: HomeAssistant,
+) -> None:
+    """
+    Browse-mode and ranked candidates carry identical keys.
+
+    Ranked candidates have a numeric score; a browse has no query
+    name to score against, so its score is None — but the dict shape
+    is the same either way.
+    """
+    ranked = find_entity_candidates(
+        hass_with_entities,
+        "Kitchen Temp",
+        domain="sensor",
+        exposed_entities=_EXPOSED_ENTITIES,
+    )
+    browse = find_entity_candidates(
+        hass_with_entities,
+        None,
+        domain="sensor",
+        exposed_entities=_EXPOSED_ENTITIES,
+    )
+    assert ranked
+    assert browse
+    assert {key for candidate in ranked for key in candidate} == {
+        key for candidate in browse for key in candidate
+    }
+    assert all(isinstance(c["score"], float) for c in ranked)
+    assert all(c["score"] is None for c in browse)
+
+
 def test_empty_name_raises_without_candidates(
     hass_with_entities: HomeAssistant,
 ) -> None:
