@@ -17,7 +17,18 @@ from custom_components.llm_intents import (
 )
 from custom_components.llm_intents.const import (
     CONF_GOOGLE_PLACES_API_KEY,
+    CONF_GOOGLE_PLACES_ENABLED,
+    CONF_GOOGLE_PLACES_LATITUDE,
+    CONF_GOOGLE_PLACES_LONGITUDE,
+    CONF_GOOGLE_PLACES_NUM_RESULTS,
+    CONF_GOOGLE_PLACES_RADIUS,
+    CONF_GOOGLE_PLACES_RANKING,
+    CONF_GOOGLE_ROUTES_ENABLED,
+    CONF_PLACES_PROVIDER,
+    CONF_PLACES_PROVIDER_GOOGLE,
+    CONF_PLACES_PROVIDER_OPENSTREETMAP,
     CONF_PROVIDER_API_KEYS,
+    CONF_SEARCH_PROVIDER,
     PROVIDER_GOOGLE,
 )
 
@@ -81,7 +92,12 @@ class TestLlmIntentsIntegration:
     async def test_async_migrate_entry_v2_to_v3_migrates_places_key(
         self, hass: HomeAssistant
     ) -> None:
-        """Test migrating from version 2 to 3 migrates google_places_api_key to provider_api_keys."""
+        """
+        Test migrating from version 2 migrates google_places_api_key to provider_api_keys.
+
+        The migration now continues to version 4 (places provider), so the
+        final update lands on version 4 with the key migration intact.
+        """
         entry = MockConfigEntry(
             domain=DOMAIN,
             entry_id="test_entry",
@@ -109,7 +125,7 @@ class TestLlmIntentsIntegration:
         result = await async_migrate_entry(hass, entry)
 
         assert result is True
-        assert updated_version == 3
+        assert updated_version == 4
         assert CONF_PROVIDER_API_KEYS in updated_data
         assert (
             updated_data[CONF_PROVIDER_API_KEYS][PROVIDER_GOOGLE]
@@ -125,3 +141,175 @@ class TestLlmIntentsIntegration:
         provider_keys = config_data.get(CONF_PROVIDER_API_KEYS) or {}
         api_key = provider_keys.get(PROVIDER_GOOGLE, "")
         assert api_key == "test_google_api_key"
+
+
+class TestPlacesProviderMigration:
+    """Test the version 3 to 4 migration of google_places_enabled."""
+
+    @pytest.fixture
+    def captured_update(self, hass: HomeAssistant) -> dict[str, Any]:
+        """Replace async_update_entry with a capture of the final update."""
+        captured: dict[str, Any] = {}
+
+        def mock_update_entry(entry_obj: ConfigEntry, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+        hass.config_entries.async_update_entry = Mock(side_effect=mock_update_entry)
+        return captured
+
+    async def test_enabled_in_data_migrates_to_google_preserving_values(
+        self, hass: HomeAssistant, captured_update: dict[str, Any]
+    ) -> None:
+        """google_places_enabled in data becomes the Google places provider."""
+        data = {
+            CONF_GOOGLE_PLACES_ENABLED: True,
+            CONF_GOOGLE_PLACES_NUM_RESULTS: 7,
+            CONF_GOOGLE_PLACES_LATITUDE: 40.1,
+            CONF_GOOGLE_PLACES_LONGITUDE: -76.9,
+            CONF_GOOGLE_PLACES_RADIUS: 25,
+            CONF_GOOGLE_PLACES_RANKING: "Distance",
+            CONF_PROVIDER_API_KEYS: {PROVIDER_GOOGLE: "test_google_api_key"},
+            CONF_SEARCH_PROVIDER: "Brave",
+            CONF_GOOGLE_ROUTES_ENABLED: True,
+            "other_config": "value",
+        }
+        entry = MockConfigEntry(
+            domain=DOMAIN, entry_id="test_entry", version=3, data=data, options={}
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert captured_update["version"] == 4
+        new_data = captured_update["data"]
+        assert new_data[CONF_PLACES_PROVIDER] == CONF_PLACES_PROVIDER_GOOGLE
+        assert CONF_GOOGLE_PLACES_ENABLED not in new_data
+        assert CONF_GOOGLE_PLACES_ENABLED not in captured_update["options"]
+        # Every other stored value survives untouched
+        for key, value in data.items():
+            if key == CONF_GOOGLE_PLACES_ENABLED:
+                continue
+            assert new_data[key] == value
+
+    async def test_enabled_in_options_migrates_to_google(
+        self, hass: HomeAssistant, captured_update: dict[str, Any]
+    ) -> None:
+        """The boolean is honoured from options too (options win at runtime)."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=3,
+            data={CONF_GOOGLE_PLACES_NUM_RESULTS: 5},
+            options={CONF_GOOGLE_PLACES_ENABLED: True},
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        merged = {**captured_update["data"], **captured_update["options"]}
+        assert merged[CONF_PLACES_PROVIDER] == CONF_PLACES_PROVIDER_GOOGLE
+        assert CONF_GOOGLE_PLACES_ENABLED not in merged
+        assert merged[CONF_GOOGLE_PLACES_NUM_RESULTS] == 5
+
+    async def test_empty_options_selection_does_not_shadow_migration(
+        self, hass: HomeAssistant, captured_update: dict[str, Any]
+    ) -> None:
+        """A stored empty places_provider in options must not shadow the result."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=3,
+            data={CONF_GOOGLE_PLACES_ENABLED: True},
+            options={CONF_PLACES_PROVIDER: None},
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        merged = {**captured_update["data"], **captured_update["options"]}
+        assert merged[CONF_PLACES_PROVIDER] == CONF_PLACES_PROVIDER_GOOGLE
+
+    @pytest.mark.parametrize("data", [{CONF_GOOGLE_PLACES_ENABLED: False}, {}])
+    async def test_not_enabled_gets_no_provider(
+        self, hass: HomeAssistant, captured_update: dict[str, Any], data: dict
+    ) -> None:
+        """Places off (or never configured) stays off: no provider selected."""
+        entry = MockConfigEntry(
+            domain=DOMAIN, entry_id="test_entry", version=3, data=data, options={}
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert captured_update["version"] == 4
+        merged = {**captured_update["data"], **captured_update["options"]}
+        assert not merged.get(CONF_PLACES_PROVIDER)
+        assert CONF_GOOGLE_PLACES_ENABLED not in merged
+
+    async def test_existing_provider_is_left_untouched(
+        self, hass: HomeAssistant, captured_update: dict[str, Any]
+    ) -> None:
+        """An entry that already picked a provider only gets the version bump."""
+        data = {
+            CONF_GOOGLE_PLACES_ENABLED: True,
+            CONF_PROVIDER_API_KEYS: {PROVIDER_GOOGLE: "test_google_api_key"},
+        }
+        options = {CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_OPENSTREETMAP}
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=3,
+            data=dict(data),
+            options=dict(options),
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert captured_update["version"] == 4
+        assert captured_update["data"] == data
+        assert captured_update["options"] == options
+
+    async def test_v2_entry_chains_through_both_migrations(
+        self, hass: HomeAssistant, captured_update: dict[str, Any]
+    ) -> None:
+        """A version 2 entry ends at version 4 with key and provider migrated."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=2,
+            data={
+                CONF_GOOGLE_PLACES_API_KEY: "test_google_api_key",
+                CONF_GOOGLE_PLACES_ENABLED: True,
+            },
+            options={},
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert captured_update["version"] == 4
+        new_data = captured_update["data"]
+        assert (
+            new_data[CONF_PROVIDER_API_KEYS][PROVIDER_GOOGLE] == "test_google_api_key"
+        )
+        assert new_data[CONF_PLACES_PROVIDER] == CONF_PLACES_PROVIDER_GOOGLE
+        assert CONF_GOOGLE_PLACES_ENABLED not in new_data
+
+    async def test_migrating_a_current_entry_is_a_noop(
+        self, hass: HomeAssistant
+    ) -> None:
+        """An already-migrated (version 4) entry is not updated again."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=4,
+            data={CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_GOOGLE},
+            options={},
+        )
+        hass.config_entries.async_update_entry = Mock()
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        hass.config_entries.async_update_entry.assert_not_called()
