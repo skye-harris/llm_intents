@@ -14,7 +14,7 @@ class EntityNotFoundError(HomeAssistantError):
     """
     Exception raised when an entity is not found.
 
-    Carries the closest ranked candidates (if any) so the caller can
+    Carries the closest candidates (if any) so the caller can
     present them for an exact retry instead of failing blind.
     """
 
@@ -23,32 +23,18 @@ class EntityNotFoundError(HomeAssistantError):
         message: str = "Entity not found",
         candidates: list[dict[str, Any]] | None = None,
     ) -> None:
-        """Initialize the exception, optionally with ranked candidates."""
+        """Initialize the exception, optionally with candidates."""
         super().__init__(message)
         self.candidates: list[dict[str, Any]] = candidates or []
 
 
-# Ranked (stage 2) scoring, in one place:
-# - Domain/area filters are HARD and applied before scoring; only
-#   entities that pass them are scored at all.
-# - The score is the name match alone (see _score_name): 100 exact,
-#   80/72 for subset/superset token matches, otherwise the better of
-#   token-overlap (Jaccard x60) and fuzzy similarity (x55) — a typical
-#   partial name lands around 40-46.
-# - Two small boosts then order the filtered set (they can never admit
-#   an out-of-filter entity): +8 when the entity is confirmed in the
-#   requested area (vs no recorded area), +5 when its device class is
-#   named in the query. A boosted partial match lands around 50-59.
-# - A candidate is auto-picked only at MIN_MATCH_SCORE or above AND
-#   with a MIN_MATCH_MARGIN lead over the runner-up; anything else
-#   returns candidates for an exact entity_id retry. Both thresholds
-#   are deliberately conservative: a wrong silent pick is worse than
-#   returning candidates. The 50.0 bar is calibrated so the canonical
-#   fuzzy case still resolves (the query "Kitchen Temp" scores 42.6
-#   on the name against "Kitchen Temperature" and 50.6 with the area
-#   boost), while a weak overlap with no boosts (about 43) does not.
-MIN_MATCH_SCORE = 50.0
-MIN_MATCH_MARGIN = 12.0
+# Resolution is exact-match only, like Home Assistant itself: a name
+# either matches an exposed entity's id, name or alias exactly or the
+# lookup fails. On a failure, the closest entities that pass the
+# domain/area filters are returned as candidates, ordered by plain
+# name similarity (see _score_name) — nothing is ever picked
+# automatically; the caller retries with a candidate's exact
+# entity_id.
 
 # Maximum number of candidate entities returned on a failed lookup.
 MAX_CANDIDATES = 5
@@ -140,12 +126,12 @@ def _ranked_matches(
 
     Returns (score, state, display name) tuples, best first. Domain
     and area are hard filters, applied before scoring: an entity
-    outside the requested domain or area is never scored, picked, or
-    returned as a candidate. The score is the name match plus the two
-    ordering boosts described at MIN_MATCH_SCORE; the boosts only
-    order entities that already passed the filters and cannot pull
-    an out-of-filter entity into the results. Only exposed entities
-    are ever considered — exposure remains the permission boundary.
+    outside the requested domain or area is never scored or returned
+    as a candidate. The score is the plain name similarity (see
+    _score_name) and is used only to order the candidates on a failed
+    lookup — it never selects an entity by itself. Only exposed
+    entities are ever considered — exposure remains the permission
+    boundary.
     """
     query_norm = _normalize(entity_name)
     query_tokens = set(_tokens(entity_name))
@@ -170,19 +156,6 @@ def _ranked_matches(
         if score <= 0:
             continue
 
-        areas = _entity_areas(exposed_entities, state.entity_id)
-        if area_norm and area_norm in areas:
-            # Confirmed in the requested area: rank above an entity
-            # the (upstream-compatible) area filter also passes
-            # because it has no recorded area.
-            score += 8.0
-        device_class = state.attributes.get("device_class")
-        if device_class and device_class in query_tokens:
-            # The query names this entity's device class ("temperature"
-            # for a temperature sensor): a small ordering nudge among
-            # the filtered set.
-            score += 5.0
-
         display_name = next(
             (name for name in check_names if name != state.entity_id),
             state.entity_id,
@@ -198,7 +171,7 @@ def _candidate_dicts(
     exposed_entities: dict[str, dict[str, Any]],
     limit: int,
 ) -> list[dict[str, Any]]:
-    """Format ranked matches as LLM-friendly candidate dicts."""
+    """Format scored matches as LLM-friendly candidate dicts."""
     candidates: list[dict[str, Any]] = []
     for score, state, display_name in ranked[:limit]:
         entity_info = exposed_entities.get(state.entity_id) or {}
@@ -267,19 +240,14 @@ def find_entity_by_name(
     """
     Find an entity by its name or aliases.
 
-    Resolution runs in two stages:
-
-    1. Exact normalized match against the entity id, friendly name or
-       aliases — upstream's implementation, unchanged. Domain and
-       area are hard filters, as they are there.
-    2. Ranked matching, but only over the entities that pass the
-       same filters: a partial or near-miss *name* is forgiven, a
-       wrong domain or area is not. A ranked match is only accepted
-       when it scores at least MIN_MATCH_SCORE and leads the
-       runner-up by MIN_MATCH_MARGIN — anything closer is ambiguous
-       and raises EntityNotFoundError carrying the ranked candidates
-       (from the filtered set only) so the caller can retry with an
-       exact entity_id.
+    Exact normalized match against the entity id, friendly name or
+    aliases — upstream's implementation, unchanged. Domain and area
+    are hard filters, as they are there. Nothing else is ever
+    returned: a partial or near-miss name does not resolve. Instead,
+    a miss raises EntityNotFoundError carrying the closest candidates
+    from the entities that pass the same filters, ordered by name
+    similarity, so the caller can retry with a candidate's exact
+    entity_id.
     """
     if not entity_name or not entity_name.strip():
         msg = "No entity name given"
@@ -294,7 +262,7 @@ def find_entity_by_name(
     domain_norm = domain.lower().strip() if domain else None
     area_norm = area.lower().strip() if area else None
 
-    # Stage 1: exact match — upstream's implementation. (Domain is
+    # Exact match — upstream's implementation. (Domain is
     # optional in this tool's schema, so its check is skipped when no
     # domain was supplied; when one is, the logic is upstream's.)
     for state in hass.states.async_all():
@@ -323,13 +291,9 @@ def find_entity_by_name(
             if name.lower().strip() == entity_name_norm:
                 return state
 
-    # Stage 2: ranked match over the filtered set only.
+    # No exact match: fail, suggesting the closest candidates from
+    # the filtered set. Nothing is picked automatically.
     ranked = _ranked_matches(hass, entity_name, domain, area, exposed_entities)
-    if ranked:
-        top_score, top_state, _ = ranked[0]
-        runner_up = ranked[1][0] if len(ranked) > 1 else 0.0
-        if top_score >= MIN_MATCH_SCORE and (top_score - runner_up) >= MIN_MATCH_MARGIN:
-            return top_state
 
     msg = f"No exposed entity matched '{entity_name}'"
     raise EntityNotFoundError(

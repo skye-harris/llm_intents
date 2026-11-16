@@ -244,94 +244,59 @@ def test_find_filters(
 
 
 # ---------------------------------------------------------------------------
-# Ranked resolution (stage 2)
+# Failed lookups: candidates are suggested, never picked automatically
 # ---------------------------------------------------------------------------
 
 
-def test_ranked_subset_name(hass_with_entities: HomeAssistant) -> None:
-    """A query naming a subset of the entity's name resolves to it."""
-    result = find_entity_by_name(
-        hass_with_entities,
-        "Garage",
-        area=None,
-        domain="switch",
-        exposed_entities=_EXPOSED_ENTITIES,
-    )
-    assert result.entity_id == "switch.garage_door"
-
-
-def test_ranked_fuzzy_name(hass_with_entities: HomeAssistant) -> None:
-    """
-    A shortened name resolves via fuzzy matching when unambiguous.
-
-    Arithmetic under the current scoring: the name match alone is 42.6;
-    the +8 area boost (confirmed in the requested area) brings it to
-    50.6, just over the 50.0 auto-pick bar. A matching domain adds
-    nothing — the domain filter already removed every other domain
-    before scoring.
-    """
-    result = find_entity_by_name(
-        hass_with_entities,
-        "Kitchen Temp",
-        area="Kitchen",
-        domain="sensor",
-        exposed_entities=_EXPOSED_ENTITIES,
-    )
-    assert result.entity_id == "sensor.kitchen_temperature"
-
-
-def test_ranked_domain_match_adds_no_boost(
+def test_partial_name_raises_with_ordered_candidates(
     hass_with_entities: HomeAssistant,
 ) -> None:
     """
-    A matching domain contributes no score in the ranked stage.
+    A partial name never resolves; it raises with candidates.
 
-    Same fuzzy query as test_ranked_fuzzy_name but with no area: the
-    score stays at the raw name match (42.6), below the auto-pick bar,
-    so the lookup raises with candidates instead of resolving. (With
-    the old +8 domain boost this would have scored 50.6 and picked.)
+    The candidates come from the filtered set, ordered by plain name
+    similarity: "Kitchen Temp" is closest to "Kitchen Temperature",
+    and its candidate score is the raw name match (42.6) — the
+    confirmed area adds nothing, because the score only orders the
+    suggestions; nothing is ever picked automatically.
     """
     with pytest.raises(EntityNotFoundError) as excinfo:
         find_entity_by_name(
             hass_with_entities,
             "Kitchen Temp",
-            area=None,
+            area="Kitchen",
             domain="sensor",
             exposed_entities=_EXPOSED_ENTITIES,
         )
     candidates = excinfo.value.candidates
     assert candidates[0]["entity_id"] == "sensor.kitchen_temperature"
     assert candidates[0]["score"] == pytest.approx(42.6, abs=0.15)
+    scores = [c["score"] for c in candidates]
+    assert scores == sorted(scores, reverse=True)
 
 
-def test_ranked_weak_overlap_not_picked(
+def test_subset_name_raises_with_candidate(
     hass_with_entities: HomeAssistant,
 ) -> None:
-    """
-    A weak name overlap is not auto-picked, even with the area boost.
-
-    "Kitchen Lamp" vs "Kitchen Temperature" scores 35.5 on the name;
-    +8 for the confirmed area only reaches 43.5, below the bar.
-    """
+    """A query naming a subset of an entity's name raises, suggesting it."""
     with pytest.raises(EntityNotFoundError) as excinfo:
         find_entity_by_name(
             hass_with_entities,
-            "Kitchen Lamp",
-            area="Kitchen",
-            domain="sensor",
+            "Garage",
+            area=None,
+            domain="switch",
             exposed_entities=_EXPOSED_ENTITIES,
         )
-    assert excinfo.value.candidates[0]["entity_id"] == "sensor.kitchen_temperature"
+    assert excinfo.value.candidates[0]["entity_id"] == "switch.garage_door"
 
 
-def test_ranked_partial_uses_area_and_class_boosts() -> None:
+def test_strong_partial_name_is_not_picked() -> None:
     """
-    A partial match over the bar only with both ordering boosts.
+    Even a strong partial match is not picked automatically.
 
-    "Kitchen Temperature Sensor Unit" vs "Kitchen Temperature Average"
-    scores 41.7 on the name alone and 49.7 with the +8 area boost —
-    both under the bar. The +5 device-class boost ("temperature" is
-    named in the query) brings it to 54.7, so it resolves.
+    "Kitchen Temperature Sensor Unit" is closest by a wide margin to
+    "Kitchen Temperature Average", but it is not an exact match, so
+    the lookup raises and suggests that entity as a candidate.
     """
     hass = MagicMock()
     hass.states.async_all.return_value = [
@@ -365,14 +330,17 @@ def test_ranked_partial_uses_area_and_class_boosts() -> None:
         ),
     ):
         mock_get.return_value.async_get.return_value = MagicMock()
-        result = find_entity_by_name(
-            hass,
-            "Kitchen Temperature Sensor Unit",
-            area="Kitchen",
-            domain="sensor",
-            exposed_entities=exposed,
-        )
-    assert result.entity_id == "sensor.kitchen_temperature_average"
+        with pytest.raises(EntityNotFoundError) as excinfo:
+            find_entity_by_name(
+                hass,
+                "Kitchen Temperature Sensor Unit",
+                area="Kitchen",
+                domain="sensor",
+                exposed_entities=exposed,
+            )
+    assert (
+        excinfo.value.candidates[0]["entity_id"] == "sensor.kitchen_temperature_average"
+    )
 
 
 def test_exact_name_wrong_area_fails(hass_with_entities: HomeAssistant) -> None:
@@ -399,10 +367,10 @@ def test_exact_name_wrong_domain_fails(hass_with_entities: HomeAssistant) -> Non
         )
 
 
-def test_ranked_partial_name_wrong_area_fails(
+def test_partial_name_wrong_area_fails(
     hass_with_entities: HomeAssistant,
 ) -> None:
-    """The ranked stage does not rescue a partial name across areas."""
+    """A partial name is not rescued across areas; it still fails."""
     with pytest.raises(EntityNotFoundError):
         find_entity_by_name(
             hass_with_entities,
@@ -436,8 +404,8 @@ def test_candidates_respect_filters(hass_with_entities: HomeAssistant) -> None:
     assert "sensor.kitchen_temperature" not in {c["entity_id"] for c in candidates}
 
 
-def test_ranked_candidates_helper(hass_with_entities: HomeAssistant) -> None:
-    """find_entity_candidates ranks the kitchen sensor first for a partial name."""
+def test_candidates_helper(hass_with_entities: HomeAssistant) -> None:
+    """find_entity_candidates orders the kitchen sensor first for a partial name."""
     candidates = find_entity_candidates(
         hass_with_entities,
         "Kitchen Temp",
@@ -476,7 +444,7 @@ def test_empty_name_raises_with_browse_candidates(
     ]
 
 
-def test_ranked_ambiguous_raises_with_candidates() -> None:
+def test_ambiguous_name_raises_with_candidates() -> None:
     """Two equally good matches are not silently picked; both are returned."""
     hass = MagicMock()
     hass.states.async_all.return_value = [

@@ -879,7 +879,7 @@ async def test_async_call_not_found_returns_candidates(
     mock_recorder: tuple[MagicMock, MagicMock],
     hass: HomeAssistant,
 ) -> None:
-    """A failed resolution returns ranked candidates and a retry hint."""
+    """A failed resolution returns candidates and a retry hint."""
     mock_find, _ = mock_recorder
     candidates = [
         {
