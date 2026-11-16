@@ -8,8 +8,8 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt as dt_util
+from homeassistant.util.json import JsonObjectType
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 
 from .base_tool import BaseTool
@@ -80,11 +80,11 @@ class GetRouteTool(BaseTool):
                 ): str,
                 vol.Optional(
                     "origin-latitude",
-                    description="The latitude of the starting location if provided. This can be left blank to use the location provided in the query or the default location.",
+                    description="The latitude of the origin if provided. This can be left blank to use the origin provided in the query or the default location.",
                 ): str,
                 vol.Optional(
                     "origin-longitude",
-                    description="The longitude of the starting location if provided. This can be left blank to use the location provided in the query or the default location.",
+                    description="The longitude of the origin if provided. This can be left blank to use the origin provided in the query or the default location.",
                 ): str,
                 vol.Optional(
                     "departure_time",
@@ -173,7 +173,7 @@ class GetRouteTool(BaseTool):
             )
             return None
 
-        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):  # noqa: PLR2004
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180): #noqa: PLR2004
             _LOGGER.warning(
                 "Starting coordinates out of range (%s, %s) - falling back to home",
                 latitude,
@@ -276,7 +276,7 @@ class GetRouteTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> ToolResult:
+    ) -> JsonObjectType:
         """Call the tool."""
         config_data = self.config
 
@@ -369,16 +369,13 @@ class GetRouteTool(BaseTool):
                 if resp.status != HTTPStatus.OK:
                     error_text = await resp.text()
                     _LOGGER.error("Routes API HTTP %s: %s", resp.status, error_text)
-                    return ToolResult(
-                        data={"error": f"Routes API error: {resp.status}"},
-                        error=True,
-                    )
+                    return {"error": f"Routes API error: {resp.status}"}
 
                 data = await resp.json()
 
             routes = data.get("routes") or []
             if not routes:
-                return ToolResult(data={"result": "No route found"})
+                return {"result": "No route found"}
 
             route = routes[0]
             distance_meters = int(route.get("distanceMeters", 0))
@@ -417,11 +414,11 @@ class GetRouteTool(BaseTool):
                     "%Y-%m-%d %H:%M",
                 )
 
-            return ToolResult(data={"result": result})
+            return {"result": result, "instruction": self.response_directive(mode)}
 
         except Exception:
             _LOGGER.exception("Routes API error")
-            return ToolResult(data={"error": "Error computing route"}, error=True)
+            return {"error": "Error computing route"}
 
 
 def _format_duration(seconds: int) -> str:

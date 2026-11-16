@@ -8,8 +8,8 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt
+from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
 from .cache import InMemoryCache
@@ -58,11 +58,11 @@ class FindPlacesTool(BaseTool):
             ): str,
             vol.Optional(
                 "longitude",
-                description="The longitude of the location to search for if provided. This can be left blank to use the location provided in the query or the default location.",
+                description="The longitude of the origin if provided. This can be left blank to use the origin provided in the query or the default location.",
             ): str,
             vol.Optional(
                 "latitude",
-                description="The latitude of the location to search for if provided. This can be left blank to use the location provided in the query or the default location.",
+                description="The latitude of the origin if provided. This can be left blank to use the origin provided in the query or the default location.",
             ): str,
         },
     )
@@ -91,7 +91,7 @@ class FindPlacesTool(BaseTool):
             )
             return None
 
-        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):  # noqa: PLR2004
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180): #noqa: PLR2004
             _LOGGER.warning(
                 "Search coordinates out of range (%s, %s) - falling back to configured location",
                 latitude,
@@ -106,7 +106,7 @@ class FindPlacesTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> ToolResult:
+    ) -> JsonObjectType:
         """Call the tool."""
         config_data = self.config
 
@@ -136,9 +136,7 @@ class FindPlacesTool(BaseTool):
         ).upper()
 
         if not api_key:
-            return ToolResult(
-                data={"error": "Google Places API key not configured"}, error=True
-            )
+            return {"error": "Google Places API key not configured"}
 
         try:
             session = async_get_clientsession(hass)
@@ -164,7 +162,7 @@ class FindPlacesTool(BaseTool):
             cache = InMemoryCache()
             cached_response = cache.get(__name__, params)
             if cached_response:
-                return ToolResult(data=cached_response)
+                return cached_response
 
             field_mask = (
                 "places.displayName,"
@@ -238,23 +236,20 @@ class FindPlacesTool(BaseTool):
                             params,
                             {
                                 "results": results,
+                                "instructions": self.response_directive,
                             },
                         )
 
                     return (
-                        ToolResult(data={"results": results})
+                        {"results": results, "instruction": self.response_directive}
                         if results
-                        else ToolResult(data={"result": "No places found"})
+                        else {"result": "No places found"}
                     )
 
                 error_msg = f"Places search received a HTTP {resp.status} error from Google: {await resp.text()}"
                 _LOGGER.error(error_msg)
-                return ToolResult(
-                    data={"error": f"Places search error: {resp.status}"}, error=True
-                )
+                return {"error": f"Places search error: {resp.status}"}
 
         except Exception as e:
             _LOGGER.exception("Places search encountered an error")
-            return ToolResult(
-                data={"error": f"Error finding places: {e!s}"}, error=True
-            )
+            return {"error": f"Error finding places: {e!s}"}
