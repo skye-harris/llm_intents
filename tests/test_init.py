@@ -16,6 +16,7 @@ from custom_components.llm_intents import (
     async_unload_entry,
 )
 from custom_components.llm_intents.const import (
+    CONF_BRAVE_ENABLED,
     CONF_GOOGLE_PLACES_API_KEY,
     CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_LATITUDE,
@@ -29,6 +30,7 @@ from custom_components.llm_intents.const import (
     CONF_PLACES_PROVIDER_OPENSTREETMAP,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
+    CONF_SEARCH_PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
 )
 
@@ -249,7 +251,12 @@ class TestPlacesProviderMigration:
     async def test_existing_provider_is_left_untouched(
         self, hass: HomeAssistant, captured_update: dict[str, Any]
     ) -> None:
-        """An entry that already picked a provider only gets the version bump."""
+        """
+        An entry that already picked a provider is not re-translated.
+
+        Only the version bump and the boolean cleanup apply: the stored
+        provider and every other value come through byte-equal.
+        """
         data = {
             CONF_GOOGLE_PLACES_ENABLED: True,
             CONF_PROVIDER_API_KEYS: {PROVIDER_GOOGLE: "test_google_api_key"},
@@ -267,8 +274,83 @@ class TestPlacesProviderMigration:
 
         assert result is True
         assert captured_update["version"] == 4
-        assert captured_update["data"] == data
+        expected_data = {
+            key: value
+            for key, value in data.items()
+            if key != CONF_GOOGLE_PLACES_ENABLED
+        }
+        assert captured_update["data"] == expected_data
         assert captured_update["options"] == options
+
+    async def test_provider_in_data_survives_options_shadow(
+        self, hass: HomeAssistant, captured_update: dict[str, Any]
+    ) -> None:
+        """
+        A provider stored in data is not overwritten because of options.
+
+        The merged runtime view would hide the data provider behind the
+        empty selection in options; with the old boolean still on, the
+        migration must not "translate" the entry to Google — the chosen
+        provider in data is preserved.
+        """
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=3,
+            data={
+                CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_OPENSTREETMAP,
+                CONF_GOOGLE_PLACES_ENABLED: True,
+            },
+            options={CONF_PLACES_PROVIDER: None},
+        )
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert captured_update["version"] == 4
+        assert (
+            captured_update["data"][CONF_PLACES_PROVIDER]
+            == CONF_PLACES_PROVIDER_OPENSTREETMAP
+        )
+        assert CONF_GOOGLE_PLACES_ENABLED not in captured_update["data"]
+
+    async def test_v1_entry_migrates_through_the_whole_chain(
+        self, hass: HomeAssistant
+    ) -> None:
+        """
+        A version 1 entry ends at version 4 with every step applied.
+
+        Uses the real async_update_entry so each step sees the previous
+        step's stored result, exactly as Home Assistant runs it.
+        """
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="test_entry",
+            version=1,
+            data={
+                CONF_BRAVE_ENABLED: True,
+                CONF_GOOGLE_PLACES_API_KEY: "test_google_api_key",
+                CONF_GOOGLE_PLACES_ENABLED: True,
+            },
+            options={},
+        )
+        entry.add_to_hass(hass)
+
+        result = await async_migrate_entry(hass, entry)
+
+        assert result is True
+        assert entry.version == 4
+        # 1 -> 2: the Brave boolean became the search provider selector
+        assert entry.data[CONF_SEARCH_PROVIDER] == CONF_SEARCH_PROVIDER_BRAVE
+        assert CONF_BRAVE_ENABLED not in entry.data
+        # 2 -> 3: the legacy places key moved into provider_api_keys
+        assert (
+            entry.data[CONF_PROVIDER_API_KEYS][PROVIDER_GOOGLE] == "test_google_api_key"
+        )
+        assert CONF_GOOGLE_PLACES_API_KEY not in entry.data
+        # 3 -> 4: the enabled boolean became the Google places provider
+        assert entry.data[CONF_PLACES_PROVIDER] == CONF_PLACES_PROVIDER_GOOGLE
+        assert CONF_GOOGLE_PLACES_ENABLED not in entry.data
 
     async def test_v2_entry_chains_through_both_migrations(
         self, hass: HomeAssistant, captured_update: dict[str, Any]

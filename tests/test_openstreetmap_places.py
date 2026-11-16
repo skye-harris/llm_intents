@@ -246,6 +246,53 @@ async def test_osm_no_results(
     assert session.get.call_count == 3
 
 
+async def test_osm_http_error_returns_error_without_widening(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """An HTTP error stops the staged search and surfaces an error result."""
+    session = _make_session([(503, []), (200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+        # The failure is not cached: the same search fetches again.
+        retry = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.error is True
+    assert result.data == {"error": "Error finding places: Places search error: 503"}
+    assert retry.data == {"results": [OSM_EXAMPLE_RESULT]}
+    # One request for the failed search (no widening), one for the retry.
+    assert session.get.call_count == 2
+
+
+async def test_osm_request_failure_returns_error_result(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A failed request surfaces an error result instead of widening."""
+    session = AsyncMock()
+    session.get = Mock(side_effect=ConnectionError("network down"))
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.error is True
+    assert result.data == {"error": "Error finding places: network down"}
+    assert session.get.call_count == 1
+
+
 async def test_osm_config_location_overrides_home(
     tool: OpenStreetMapPlacesTool,
     places_hass: HomeAssistant,

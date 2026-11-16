@@ -4,6 +4,7 @@ import logging
 from http import HTTPStatus
 from typing import Any
 
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .base_places import FindPlacesBaseTool
@@ -80,11 +81,16 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
                 },
             ) as resp:
                 if resp.status != HTTPStatus.OK:
-                    _LOGGER.warning(
+                    # Surface the failure like the Google tool does
+                    # instead of widening the search: the base class
+                    # turns this into the tool's error result, and a
+                    # failed search is never cached.
+                    _LOGGER.error(
                         "OpenStreetMap search returned HTTP %s",
                         resp.status,
                     )
-                    return []
+                    msg = f"Places search error: {resp.status}"
+                    raise HomeAssistantError(msg)
                 return await resp.json()
 
         data = []

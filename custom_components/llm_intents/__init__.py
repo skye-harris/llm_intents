@@ -122,23 +122,28 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if current_version == CONFIG_VERSION_3:
         # Places search became a provider choice: migrate the old
         # google_places_enabled boolean to the places_provider selector so
-        # existing setups keep the places tool they already had.
-        merged_config = {**entry_data, **entry_options}
-        if not merged_config.get(CONF_PLACES_PROVIDER):
+        # existing setups keep the places tool they already had. A provider
+        # counts as already chosen if either store holds one — checking the
+        # merged view alone would miss a provider stored in data behind an
+        # empty selection in options.
+        provider_set = bool(entry_data.get(CONF_PLACES_PROVIDER)) or bool(
+            entry_options.get(CONF_PLACES_PROVIDER)
+        )
+        if not provider_set:
+            merged_config = {**entry_data, **entry_options}
             if merged_config.get(CONF_GOOGLE_PLACES_ENABLED):
                 entry_data[CONF_PLACES_PROVIDER] = CONF_PLACES_PROVIDER_GOOGLE
                 # An empty selection stored in options would shadow the
                 # provider migrated into data (options win when the runtime
                 # merges them), so drop it.
-                if not entry_options.get(CONF_PLACES_PROVIDER):
-                    entry_options.pop(CONF_PLACES_PROVIDER, None)
+                entry_options.pop(CONF_PLACES_PROVIDER, None)
                 _LOGGER.info(
                     "Migrating google_places_enabled to places_provider: Google",
                 )
-            # The boolean is fully replaced by the selector; remove it the
-            # same way earlier migrations removed their replaced keys.
-            entry_data.pop(CONF_GOOGLE_PLACES_ENABLED, None)
-            entry_options.pop(CONF_GOOGLE_PLACES_ENABLED, None)
+        # The boolean is fully replaced by the selector; remove it the
+        # same way earlier migrations removed their replaced keys.
+        entry_data.pop(CONF_GOOGLE_PLACES_ENABLED, None)
+        entry_options.pop(CONF_GOOGLE_PLACES_ENABLED, None)
 
         hass.config_entries.async_update_entry(
             entry,
