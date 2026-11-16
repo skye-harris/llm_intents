@@ -16,8 +16,8 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
-from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
 
@@ -244,7 +244,7 @@ class PlayVideoTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool to play video."""
         video_url = tool_input.tool_args["video_url"]
         entity_ids = tool_input.tool_args.get("entity_id")
@@ -276,13 +276,15 @@ class PlayVideoTool(BaseTool):
                 "Requested media players are not exposed to this assistant: %s",
                 invalid_entity_ids,
             )
-            return {
-                "success": False,
-                "error": (
-                    "Media player(s) not exposed to this assistant: "
-                    f"{', '.join(invalid_entity_ids)}"
-                ),
-            }
+            return ToolResult(
+                data={
+                    "error": (
+                        "Media player(s) not exposed to this assistant: "
+                        f"{', '.join(invalid_entity_ids)}"
+                    ),
+                },
+                error=True,
+            )
 
         target_entity_ids = list(dict.fromkeys(requested_entity_ids))
 
@@ -294,10 +296,12 @@ class PlayVideoTool(BaseTool):
                     "Could not resolve area '%s' to a valid area_id",
                     area_input,
                 )
-                return {
-                    "success": False,
-                    "error": f"Could not find area '{area_input}'. Please check the area name and try again.",
-                }
+                return ToolResult(
+                    data={
+                        "error": f"Could not find area '{area_input}'. Please check the area name and try again.",
+                    },
+                    error=True,
+                )
 
             _LOGGER.debug("Resolved area '%s' to area_id '%s'", area_input, area_id)
 
@@ -310,10 +314,12 @@ class PlayVideoTool(BaseTool):
                     "No exposed video-capable media players found in area '%s'",
                     area_input,
                 )
-                return {
-                    "success": False,
-                    "error": f"No video-capable media players found in area '{area_input}'.",
-                }
+                return ToolResult(
+                    data={
+                        "error": f"No video-capable media players found in area '{area_input}'.",
+                    },
+                    error=True,
+                )
 
             target_entity_ids = list(
                 dict.fromkeys(
@@ -339,7 +345,7 @@ class PlayVideoTool(BaseTool):
                     _LOGGER.warning("No exposed video-capable media players found")
                     error = "No video-capable media players exposed to this assistant."
 
-                return {"success": False, "error": error}
+                return ToolResult(data={"error": error}, error=True)
 
         target = {"entity_id": target_entity_ids}
 
@@ -370,15 +376,19 @@ class PlayVideoTool(BaseTool):
                 target_desc,
             )
 
-            return {
-                "success": True,
-                "message": f"Now playing video on {target_desc}",
-                "video_url": video_url,
-            }
+            return ToolResult(
+                data={
+                    "success": True,
+                    "message": f"Now playing video on {target_desc}",
+                    "video_url": video_url,
+                }
+            )
 
         except Exception as err:
             _LOGGER.exception("Failed to play video on %s", target_desc)
-            return {
-                "success": False,
-                "error": f"Failed to play video on {target_desc}: {err}",
-            }
+            return ToolResult(
+                data={
+                    "error": f"Failed to play video on {target_desc}: {err}",
+                },
+                error=True,
+            )

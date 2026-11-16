@@ -7,8 +7,8 @@ import operator
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
-from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
 
@@ -132,7 +132,7 @@ class CalculatorTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Execute the calculation and return the result."""
         operation = tool_input.tool_args["operation"].lower()
         data = tool_input.tool_args["data"]
@@ -146,9 +146,9 @@ class CalculatorTool(BaseTool):
                 result = _calculate_aggregate(operation, data)
         except Exception as e:
             _LOGGER.exception(msg="Calculator encountered an error")
-            return {"error": str(e)}
+            return ToolResult(data={"error": str(e)}, error=True)
 
-        return {"value": result}
+        return ToolResult(data={"value": result})
 
 
 def _calculate_expression(data: list[str]) -> str:

@@ -6,7 +6,7 @@ from datetime import date, datetime
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.llm import ToolResult
 
 from .base_tool import BaseTool
 
@@ -45,7 +45,7 @@ class DateInfoTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Return day-of-week and formatted date for the given date."""
         day = tool_input.tool_args["day"]
         month = tool_input.tool_args["month"]
@@ -56,13 +56,18 @@ class DateInfoTool(BaseTool):
         try:
             d = date(year, month, day)
         except ValueError as e:
-            return {"error": f"Invalid date {year}-{month:02d}-{day:02d}: {e}"}
+            return ToolResult(
+                data={"error": f"Invalid date {year}-{month:02d}-{day:02d}: {e}"},
+                error=True,
+            )
 
         day_of_week = d.strftime("%A")
         formatted_date = d.strftime("%B %d, %Y")
 
-        return {
-            "day": day_of_week,
-            "date": formatted_date,
-            "message": f"{formatted_date} is a {day_of_week}",
-        }
+        return ToolResult(
+            data={
+                "day": day_of_week,
+                "date": formatted_date,
+                "message": f"{formatted_date} is a {day_of_week}",
+            }
+        )

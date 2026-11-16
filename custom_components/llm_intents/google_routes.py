@@ -8,8 +8,8 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt as dt_util
-from homeassistant.util.json import JsonObjectType
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 
 from .base_tool import BaseTool
@@ -276,7 +276,7 @@ class GetRouteTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool."""
         config_data = self.config
 
@@ -369,13 +369,16 @@ class GetRouteTool(BaseTool):
                 if resp.status != HTTPStatus.OK:
                     error_text = await resp.text()
                     _LOGGER.error("Routes API HTTP %s: %s", resp.status, error_text)
-                    return {"error": f"Routes API error: {resp.status}"}
+                    return ToolResult(
+                        data={"error": f"Routes API error: {resp.status}"},
+                        error=True,
+                    )
 
                 data = await resp.json()
 
             routes = data.get("routes") or []
             if not routes:
-                return {"result": "No route found"}
+                return ToolResult(data={"result": "No route found"})
 
             route = routes[0]
             distance_meters = int(route.get("distanceMeters", 0))
@@ -414,11 +417,11 @@ class GetRouteTool(BaseTool):
                     "%Y-%m-%d %H:%M",
                 )
 
-            return {"result": result, "instruction": self.response_directive(mode)}
+            return ToolResult(data={"result": result})
 
         except Exception:
             _LOGGER.exception("Routes API error")
-            return {"error": "Error computing route"}
+            return ToolResult(data={"error": "Error computing route"}, error=True)
 
 
 def _format_duration(seconds: int) -> str:
