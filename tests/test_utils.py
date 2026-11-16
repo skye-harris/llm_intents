@@ -261,7 +261,15 @@ def test_ranked_subset_name(hass_with_entities: HomeAssistant) -> None:
 
 
 def test_ranked_fuzzy_name(hass_with_entities: HomeAssistant) -> None:
-    """A shortened name resolves via fuzzy matching when unambiguous."""
+    """
+    A shortened name resolves via fuzzy matching when unambiguous.
+
+    Arithmetic under the current scoring: the name match alone is 42.6;
+    the +8 area boost (confirmed in the requested area) brings it to
+    50.6, just over the 50.0 auto-pick bar. A matching domain adds
+    nothing — the domain filter already removed every other domain
+    before scoring.
+    """
     result = find_entity_by_name(
         hass_with_entities,
         "Kitchen Temp",
@@ -270,6 +278,101 @@ def test_ranked_fuzzy_name(hass_with_entities: HomeAssistant) -> None:
         exposed_entities=_EXPOSED_ENTITIES,
     )
     assert result.entity_id == "sensor.kitchen_temperature"
+
+
+def test_ranked_domain_match_adds_no_boost(
+    hass_with_entities: HomeAssistant,
+) -> None:
+    """
+    A matching domain contributes no score in the ranked stage.
+
+    Same fuzzy query as test_ranked_fuzzy_name but with no area: the
+    score stays at the raw name match (42.6), below the auto-pick bar,
+    so the lookup raises with candidates instead of resolving. (With
+    the old +8 domain boost this would have scored 50.6 and picked.)
+    """
+    with pytest.raises(EntityNotFoundError) as excinfo:
+        find_entity_by_name(
+            hass_with_entities,
+            "Kitchen Temp",
+            area=None,
+            domain="sensor",
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
+    candidates = excinfo.value.candidates
+    assert candidates[0]["entity_id"] == "sensor.kitchen_temperature"
+    assert candidates[0]["score"] == pytest.approx(42.6, abs=0.15)
+
+
+def test_ranked_weak_overlap_not_picked(
+    hass_with_entities: HomeAssistant,
+) -> None:
+    """
+    A weak name overlap is not auto-picked, even with the area boost.
+
+    "Kitchen Lamp" vs "Kitchen Temperature" scores 35.5 on the name;
+    +8 for the confirmed area only reaches 43.5, below the bar.
+    """
+    with pytest.raises(EntityNotFoundError) as excinfo:
+        find_entity_by_name(
+            hass_with_entities,
+            "Kitchen Lamp",
+            area="Kitchen",
+            domain="sensor",
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
+    assert excinfo.value.candidates[0]["entity_id"] == "sensor.kitchen_temperature"
+
+
+def test_ranked_partial_uses_area_and_class_boosts() -> None:
+    """
+    A partial match over the bar only with both ordering boosts.
+
+    "Kitchen Temperature Sensor Unit" vs "Kitchen Temperature Average"
+    scores 41.7 on the name alone and 49.7 with the +8 area boost —
+    both under the bar. The +5 device-class boost ("temperature" is
+    named in the query) brings it to 54.7, so it resolves.
+    """
+    hass = MagicMock()
+    hass.states.async_all.return_value = [
+        State(
+            "sensor.kitchen_temperature_average",
+            "21.0",
+            attributes={
+                "friendly_name": "Kitchen Temperature Average",
+                "device_class": "temperature",
+            },
+        ),
+    ]
+    exposed = {
+        "sensor.kitchen_temperature_average": {
+            "names": "Kitchen Temperature Average",
+            "domain": "sensor",
+            "areas": "Kitchen",
+        },
+    }
+
+    def aliases(
+        _h: object, _entry: object, state: State | None = None, **_k: object
+    ) -> list[str]:
+        return [state.attributes["friendly_name"]] if state is not None else []
+
+    with (
+        patch("custom_components.llm_intents.utils.er.async_get") as mock_get,
+        patch(
+            "custom_components.llm_intents.utils.intent.async_get_entity_aliases",
+            side_effect=aliases,
+        ),
+    ):
+        mock_get.return_value.async_get.return_value = MagicMock()
+        result = find_entity_by_name(
+            hass,
+            "Kitchen Temperature Sensor Unit",
+            area="Kitchen",
+            domain="sensor",
+            exposed_entities=exposed,
+        )
+    assert result.entity_id == "sensor.kitchen_temperature_average"
 
 
 def test_exact_name_wrong_area_fails(hass_with_entities: HomeAssistant) -> None:

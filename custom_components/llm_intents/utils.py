@@ -28,11 +28,26 @@ class EntityNotFoundError(HomeAssistantError):
         self.candidates: list[dict[str, Any]] = candidates or []
 
 
-# Minimum ranked score for a non-exact match to be accepted, and the
-# minimum lead it must hold over the runner-up. Both are deliberately
-# conservative: a wrong silent pick is worse than returning candidates
-# and letting the caller retry with an exact entity_id.
-MIN_MATCH_SCORE = 55.0
+# Ranked (stage 2) scoring, in one place:
+# - Domain/area filters are HARD and applied before scoring; only
+#   entities that pass them are scored at all.
+# - The score is the name match alone (see _score_name): 100 exact,
+#   80/72 for subset/superset token matches, otherwise the better of
+#   token-overlap (Jaccard x60) and fuzzy similarity (x55) — a typical
+#   partial name lands around 40-46.
+# - Two small boosts then order the filtered set (they can never admit
+#   an out-of-filter entity): +8 when the entity is confirmed in the
+#   requested area (vs no recorded area), +5 when its device class is
+#   named in the query. A boosted partial match lands around 50-59.
+# - A candidate is auto-picked only at MIN_MATCH_SCORE or above AND
+#   with a MIN_MATCH_MARGIN lead over the runner-up; anything else
+#   returns candidates for an exact entity_id retry. Both thresholds
+#   are deliberately conservative: a wrong silent pick is worse than
+#   returning candidates. The 50.0 bar is calibrated so the canonical
+#   fuzzy case still resolves (the query "Kitchen Temp" scores 42.6
+#   on the name against "Kitchen Temperature" and 50.6 with the area
+#   boost), while a weak overlap with no boosts (about 43) does not.
+MIN_MATCH_SCORE = 50.0
 MIN_MATCH_MARGIN = 12.0
 
 # Maximum number of candidate entities returned on a failed lookup.
@@ -126,12 +141,11 @@ def _ranked_matches(
     Returns (score, state, display name) tuples, best first. Domain
     and area are hard filters, applied before scoring: an entity
     outside the requested domain or area is never scored, picked, or
-    returned as a candidate. Only the name match is scored — the
-    small boosts below only order entities that already passed the
-    filters (an entity confirmed in the requested area ranks above
-    one with no recorded area); they cannot pull an out-of-filter
-    entity into the results. Only exposed entities are ever
-    considered — exposure remains the permission boundary.
+    returned as a candidate. The score is the name match plus the two
+    ordering boosts described at MIN_MATCH_SCORE; the boosts only
+    order entities that already passed the filters and cannot pull
+    an out-of-filter entity into the results. Only exposed entities
+    are ever considered — exposure remains the permission boundary.
     """
     query_norm = _normalize(entity_name)
     query_tokens = set(_tokens(entity_name))
@@ -156,13 +170,17 @@ def _ranked_matches(
         if score <= 0:
             continue
 
-        if domain_norm and state.domain == domain_norm:
-            score += 8.0
         areas = _entity_areas(exposed_entities, state.entity_id)
         if area_norm and area_norm in areas:
+            # Confirmed in the requested area: rank above an entity
+            # the (upstream-compatible) area filter also passes
+            # because it has no recorded area.
             score += 8.0
         device_class = state.attributes.get("device_class")
         if device_class and device_class in query_tokens:
+            # The query names this entity's device class ("temperature"
+            # for a temperature sensor): a small ordering nudge among
+            # the filtered set.
             score += 5.0
 
         display_name = next(
