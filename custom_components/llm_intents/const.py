@@ -324,6 +324,16 @@ CONF_BRAVE_COUNTRY_CODES = {
     "US": "United States",
 }
 
+# Places Providers
+CONF_PLACES_PROVIDER = "places_provider"
+CONF_PLACES_PROVIDER_GOOGLE = "Google"
+CONF_PLACES_PROVIDER_OPENSTREETMAP = "OpenStreetMap"
+
+CONF_PLACES_PROVIDERS = {
+    "Google": CONF_PLACES_PROVIDER_GOOGLE,
+    "OpenStreetMap": CONF_PLACES_PROVIDER_OPENSTREETMAP,
+}
+
 # Google Places-specific constants
 
 CONF_GOOGLE_PLACES_ENABLED = "google_places_enabled"
@@ -333,6 +343,12 @@ CONF_GOOGLE_PLACES_LATITUDE = "google_places_latitude"
 CONF_GOOGLE_PLACES_LONGITUDE = "google_places_longitude"
 CONF_GOOGLE_PLACES_RADIUS = "google_places_radius"
 CONF_GOOGLE_PLACES_RANKING = "google_places_rank_preference"
+
+# OpenStreetMap Places-specific constants
+
+CONF_OPENSTREETMAP_PLACES_NUM_RESULTS = "openstreetmap_places_num_results"
+CONF_OPENSTREETMAP_PLACES_LATITUDE = "openstreetmap_places_latitude"
+CONF_OPENSTREETMAP_PLACES_LONGITUDE = "openstreetmap_places_longitude"
 
 # Google Routes-specific constants
 
@@ -442,6 +458,9 @@ SERVICE_DEFAULTS = {
     CONF_GOOGLE_PLACES_LONGITUDE: "",
     CONF_GOOGLE_PLACES_RADIUS: 5,
     CONF_GOOGLE_PLACES_RANKING: "Distance",
+    CONF_OPENSTREETMAP_PLACES_NUM_RESULTS: 2,
+    CONF_OPENSTREETMAP_PLACES_LATITUDE: "",
+    CONF_OPENSTREETMAP_PLACES_LONGITUDE: "",
     CONF_GOOGLE_ROUTES_HOME_ADDRESS: "",
     CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE: "DRIVE",
     CONF_WIKIPEDIA_NUM_RESULTS: 1,

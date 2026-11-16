@@ -17,9 +17,11 @@ from .const import (
     BASIC_UTILITIES_SERVICES_PROMPT,
     CONF_CALCULATOR_ENABLED,
     CONF_DATE_INFO_ENABLED,
-    CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_ROUTES_ENABLED,
     CONF_HOME_CONTROL_ENABLED,
+    CONF_PLACES_PROVIDER,
+    CONF_PLACES_PROVIDER_GOOGLE,
+    CONF_PLACES_PROVIDER_OPENSTREETMAP,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDER_TAVILY,
@@ -39,6 +41,7 @@ from .date_info import DateInfoTool
 from .google_places import FindPlacesTool
 from .google_routes import GetRouteTool
 from .home_control import HomeControlAPI
+from .openstreetmap_places import OpenStreetMapPlacesTool
 from .play_media import PlayVideoTool
 from .searxng_search import SearXngSearchTool
 from .tavily_search import TavilySearchTool
@@ -66,7 +69,16 @@ SEARCH_CONF_ENABLED_MAP = [
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_TAVILY,
         TavilySearchTool,
     ),
-    (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
+    (
+        lambda data: data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_GOOGLE,
+        FindPlacesTool,
+    ),
+    (
+        lambda data: (
+            data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_OPENSTREETMAP
+        ),
+        OpenStreetMapPlacesTool,
+    ),
     (CONF_GOOGLE_ROUTES_ENABLED, GetRouteTool),
     (CONF_YOUTUBE_ENABLED, SearchYouTubeTool),
     (CONF_WIKIPEDIA_ENABLED, SearchWikipediaTool),

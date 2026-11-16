@@ -6,7 +6,7 @@
         "description": "Select the services you want to enable for Tools for Assist.",
         "data": {
           "search_provider": "Web Search Provider",
-          "google_places_enabled": "Enable Google Places",
+          "places_provider": "Places Provider",
           "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search",
@@ -96,6 +96,15 @@
           "google_places_radius": "Location Bias Radius (KM)"
         }
       },
+      "openstreetmap_places": {
+        "title": "Configure OpenStreetMap Places",
+        "description": "Configure OpenStreetMap Places settings.",
+        "data": {
+          "openstreetmap_places_num_results": "Number of Results",
+          "openstreetmap_places_latitude": "Location Latitude (optional)",
+          "openstreetmap_places_longitude": "Location Longitude (optional)"
+        }
+      },
       "google_routes": {
         "title": "Configure Google Routes",
         "description": "Configure Google Routes API settings.",
@@ -175,7 +184,7 @@
         "description": "Select which services to you would like to use.",
         "data": {
           "search_provider": "Web Search Provider",
-          "google_places_enabled": "Enable Google Places",
+          "places_provider": "Places Provider",
           "google_routes_enabled": "Enable Google Routes",
           "youtube_enabled": "Enable YouTube Search",
           "wikipedia_enabled": "Enable Wikipedia Search"
@@ -267,6 +276,15 @@
           "google_places_latitude": "Location Bias Latitude (optional)",
           "google_places_longitude": "Location Bias Longitude (optional)",
           "google_places_radius": "Location Bias Radius (KM)"
+        }
+      },
+      "openstreetmap_places": {
+        "title": "Configure OpenStreetMap Places",
+        "description": "Configure OpenStreetMap Places settings.",
+        "data": {
+          "openstreetmap_places_num_results": "Number of Results",
+          "openstreetmap_places_latitude": "Location Latitude (optional)",
+          "openstreetmap_places_longitude": "Location Longitude (optional)"
         }
       },
       "google_routes": {

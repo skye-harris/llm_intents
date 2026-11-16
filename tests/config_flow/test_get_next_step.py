@@ -15,6 +15,7 @@ from custom_components.llm_intents.config_flow import (
     STEP_GOOGLE_PLACES,
     STEP_GOOGLE_ROUTES,
     STEP_HOME_CONTROL,
+    STEP_OPENSTREETMAP_PLACES,
     STEP_SEARXNG,
     STEP_TAVILY,
     STEP_USER,
@@ -28,6 +29,7 @@ from custom_components.llm_intents.config_flow import (
     get_google_routes_schema,
     get_home_control_schema,
     get_next_step,
+    get_openstreetmap_places_schema,
     get_searxng_schema,
     get_tavily_schema,
     get_weather_schema,
@@ -35,9 +37,11 @@ from custom_components.llm_intents.config_flow import (
 )
 from custom_components.llm_intents.const import (
     CONF_BASIC_UTILITIES_ENABLED,
-    CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_ROUTES_ENABLED,
     CONF_HOME_CONTROL_ENABLED,
+    CONF_PLACES_PROVIDER,
+    CONF_PLACES_PROVIDER_GOOGLE,
+    CONF_PLACES_PROVIDER_OPENSTREETMAP,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
@@ -88,11 +92,17 @@ class TestGetNextStepInitialConfigOrder:
                 {CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_TAVILY},
                 (STEP_TAVILY, get_tavily_schema),
             ),
-            # Google Places enabled
+            # Google Places provider selected
             (
                 STEP_USER,
-                {CONF_GOOGLE_PLACES_ENABLED: True},
+                {CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_GOOGLE},
                 (STEP_GOOGLE_API_KEY, get_google_api_key_schema),
+            ),
+            # OpenStreetMap Places provider selected
+            (
+                STEP_USER,
+                {CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_OPENSTREETMAP},
+                (STEP_OPENSTREETMAP_PLACES, get_openstreetmap_places_schema),
             ),
             # Weather enabled
             (
@@ -145,7 +155,7 @@ class TestGetNextStepInitialConfigOrder:
         """Walk through all steps when every service is enabled."""
         config_data = {
             CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_BRAVE,
-            CONF_GOOGLE_PLACES_ENABLED: True,
+            CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_GOOGLE,
             CONF_GOOGLE_ROUTES_ENABLED: True,
             CONF_WIKIPEDIA_ENABLED: True,
             CONF_WEATHER_ENABLED: True,
@@ -184,7 +194,6 @@ class TestGetNextStepInitialConfigOrder:
         """Walk through steps when some services are disabled."""
         config_data = {
             CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_SEARXNG,
-            CONF_GOOGLE_PLACES_ENABLED: False,
             CONF_GOOGLE_ROUTES_ENABLED: False,
             CONF_WIKIPEDIA_ENABLED: True,
             CONF_WEATHER_ENABLED: False,
