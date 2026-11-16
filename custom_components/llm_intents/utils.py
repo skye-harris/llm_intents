@@ -232,7 +232,7 @@ def find_entity_candidates(
 def find_entity_by_name(
     hass: HomeAssistant,
     entity_name: str,
-    domain: str | None = None,
+    domain: str,
     area: str | None = None,
     *,
     exposed_entities: dict[str, dict[str, Any]],
@@ -240,47 +240,35 @@ def find_entity_by_name(
     """
     Find an entity by its name or aliases.
 
-    Exact normalized match against the entity id, friendly name or
-    aliases — upstream's implementation, unchanged. Domain and area
-    are hard filters, as they are there. Nothing else is ever
-    returned: a partial or near-miss name does not resolve. Instead,
-    a miss raises EntityNotFoundError carrying the closest candidates
-    from the entities that pass the same filters, ordered by name
-    similarity, so the caller can retry with a candidate's exact
-    entity_id.
+    The matching loop below is upstream's implementation, unchanged
+    (byte-identical): an exact normalized match against the entity
+    id, friendly name or aliases, with domain and area as hard
+    filters. Our only addition is after the loop: instead of a bare
+    raise, a miss raises EntityNotFoundError carrying the closest
+    candidates from the entities that pass the same filters, ordered
+    by name similarity, so the caller can retry with a candidate's
+    exact entity_id. Nothing is ever picked automatically.
     """
-    if not entity_name or not entity_name.strip():
-        msg = "No entity name given"
-        raise EntityNotFoundError(
-            msg,
-            candidates=find_entity_candidates(
-                hass, None, domain, area, exposed_entities=exposed_entities
-            ),
-        )
-
     entity_name_norm = entity_name.lower().strip()
-    domain_norm = domain.lower().strip() if domain else None
-    area_norm = area.lower().strip() if area else None
+    domain = domain.lower().strip()
 
-    # Exact match — upstream's implementation. (Domain is
-    # optional in this tool's schema, so its check is skipped when no
-    # domain was supplied; when one is, the logic is upstream's.)
     for state in hass.states.async_all():
         # Exposed entities filter
         if state.entity_id not in exposed_entities:
             continue
 
         # Domain filter
-        if domain_norm is not None and state.domain != domain_norm:
+        if state.domain != domain:
             continue
 
         # Area filter
-        if area_norm is not None:
+        if area is not None:
+            area = area.lower().strip()
             entity_info = exposed_entities[state.entity_id]
             entity_areas = entity_info.get("areas")
             if entity_areas:
                 area_list = [a.lower().strip() for a in entity_areas.split(", ")]
-                if area_norm not in area_list:
+                if area not in area_list:
                     continue
 
         # Name matching

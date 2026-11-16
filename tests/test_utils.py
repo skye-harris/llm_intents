@@ -428,10 +428,10 @@ def test_browse_candidates_without_name(hass_with_entities: HomeAssistant) -> No
     assert [c["entity_id"] for c in candidates] == ["sensor.kitchen_temperature"]
 
 
-def test_empty_name_raises_with_browse_candidates(
+def test_empty_name_raises_without_candidates(
     hass_with_entities: HomeAssistant,
 ) -> None:
-    """An empty name raises, carrying browse candidates for the domain."""
+    """An empty name matches nothing exactly and raises with no candidates."""
     with pytest.raises(EntityNotFoundError) as excinfo:
         find_entity_by_name(
             hass_with_entities,
@@ -439,9 +439,7 @@ def test_empty_name_raises_with_browse_candidates(
             domain="sensor",
             exposed_entities=_EXPOSED_ENTITIES,
         )
-    assert [c["entity_id"] for c in excinfo.value.candidates] == [
-        "sensor.kitchen_temperature"
-    ]
+    assert excinfo.value.candidates == []
 
 
 def test_ambiguous_name_raises_with_candidates() -> None:
