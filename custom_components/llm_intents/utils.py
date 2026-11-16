@@ -103,7 +103,7 @@ def _passes_filters(
     behavior: when a domain is given, only that domain passes; when an
     area is given, an entity with recorded areas passes only if the
     area is among them (an entity with no recorded areas is not
-    excluded, as in upstream's exact-match implementation).
+    excluded).
     """
     if domain_norm is not None and state.domain != domain_norm:
         return False
@@ -240,14 +240,12 @@ def find_entity_by_name(
     """
     Find an entity by its name or aliases.
 
-    The matching loop below is upstream's implementation, unchanged
-    (byte-identical): an exact normalized match against the entity
-    id, friendly name or aliases, with domain and area as hard
-    filters. Our only addition is after the loop: instead of a bare
-    raise, a miss raises EntityNotFoundError carrying the closest
-    candidates from the entities that pass the same filters, ordered
-    by name similarity, so the caller can retry with a candidate's
-    exact entity_id. Nothing is ever picked automatically.
+    An exact normalized match against the entity id, friendly name
+    or aliases, with domain and area as hard filters. On a miss,
+    EntityNotFoundError is raised carrying the closest candidates
+    from the entities that pass the same filters, ordered by name
+    similarity, so the caller can retry with a candidate's exact
+    entity_id. Nothing is ever picked automatically.
     """
     entity_name_norm = entity_name.lower().strip()
     domain = domain.lower().strip()
