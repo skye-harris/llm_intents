@@ -89,6 +89,30 @@ def _score_name(query_norm: str, query_tokens: set[str], candidate_name: str) ->
     return max(token_score, fuzzy_score)
 
 
+def _passes_filters(
+    state: State,
+    domain_norm: str | None,
+    area_norm: str | None,
+    exposed_entities: dict[str, dict[str, Any]],
+) -> bool:
+    """
+    Apply the domain/area filters exactly as the exact-match stage does.
+
+    Both are hard filters, matching Home Assistant's own Assist
+    behavior: when a domain is given, only that domain passes; when an
+    area is given, an entity with recorded areas passes only if the
+    area is among them (an entity with no recorded areas is not
+    excluded, as in upstream's exact-match implementation).
+    """
+    if domain_norm is not None and state.domain != domain_norm:
+        return False
+    if area_norm is not None:
+        entity_areas = _entity_areas(exposed_entities, state.entity_id)
+        if entity_areas and area_norm not in entity_areas:
+            return False
+    return True
+
+
 def _ranked_matches(
     hass: HomeAssistant,
     entity_name: str,
@@ -97,13 +121,17 @@ def _ranked_matches(
     exposed_entities: dict[str, dict[str, Any]],
 ) -> list[tuple[float, State, str]]:
     """
-    Score every exposed entity against the query name.
+    Score the exposed entities that pass the filters against the name.
 
-    Returns (score, state, display name) tuples, best first. Only
-    exposed entities are ever considered — exposure remains the
-    permission boundary. Domain and area are scoring boosts here,
-    not hard filters: a model that guesses the wrong domain should
-    not lose an otherwise unambiguous name match.
+    Returns (score, state, display name) tuples, best first. Domain
+    and area are hard filters, applied before scoring: an entity
+    outside the requested domain or area is never scored, picked, or
+    returned as a candidate. Only the name match is scored — the
+    small boosts below only order entities that already passed the
+    filters (an entity confirmed in the requested area ranks above
+    one with no recorded area); they cannot pull an out-of-filter
+    entity into the results. Only exposed entities are ever
+    considered — exposure remains the permission boundary.
     """
     query_norm = _normalize(entity_name)
     query_tokens = set(_tokens(entity_name))
@@ -113,6 +141,8 @@ def _ranked_matches(
     scored: list[tuple[float, State, str]] = []
     for state in hass.states.async_all():
         if state.entity_id not in exposed_entities:
+            continue
+        if not _passes_filters(state, domain_norm, area_norm, exposed_entities):
             continue
 
         entity_entry = er.async_get(hass).async_get(state.entity_id)
@@ -177,9 +207,10 @@ def find_entity_candidates(
     """
     Return the closest exposed entities to a (possibly partial) name.
 
-    With no name, this is a browse: exposed entities matching the
-    domain/area filters are returned in state order. Unexposed
-    entities are never included.
+    Candidates only ever come from the entities that pass the
+    domain/area filters. With no name, this is a browse: exposed
+    entities passing the filters are returned in state order.
+    Unexposed entities are never included.
     """
     if entity_name:
         ranked = _ranked_matches(hass, entity_name, domain, area, exposed_entities)
@@ -191,11 +222,7 @@ def find_entity_candidates(
     for state in hass.states.async_all():
         if state.entity_id not in exposed_entities:
             continue
-        if domain_norm and state.domain != domain_norm:
-            continue
-        if area_norm and area_norm not in _entity_areas(
-            exposed_entities, state.entity_id
-        ):
+        if not _passes_filters(state, domain_norm, area_norm, exposed_entities):
             continue
         entity_info = exposed_entities.get(state.entity_id) or {}
         candidates.append(
@@ -225,14 +252,16 @@ def find_entity_by_name(
     Resolution runs in two stages:
 
     1. Exact normalized match against the entity id, friendly name or
-       aliases, within the domain/area filters when given (the
-       historical behaviour).
-    2. Ranked matching over all exposed entities, where domain/area
-       act as boosts rather than hard filters. A ranked match is only
-       accepted when it scores at least MIN_MATCH_SCORE and leads the
+       aliases — upstream's implementation, unchanged. Domain and
+       area are hard filters, as they are there.
+    2. Ranked matching, but only over the entities that pass the
+       same filters: a partial or near-miss *name* is forgiven, a
+       wrong domain or area is not. A ranked match is only accepted
+       when it scores at least MIN_MATCH_SCORE and leads the
        runner-up by MIN_MATCH_MARGIN — anything closer is ambiguous
        and raises EntityNotFoundError carrying the ranked candidates
-       so the caller can retry with an exact entity_id.
+       (from the filtered set only) so the caller can retry with an
+       exact entity_id.
     """
     if not entity_name or not entity_name.strip():
         msg = "No entity name given"
@@ -247,17 +276,28 @@ def find_entity_by_name(
     domain_norm = domain.lower().strip() if domain else None
     area_norm = area.lower().strip() if area else None
 
-    # Stage 1: exact match within the supplied filters.
+    # Stage 1: exact match — upstream's implementation. (Domain is
+    # optional in this tool's schema, so its check is skipped when no
+    # domain was supplied; when one is, the logic is upstream's.)
     for state in hass.states.async_all():
+        # Exposed entities filter
         if state.entity_id not in exposed_entities:
             continue
-        if domain_norm and state.domain != domain_norm:
-            continue
-        if area_norm and area_norm not in _entity_areas(
-            exposed_entities, state.entity_id
-        ):
+
+        # Domain filter
+        if domain_norm is not None and state.domain != domain_norm:
             continue
 
+        # Area filter
+        if area_norm is not None:
+            entity_info = exposed_entities[state.entity_id]
+            entity_areas = entity_info.get("areas")
+            if entity_areas:
+                area_list = [a.lower().strip() for a in entity_areas.split(", ")]
+                if area_norm not in area_list:
+                    continue
+
+        # Name matching
         entity_entry = er.async_get(hass).async_get(state.entity_id)
         names = intent.async_get_entity_aliases(hass, entity_entry, state=state)
         check_names = [state.entity_id, *names]
@@ -265,7 +305,7 @@ def find_entity_by_name(
             if name.lower().strip() == entity_name_norm:
                 return state
 
-    # Stage 2: ranked match, filters relaxed to boosts.
+    # Stage 2: ranked match over the filtered set only.
     ranked = _ranked_matches(hass, entity_name, domain, area, exposed_entities)
     if ranked:
         top_score, top_state, _ = ranked[0]

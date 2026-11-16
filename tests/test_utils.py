@@ -173,11 +173,10 @@ def test_find_no_entity_entry() -> None:
     [
         # Domain match
         ("light.living_room", "Living Room", "light", _EXPOSED_ENTITIES, False),
-        # Domain mismatch: an exact name match is rescued by the ranked
-        # stage — domain is a hint, not a hard filter.
-        ("light.living_room", "Living Room", "sensor", _EXPOSED_ENTITIES, False),
-        # Area mismatch: same — the exact entity_id beats a wrong area hint.
-        ("light.living_room", "Kitchen", "light", _EXPOSED_ENTITIES, False),
+        # Domain mismatch
+        ("light.living_room", "Living Room", "sensor", _EXPOSED_ENTITIES, True),
+        # Area mismatch
+        ("light.living_room", "Kitchen", "light", _EXPOSED_ENTITIES, True),
         # Exposed entities filter: entity not in dict
         (
             "light.living_room",
@@ -205,13 +204,13 @@ def test_find_no_entity_entry() -> None:
             },
             True,
         ),
-        # Exact entity_id with a wrong area hint: rescued by the ranked stage
+        # Filtered out entirely
         (
             "sensor.kitchen_temperature",
             "Living Room",
             "sensor",
             _EXPOSED_ENTITIES,
-            False,
+            True,
         ),
     ],
 )
@@ -223,7 +222,7 @@ def test_find_filters(
     exposed: dict,
     expect_error: bool,
 ) -> None:
-    """Test domain/area filtering and ranked rescue of exact matches."""
+    """Test domain, area, and exposed_entities filtering."""
     if expect_error:
         with pytest.raises(EntityNotFoundError):
             find_entity_by_name(
@@ -271,6 +270,67 @@ def test_ranked_fuzzy_name(hass_with_entities: HomeAssistant) -> None:
         exposed_entities=_EXPOSED_ENTITIES,
     )
     assert result.entity_id == "sensor.kitchen_temperature"
+
+
+def test_exact_name_wrong_area_fails(hass_with_entities: HomeAssistant) -> None:
+    """An exact name match still fails when the area filter is wrong."""
+    with pytest.raises(EntityNotFoundError):
+        find_entity_by_name(
+            hass_with_entities,
+            "Living Room Light",
+            area="Kitchen",
+            domain="light",
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
+
+
+def test_exact_name_wrong_domain_fails(hass_with_entities: HomeAssistant) -> None:
+    """An exact name match still fails when the domain filter is wrong."""
+    with pytest.raises(EntityNotFoundError):
+        find_entity_by_name(
+            hass_with_entities,
+            "Living Room Light",
+            area="Living Room",
+            domain="sensor",
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
+
+
+def test_ranked_partial_name_wrong_area_fails(
+    hass_with_entities: HomeAssistant,
+) -> None:
+    """The ranked stage does not rescue a partial name across areas."""
+    with pytest.raises(EntityNotFoundError):
+        find_entity_by_name(
+            hass_with_entities,
+            "Kitchen Temp",
+            area="Living Room",
+            domain="sensor",
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
+
+
+def test_candidates_respect_filters(hass_with_entities: HomeAssistant) -> None:
+    """Candidates never include entities outside the supplied filters."""
+    with pytest.raises(EntityNotFoundError) as excinfo:
+        find_entity_by_name(
+            hass_with_entities,
+            "Kitchen Temperature",
+            domain="light",
+            exposed_entities=_EXPOSED_ENTITIES,
+        )
+    assert all(c["domain"] == "light" for c in excinfo.value.candidates)
+    assert "sensor.kitchen_temperature" not in {
+        c["entity_id"] for c in excinfo.value.candidates
+    }
+
+    candidates = find_entity_candidates(
+        hass_with_entities,
+        "Temperature",
+        domain="light",
+        exposed_entities=_EXPOSED_ENTITIES,
+    )
+    assert "sensor.kitchen_temperature" not in {c["entity_id"] for c in candidates}
 
 
 def test_ranked_candidates_helper(hass_with_entities: HomeAssistant) -> None:
