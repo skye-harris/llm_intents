@@ -1,5 +1,6 @@
 """Tests for the OpenStreetMap Places tool and places provider selection."""
 
+import time
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -9,6 +10,7 @@ from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant.common import MockConfigEntry
 
+from custom_components.llm_intents.cache import InMemoryCache
 from custom_components.llm_intents.const import (
     CONF_OPENSTREETMAP_PLACES_LATITUDE,
     CONF_OPENSTREETMAP_PLACES_LONGITUDE,
@@ -75,6 +77,12 @@ def places_hass(hass: HomeAssistant, config: dict) -> HomeAssistant:
 def tool(places_hass: HomeAssistant, config: dict) -> OpenStreetMapPlacesTool:
     """Construct the tool under test."""
     return OpenStreetMapPlacesTool(config, places_hass)
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache() -> None:
+    """Isolate tests from the shared in-memory cache store."""
+    InMemoryCache._store.clear()
 
 
 OSM_COSTCO = {
@@ -271,6 +279,88 @@ async def test_osm_num_results_truncates(
         result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
 
     assert len(result.data["results"]) == 1
+
+
+async def test_osm_cache_hit_avoids_second_fetch(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A repeated identical search is served from cache, like Google's."""
+    session = _make_session([(200, [OSM_COSTCO])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        first = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        second = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+
+    assert first.data == {"results": [OSM_COSTCO_RESULT]}
+    assert second.data == first.data
+    assert session.get.call_count == 1
+
+
+async def test_osm_cache_different_query_misses(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A different query does not hit another query's cache entry."""
+    session = _make_session([(200, [OSM_COSTCO]), (200, [OSM_COSTCO])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        await tool.async_call(
+            places_hass, _tool_input(query="Costco Wholesale"), Mock()
+        )
+
+    assert session.get.call_count == 2
+
+
+async def test_osm_cache_expired_entry_refetches(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """An entry older than the shared cache TTL is ignored and refetched."""
+    cache = InMemoryCache()
+    key = cache._make_key(
+        "custom_components.llm_intents.openstreetmap_places",
+        {"q": "Costco", "latitude": 40.0, "longitude": -74.0, "num_results": 3},
+    )
+    InMemoryCache._store[key] = (
+        time.time() - InMemoryCache.DEFAULT_MAX_AGE - 1,
+        [{"name": "Stale"}],
+    )
+    session = _make_session([(200, [OSM_COSTCO])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+
+    assert result.data == {"results": [OSM_COSTCO_RESULT]}
+    assert session.get.call_count == 1
+
+
+async def test_osm_empty_results_not_cached(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """Empty results are not cached, mirroring the Google tool."""
+    session = _make_session([(200, [])] * 6)
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        await tool.async_call(places_hass, _tool_input(query="nowhere"), Mock())
+        await tool.async_call(places_hass, _tool_input(query="nowhere"), Mock())
+
+    # Both searches run all three stages — nothing was served from cache.
+    assert session.get.call_count == 6
 
 
 @pytest.mark.parametrize(

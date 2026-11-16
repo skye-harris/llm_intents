@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .base_places import FindPlacesBaseTool
+from .cache import InMemoryCache
 from .const import (
     CONF_OPENSTREETMAP_PLACES_LATITUDE,
     CONF_OPENSTREETMAP_PLACES_LONGITUDE,
@@ -44,6 +45,20 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
             config_data.get(CONF_OPENSTREETMAP_PLACES_LONGITUDE)
             or hass.config.longitude
         )
+
+        # Cache like the Google Places tool: the inputs that determine
+        # the result (query, search location, result count) form the
+        # key, and only successful results are stored.
+        cache = InMemoryCache()
+        cache_params = {
+            "q": query,
+            "latitude": lat,
+            "longitude": lon,
+            "num_results": num_results,
+        }
+        cached_results = cache.get(__name__, cache_params)
+        if cached_results:
+            return cached_results
 
         base_params = {
             "q": query,
@@ -146,5 +161,8 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
             if website:
                 this_place["website"] = website
             results.append(this_place)
+
+        if results:
+            cache.set(__name__, cache_params, results)
 
         return results
