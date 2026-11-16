@@ -95,7 +95,7 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
             # name may never make it into the results at all. A small box
             # around home holds few enough matches for the pool to be
             # complete; only widen the search when a stage comes back
-            # empty, and fall back to an unbounded search last.
+            # empty, and use an unbounded search last.
             for half_side in (0.1, 0.5):
                 viewbox = (
                     f"{lon - half_side},{lat + half_side},"

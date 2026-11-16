@@ -85,33 +85,33 @@ def _clear_cache() -> None:
     InMemoryCache._store.clear()
 
 
-OSM_COSTCO = {
-    "lat": "40.35",
-    "lon": "-76.85",
-    "display_name": "Costco, 5125 Jonestown Road, Harrisburg, PA",
-    "namedetails": {"name": "Costco"},
+OSM_EXAMPLE = {
+    "lat": "40.05",
+    "lon": "-73.95",
+    "display_name": "Example Warehouse, 100 Main Street, Springfield, PA",
+    "namedetails": {"name": "Example Warehouse"},
     "address": {
-        "house_number": "5125",
-        "road": "Jonestown Road",
-        "city": "Harrisburg",
+        "house_number": "100",
+        "road": "Main Street",
+        "city": "Springfield",
         "state": "Pennsylvania",
-        "postcode": "17112",
+        "postcode": "99999",
     },
     "extratags": {
-        "phone": "+1-717-555-0100",
+        "phone": "+1-212-555-0100",
         "opening_hours": "Mo-Fr 10:00-20:30",
-        "website": "https://www.costco.com",
+        "website": "https://example.com",
     },
 }
 
-OSM_COSTCO_RESULT = {
-    "name": "Costco",
-    "address": "5125 Jonestown Road, Harrisburg, Pennsylvania, 17112",
+OSM_EXAMPLE_RESULT = {
+    "name": "Example Warehouse",
+    "address": "100 Main Street, Springfield, Pennsylvania, 99999",
     "rating": "Not rated",
-    "phone": "+1-717-555-0100",
+    "phone": "+1-212-555-0100",
     "source": "OpenStreetMap",
     "opening_hours": "Mo-Fr 10:00-20:30",
-    "website": "https://www.costco.com",
+    "website": "https://example.com",
 }
 
 
@@ -120,16 +120,18 @@ async def test_osm_search_results(
     places_hass: HomeAssistant,
 ) -> None:
     """Nominatim results are parsed into the shared places result shape."""
-    session = _make_session([(200, [OSM_COSTCO])])
+    session = _make_session([(200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
         assert isinstance(result, ToolResult)
 
-    assert result.data == {"results": [OSM_COSTCO_RESULT]}
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
     # The first Nominatim lookup is the small bounded box around home
     # (fixture home: 40.0, -74.0), and a hit there stops the search —
     # no wider fetch is made.
@@ -146,15 +148,17 @@ async def test_osm_widens_when_small_box_empty(
     places_hass: HomeAssistant,
 ) -> None:
     """An empty small-box search widens to the larger bounded box."""
-    session = _make_session([(200, []), (200, [OSM_COSTCO])])
+    session = _make_session([(200, []), (200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
 
-    assert result.data == {"results": [OSM_COSTCO_RESULT]}
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
     assert session.get.call_count == 2
     second_get_params = session.get.call_args_list[1].kwargs["params"]
     assert second_get_params["bounded"] == 1
@@ -167,15 +171,17 @@ async def test_osm_unbounded_when_bounded_empty(
     places_hass: HomeAssistant,
 ) -> None:
     """When both bounded stages are empty, the search retries unbounded."""
-    session = _make_session([(200, []), (200, []), (200, [OSM_COSTCO])])
+    session = _make_session([(200, []), (200, []), (200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
 
-    assert result.data == {"results": [OSM_COSTCO_RESULT]}
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
     assert session.get.call_count == 3
     third_get_params = session.get.call_args_list[2].kwargs["params"]
     assert "bounded" not in third_get_params
@@ -248,13 +254,15 @@ async def test_osm_config_location_overrides_home(
     """Configured coordinates, not the HA home location, anchor the search."""
     config[CONF_OPENSTREETMAP_PLACES_LATITUDE] = 41.0
     config[CONF_OPENSTREETMAP_PLACES_LONGITUDE] = -75.0
-    session = _make_session([(200, [OSM_COSTCO])])
+    session = _make_session([(200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
 
     first_get_params = session.get.call_args_list[0].kwargs["params"]
     viewbox = [float(part) for part in first_get_params["viewbox"].split(",")]
@@ -268,15 +276,17 @@ async def test_osm_num_results_truncates(
 ) -> None:
     """Results are truncated to the configured number of results."""
     config[CONF_OPENSTREETMAP_PLACES_NUM_RESULTS] = 1
-    other = dict(OSM_COSTCO)
+    other = dict(OSM_EXAMPLE)
     other["lat"] = "40.36"
-    session = _make_session([(200, [OSM_COSTCO, other])])
+    session = _make_session([(200, [OSM_EXAMPLE, other])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
 
     assert len(result.data["results"]) == 1
 
@@ -286,16 +296,20 @@ async def test_osm_cache_hit_avoids_second_fetch(
     places_hass: HomeAssistant,
 ) -> None:
     """A repeated identical search is served from cache, like Google's."""
-    session = _make_session([(200, [OSM_COSTCO])])
+    session = _make_session([(200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        first = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
-        second = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        first = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+        second = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
 
-    assert first.data == {"results": [OSM_COSTCO_RESULT]}
+    assert first.data == {"results": [OSM_EXAMPLE_RESULT]}
     assert second.data == first.data
     assert session.get.call_count == 1
 
@@ -305,15 +319,17 @@ async def test_osm_cache_different_query_misses(
     places_hass: HomeAssistant,
 ) -> None:
     """A different query does not hit another query's cache entry."""
-    session = _make_session([(200, [OSM_COSTCO]), (200, [OSM_COSTCO])])
+    session = _make_session([(200, [OSM_EXAMPLE]), (200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
         await tool.async_call(
-            places_hass, _tool_input(query="Costco Wholesale"), Mock()
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+        await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse Wholesale"), Mock()
         )
 
     assert session.get.call_count == 2
@@ -327,21 +343,28 @@ async def test_osm_cache_expired_entry_refetches(
     cache = InMemoryCache()
     key = cache._make_key(
         "custom_components.llm_intents.openstreetmap_places",
-        {"q": "Costco", "latitude": 40.0, "longitude": -74.0, "num_results": 3},
+        {
+            "q": "Example Warehouse",
+            "latitude": 40.0,
+            "longitude": -74.0,
+            "num_results": 3,
+        },
     )
     InMemoryCache._store[key] = (
         time.time() - InMemoryCache.DEFAULT_MAX_AGE - 1,
         [{"name": "Stale"}],
     )
-    session = _make_session([(200, [OSM_COSTCO])])
+    session = _make_session([(200, [OSM_EXAMPLE])])
 
     with patch(
         "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
         return_value=session,
     ):
-        result = await tool.async_call(places_hass, _tool_input(query="Costco"), Mock())
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
 
-    assert result.data == {"results": [OSM_COSTCO_RESULT]}
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
     assert session.get.call_count == 1
 
 
