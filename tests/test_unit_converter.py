@@ -71,6 +71,11 @@ async def test_temperature_conversions(
         ('{"amount": "1", "from_unit": "liter", "to_unit": "dl"}', 10.0),
         # cup to dl
         ('{"amount": "1", "from_unit": "cup", "to_unit": "dl"}', 2.3659),
+        # quart conversions
+        ('{"amount": "1", "from_unit": "quart", "to_unit": "cup"}', 4.0),
+        ('{"amount": "2", "from_unit": "pint", "to_unit": "quart"}', 1.0),
+        ('{"amount": "1", "from_unit": "gallon", "to_unit": "quart"}', 4.0),
+        ('{"amount": "1", "from_unit": "quart", "to_unit": "liter"}', 0.9464),
     ],
 )
 async def test_volume_conversions(
@@ -295,6 +300,7 @@ async def test_unknown_temperature_unit(
         ("stone", UnitDomain.WEIGHT),
         # Volume units
         ("pint", UnitDomain.VOLUME),
+        ("quart", UnitDomain.VOLUME),
         ("cup", UnitDomain.VOLUME),
         ("tablespoon", UnitDomain.VOLUME),
         ("teaspoon", UnitDomain.VOLUME),
