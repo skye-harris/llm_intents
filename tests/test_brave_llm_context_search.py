@@ -64,6 +64,7 @@ def success_response() -> dict:
                         "This is snippet one from the search result.",
                         "This is snippet two from the search result.",
                     ],
+                    "url": "https://example.com/test",
                 }
             ]
         }
@@ -89,6 +90,7 @@ async def test_brave_llm_context_search_success(
         "This is snippet one from the search result.",
         "This is snippet two from the search result.",
     ]
+    assert result[0]["url"] == "https://example.com/test"
 
 
 async def test_brave_llm_context_search_config_params_headers(
@@ -298,6 +300,7 @@ async def test_brave_llm_context_search_no_optional_location_headers(
                 {
                     "title": "Test Result",
                     "snippets": ["Snippet 1"],
+                    "url": "https://example.com/test",
                 }
             ]
         }
