@@ -1,5 +1,6 @@
 """OpenStreetMap Places tool."""
 
+import asyncio
 import logging
 from http import HTTPStatus
 from typing import Any
@@ -17,6 +18,68 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Pause before retrying a stage after a transient failure. Nominatim's
+# usage policy allows at most one request per second, so the pause
+# doubles as rate limiting.
+_RETRY_DELAY_SECONDS = 1.5
+
+# Each search stage is attempted at most this many times: the initial
+# request plus one retry after a transient failure.
+_MAX_ATTEMPTS = 2
+
+
+async def _fetch_stage(session: Any, base_params: dict, extra: dict) -> list:
+    """
+    Fetch one search stage from Nominatim, retrying a transient failure once.
+
+    A transient failure (HTTP 429 or 5xx, or a request error such as a
+    timeout) is retried after a short pause: a momentary failure should
+    not widen or kill a search that would otherwise succeed. When the
+    stage has definitively failed this raises the error the tool has
+    always surfaced: HomeAssistantError for an HTTP status, the
+    original exception for a request error.
+    """
+    for attempt in (1, _MAX_ATTEMPTS):
+        status: int | None = None
+        try:
+            async with session.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={**base_params, **extra},
+                headers={
+                    "User-Agent": "HomeAssistant-llm_intents (personal home automation)",
+                },
+            ) as resp:
+                if resp.status == HTTPStatus.OK:
+                    return await resp.json()
+                status = resp.status
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:
+            if attempt == _MAX_ATTEMPTS:
+                raise
+            _LOGGER.warning(
+                "OpenStreetMap search request failed (%s); retrying",
+                err,
+            )
+            await asyncio.sleep(_RETRY_DELAY_SECONDS)
+            continue
+        # The request completed with a non-200 status: retry the stage
+        # once if the failure looks transient, otherwise fail the stage.
+        transient = (
+            status == HTTPStatus.TOO_MANY_REQUESTS
+            or status >= HTTPStatus.INTERNAL_SERVER_ERROR
+        )
+        if transient and attempt < _MAX_ATTEMPTS:
+            _LOGGER.warning(
+                "OpenStreetMap search returned HTTP %s; retrying",
+                status,
+            )
+            await asyncio.sleep(_RETRY_DELAY_SECONDS)
+            continue
+        msg = f"Places search error: {status}"
+        raise HomeAssistantError(msg)
+    return []  # Unreachable: the loop returns or raises.
 
 
 class OpenStreetMapPlacesTool(FindPlacesBaseTool):
@@ -92,27 +155,6 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
         }
         session = async_get_clientsession(hass)
 
-        async def _fetch(extra: dict) -> list:
-            async with session.get(
-                "https://nominatim.openstreetmap.org/search",
-                params={**base_params, **extra},
-                headers={
-                    "User-Agent": "HomeAssistant-llm_intents (personal home automation)",
-                },
-            ) as resp:
-                if resp.status != HTTPStatus.OK:
-                    # Surface the failure like the Google tool does
-                    # instead of widening the search: the base class
-                    # turns this into the tool's error result, and a
-                    # failed search is never cached.
-                    _LOGGER.error(
-                        "OpenStreetMap search returned HTTP %s",
-                        resp.status,
-                    )
-                    msg = f"Places search error: {resp.status}"
-                    raise HomeAssistantError(msg)
-                return await resp.json()
-
         data = []
         if lat is not None and lon is not None:
             # Search in stages, smallest area first. Nominatim ranks by
@@ -127,11 +169,25 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
                     f"{lon - half_side},{lat + half_side},"
                     f"{lon + half_side},{lat - half_side}"
                 )
-                data = await _fetch({"viewbox": viewbox, "bounded": 1})
+                try:
+                    data = await _fetch_stage(
+                        session,
+                        base_params,
+                        {"viewbox": viewbox, "bounded": 1},
+                    )
+                except Exception as err:
+                    # A stage that failed (after its retry) widens the
+                    # search like an empty stage does; only the final,
+                    # unbounded search below surfaces the error.
+                    _LOGGER.warning(
+                        "OpenStreetMap search stage failed (%s); widening the search",
+                        err,
+                    )
+                    data = []
                 if data:
                     break
         if not data:
-            data = await _fetch({})
+            data = await _fetch_stage(session, base_params, {})
 
         if lat is not None and lon is not None:
 

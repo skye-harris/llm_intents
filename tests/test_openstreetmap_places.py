@@ -1,6 +1,7 @@
 """Tests for the OpenStreetMap Places tool and places provider selection."""
 
 import time
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -83,6 +84,16 @@ def tool(places_hass: HomeAssistant, config: dict) -> OpenStreetMapPlacesTool:
 def _clear_cache() -> None:
     """Isolate tests from the shared in-memory cache store."""
     InMemoryCache._store.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_delay() -> Iterator[None]:
+    """Skip the Nominatim retry pause so failure-path tests stay fast."""
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places._RETRY_DELAY_SECONDS",
+        0,
+    ):
+        yield
 
 
 OSM_EXAMPLE = {
@@ -246,11 +257,11 @@ async def test_osm_no_results(
     assert session.get.call_count == 3
 
 
-async def test_osm_http_error_returns_error_without_widening(
+async def test_osm_transient_http_error_retried_on_same_stage(
     tool: OpenStreetMapPlacesTool,
     places_hass: HomeAssistant,
 ) -> None:
-    """An HTTP error stops the staged search and surfaces an error result."""
+    """A transient HTTP error is retried once on the same stage."""
     session = _make_session([(503, []), (200, [OSM_EXAMPLE])])
 
     with patch(
@@ -260,23 +271,148 @@ async def test_osm_http_error_returns_error_without_widening(
         result = await tool.async_call(
             places_hass, _tool_input(query="Example Warehouse"), Mock()
         )
-        # The failure is not cached: the same search fetches again.
-        retry = await tool.async_call(
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    # Exactly two requests, both to the first (small-box) stage: the
+    # retry repeats the stage instead of widening the search.
+    assert session.get.call_count == 2
+    first_params = session.get.call_args_list[0].kwargs["params"]
+    retry_params = session.get.call_args_list[1].kwargs["params"]
+    assert retry_params == first_params
+    assert retry_params["bounded"] == 1
+
+
+async def test_osm_transient_request_error_retried_on_same_stage(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A request error (e.g. a timeout) counts as transient and is retried."""
+    session = AsyncMock()
+    attempts = 0
+
+    def mock_get(_url: str, **_kwargs: Any) -> MockContext:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ConnectionError("network down")
+        response = AsyncMock()
+        response.status = 200
+        response.json = AsyncMock(return_value=[OSM_EXAMPLE])
+        return MockContext(response)
+
+    session.get = Mock(side_effect=mock_get)
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    assert session.get.call_count == 2
+
+
+async def test_osm_stage_failure_widens_after_retry(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A stage that fails twice widens to the next stage, like an empty one."""
+    session = _make_session([(503, []), (503, []), (200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    # Two attempts on the small box, then the wider box succeeds.
+    assert session.get.call_count == 3
+    third_params = session.get.call_args_list[2].kwargs["params"]
+    assert third_params["bounded"] == 1
+    viewbox = [float(part) for part in third_params["viewbox"].split(",")]
+    assert viewbox == pytest.approx([-74.5, 40.5, -73.5, 39.5])
+
+
+async def test_osm_non_transient_error_widens_without_retry(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A non-transient HTTP error widens at once, without a same-stage retry."""
+    session = _make_session([(400, []), (200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    # Exactly one request to the failed stage, then the wider box.
+    assert session.get.call_count == 2
+    first_params = session.get.call_args_list[0].kwargs["params"]
+    first_viewbox = [float(part) for part in first_params["viewbox"].split(",")]
+    assert first_viewbox == pytest.approx([-74.1, 40.1, -73.9, 39.9])
+    second_params = session.get.call_args_list[1].kwargs["params"]
+    second_viewbox = [float(part) for part in second_params["viewbox"].split(",")]
+    assert second_viewbox == pytest.approx([-74.5, 40.5, -73.5, 39.5])
+
+
+async def test_osm_all_stages_fail_surfaces_error(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """Only when the final, unbounded stage fails is the error surfaced."""
+    session = _make_session([(503, [])] * 6)
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
             places_hass, _tool_input(query="Example Warehouse"), Mock()
         )
 
     assert result.error is True
     assert result.data == {"error": "Error finding places: Places search error: 503"}
-    assert retry.data == {"results": [OSM_EXAMPLE_RESULT]}
-    # One request for the failed search (no widening), one for the retry.
-    assert session.get.call_count == 2
+    # Two attempts on each of the three stages.
+    assert session.get.call_count == 6
+
+
+async def test_osm_errors_not_cached(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A failed search is not cached: the same search fetches again."""
+    session = _make_session([(503, [])] * 6 + [(200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        failed = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+        retried = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert failed.error is True
+    assert retried.data == {"results": [OSM_EXAMPLE_RESULT]}
+    assert session.get.call_count == 7
 
 
 async def test_osm_request_failure_returns_error_result(
     tool: OpenStreetMapPlacesTool,
     places_hass: HomeAssistant,
 ) -> None:
-    """A failed request surfaces an error result instead of widening."""
+    """A request error on every stage surfaces an error result."""
     session = AsyncMock()
     session.get = Mock(side_effect=ConnectionError("network down"))
 
@@ -290,7 +426,8 @@ async def test_osm_request_failure_returns_error_result(
 
     assert result.error is True
     assert result.data == {"error": "Error finding places: network down"}
-    assert session.get.call_count == 1
+    # Two attempts on each of the three stages before the error surfaces.
+    assert session.get.call_count == 6
 
 
 async def test_osm_config_location_overrides_home(
