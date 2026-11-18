@@ -375,7 +375,7 @@ Converts quantities between common volume, weight, length, and temperature units
 
 **Supported units:**
 
-* **Volume:** `cup`, `tablespoon`, `teaspoon`, `ml`, `dl`, `liter`, `gallon`, `fluid_ounce`, `pint`
+* **Volume:** `cup`, `tablespoon`, `teaspoon`, `ml`, `dl`, `liter`, `gallon`, `fluid_ounce`, `pint`, `quart`
 * **Weight:** `gram`, `kilogram`, `milligram`, `pound`, `ounce`, `stone`
 * **Length:** `millimeter`, `centimeter`, `meter`, `kilometer`, `inch`, `foot`, `yard`, `mile`
 * **Temperature:** `celsius`, `fahrenheit`
