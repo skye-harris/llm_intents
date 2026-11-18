@@ -604,12 +604,13 @@ class EntityHistoryTool(BaseTool):
         last_state = remaining[-1] if remaining else start_state
 
         filtered = self._filter_unavailable(remaining)
+        deduplicated = self._deduplicate_consecutive(filtered)
 
-        if not filtered:
+        if not deduplicated:
             result = self._build_empty_result(start_state, last_state, results)
         else:
             result = self._build_result_with_stats(
-                start_state, filtered, last_state, results
+                start_state, deduplicated, last_state, results
             )
 
         # Durations are computed from the full sequence (including the
@@ -621,7 +622,9 @@ class EntityHistoryTool(BaseTool):
             result["stats"]["state_durations"] = durations
 
         # The time-weighted average uses the start record plus the
-        # filtered sequence — the same basis as the other summary stats.
+        # filtered sequence. Deduplication is a no-op for it: repeated
+        # identical values contribute the same time-weighted total
+        # whether or not the repeats are collapsed first.
         time_weighted_avg = self._compute_time_weighted_average(
             [start_state, *filtered], window_start, window_end
         )
@@ -644,6 +647,18 @@ class EntityHistoryTool(BaseTool):
     def _filter_unavailable(self, states: list) -> list[State | dict[str, Any]]:
         """Remove unavailable/unknown records that add no useful context."""
         return [s for s in states if _state_value(s) not in ("unavailable", "unknown")]
+
+    def _deduplicate_consecutive(
+        self, states: list[State | dict[str, Any]]
+    ) -> list[State | dict[str, Any]]:
+        """Remove consecutive duplicate states — keep only the first of each run."""
+        if not states:
+            return []
+        deduplicated = [states[0]]
+        for s in states[1:]:
+            if _state_value(s) != _state_value(deduplicated[-1]):
+                deduplicated.append(s)
+        return deduplicated
 
     def _build_empty_result(
         self,
