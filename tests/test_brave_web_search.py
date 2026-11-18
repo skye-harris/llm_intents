@@ -53,6 +53,7 @@ def success_response() -> dict:
                     "title": "Test Result",
                     "description": "Test description",
                     "extra_snippets": ["Snippet 1", "Snippet 2"],
+                    "url": "https://example.com/test",
                 }
             ]
         }
@@ -75,6 +76,7 @@ async def test_brave_search_success(
     assert len(result) == 1
     assert result[0]["title"] == "Test Result"
     assert result[0]["content"] == ["Snippet 1", "Snippet 2"]
+    assert result[0]["url"] == "https://example.com/test"
 
 
 async def test_brave_search_config_params_headers(
@@ -165,6 +167,7 @@ async def test_brave_search_no_extra_snippets_fallback(
                     "title": "No Snippets Result",
                     "description": "Fallback description text",
                     "extra_snippets": [],
+                    "url": "https://example.com/fallback",
                 }
             ]
         }
@@ -182,6 +185,7 @@ async def test_brave_search_no_extra_snippets_fallback(
     assert len(result) == 1
     assert result[0]["title"] == "No Snippets Result"
     assert result[0]["content"] == "Fallback description text"
+    assert result[0]["url"] == "https://example.com/fallback"
 
 
 async def test_brave_search_no_optional_location_headers(hass: HomeAssistant) -> None:
@@ -206,6 +210,7 @@ async def test_brave_search_no_optional_location_headers(hass: HomeAssistant) ->
                     "title": "Test Result",
                     "description": "Test description",
                     "extra_snippets": ["Snippet 1"],
+                    "url": "https://example.com/test",
                 }
             ]
         }

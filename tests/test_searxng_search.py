@@ -65,8 +65,10 @@ async def test_searxng_search_success(
     assert len(result) == 2
     assert result[0]["title"] == "Test Result 1"
     assert result[0]["content"] == "This is the content for result 1."
+    assert result[0]["url"] == "http://example.com"
     assert result[1]["title"] == "Test Result 2"
     assert result[1]["content"] == "This is the content for result 2."
+    assert result[1]["url"] == "http://example.com"
 
 
 async def test_searxng_search_config_params_headers(
