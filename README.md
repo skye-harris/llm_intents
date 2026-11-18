@@ -186,6 +186,8 @@ Searches for locations, businesses, or points of interest using the Google Place
 
 Search results include the location name, address, rating score, current open state, and when it next opens/closes.
 
+Search results are based on the location in latitude/longitude specified in the query or the home address.
+
 #### Requirements
 
 * Requires a [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview).
@@ -197,12 +199,20 @@ Search results include the location name, address, rating score, current open st
 2. Enter your [Google Places API key](https://developers.google.com/maps/documentation/places/web-service/overview).
 3. Configure number of results to return.
 
+#### LLM-provided arguments
+
+| Argument            | Required | Default            | Description                                                                     |
+|---------------------|----------|--------------------|---------------------------------------------------------------------------------|
+| `query`             | ✅       | —                  | The place or location to search for.                                            |
+| `origin-latitude`   | ❌        | —                  | Origin latitude (e.g. `37.7749`). Omit to use the configured home location.     |
+| `origin-longitude`  | ❌        | —                  | Origin longitude (e.g. `-122.4194`). Omit to use the configured home location.  |
+
 #### Options
 
 | Setting             | Required | Default    | Description                                                                 |
 |---------------------|----------|------------|-----------------------------------------------------------------------------|
-| `API Key`           | ✅        | —          | Google Places API key                                                       |
-| `Number of Results` | ✅        | `2`        | Number of location results to return                                        |
+| `API Key`           | ✅       | —          | Google Places API key                                                       |
+| `Number of Results` | ✅       | `2`        | Number of location results to return                                        |
 | `Latitude`          | ❌        | —          | Your locations latitude, if you wish to use location biasing (recommended)  |
 | `Longitude`         | ❌        | —          | Your locations longitude, if you wish to use location biasing (recommended) |
 | `Radius`            | ❌        | `5`        | The radius around your location for location biased results (in kilometres) |
@@ -212,7 +222,7 @@ Search results include the location name, address, rating score, current open st
 
 ### 🗺️ Google Routes
 
-Computes travel distance and duration from a configured home address to any destination, using the Google Routes API. The duration includes live traffic for driving and motorcycle/scooter trips, making it suitable for questions like:
+Computes travel distance and duration from a configured home address or origin latitude/longitude to any destination, using the Google Routes API. The duration includes live traffic for driving and motorcycle/scooter trips, making it suitable for questions like:
 
 * `"how far of a drive is it to the airport"`
 * `"how long would it take to drive to X"`
@@ -234,16 +244,18 @@ When a future departure time is supplied, the API returns predicted traffic for 
 
 #### LLM-provided arguments
 
-| Argument         | Required | Default            | Description                                                            |
-|------------------|----------|--------------------|------------------------------------------------------------------------|
-| `destination`    | ✅        | —                  | Destination address, place name, or business name in the user's words. |
-| `departure_time` | ❌        | `now`              | ISO 8601 departure time. Omit for an immediate departure.              |
-| `mode`           | ❌        | configured default | One of `DRIVE`, `WALK`, `BICYCLE`, `TRANSIT`, `TWO_WHEELER`.           |
+| Argument            | Required | Default            | Description                                                                     |
+|---------------------|----------|--------------------|---------------------------------------------------------------------------------|
+| `destination`       | ✅       | —                  | Destination address, place name, or business name in the user's words.          |
+| `departure_time`    | ❌        | `now`              | ISO 8601 departure time. Omit for an immediate departure.                       |
+| `mode`              | ❌        | configured default | One of `DRIVE`, `WALK`, `BICYCLE`, `TRANSIT`, `TWO_WHEELER`.                    |
+| `origin-latitude`   | ❌        | —                  | Origin latitude (e.g. `37.7749`). Omit to use the configured home location.     |
+| `origin-longitude`  | ❌        | —                  | Origin longitude (e.g. `-122.4194`). Omit to use the configured home location.  |
 
 #### Options
 
-| Setting                | Required | Default | Description                                                             |
-|------------------------|----------|---------|-------------------------------------------------------------------------|
+| Setting                | Required  | Default | Description                                                             |
+|------------------------|-----------|---------|-------------------------------------------------------------------------|
 | `API Key`              | ✅        | —       | Google API key with both Routes API and Places API (New) enabled        |
 | `Home Address`         | ✅        | —       | Starting point for route calculations (e.g. `123 Main St, Springfield`) |
 | `Default Travel Mode`  | ✅        | `DRIVE` | Travel mode used when the LLM doesn't specify one                       |
@@ -433,10 +445,8 @@ I would like to thank the following people for their contributions.
   <td align="center"><a href="https://github.com/QuadroKnoX"><img src="https://avatars.githubusercontent.com/u/9086677?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/QuadroKnoX">QuadroKnoX</a></b></sub></td>
   <td align="center"><a href="https://github.com/Thyraz"><img src="https://avatars.githubusercontent.com/u/170099?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Thyraz">Thyraz</a></b></sub></td>
   <td align="center"><a href="https://github.com/ianlunam"><img src="https://avatars.githubusercontent.com/u/2317877?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/ianlunam">ianlunam</a></b></sub></td>
-</tr>
-<tr>
   <td align="center"><a href="https://github.com/professor-sagittarius"><img src="https://avatars.githubusercontent.com/u/165941485?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/professor-sagittarius">professor-sagittarius</a></b></sub></td>
-  <td align="center"><a href="https://github.com/balloob"><img src="https://avatars.githubusercontent.com/u/1444314?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/balloob">balloob</a></b></sub></td>
+  <td align="center"><a href="https://github.com/codyjamestechnical"><img src="https://avatars.githubusercontent.com/u/33857557?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/codyjamestechnical">codyjamestechnical</a></b></sub></td>
 </tr>
 </table>
 
