@@ -784,13 +784,13 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_GOOGLE,
         get_google_places_schema,
     ],
+    STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
     STEP_OPENSTREETMAP_PLACES: [
         lambda data: (
             data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_OPENSTREETMAP
         ),
         get_openstreetmap_places_schema,
     ],
-    STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
 

@@ -86,8 +86,16 @@ async def test_tavily_search_success(
         result = await tool.async_search("test query")
 
     assert len(result) == 2
-    assert result[0] == {"title": "Test Result", "content": "Test content"}
-    assert result[1] == {"title": "Second Result", "content": "Markup content"}
+    assert result[0] == {
+        "title": "Test Result",
+        "content": "Test content",
+        "url": "https://example.com",
+    }
+    assert result[1] == {
+        "title": "Second Result",
+        "content": "Markup content",
+        "url": "https://example.org",
+    }
 
 
 async def test_tavily_search_payload_and_headers(
@@ -549,8 +557,10 @@ async def test_tavily_search_handles_the_real_response_shape(
     assert result[0] == {
         "title": "Paris - Wikipedia",
         "content": "Paris is the capital and largest city of France. ## Overview",
+        "url": "https://en.wikipedia.org/wiki/Paris",
     }
     assert result[1]["title"] == "France facts"
+    assert result[1]["url"] == "https://example.org/france"
 
 
 async def test_tavily_search_chunks_per_source_reaches_the_payload(
@@ -730,4 +740,4 @@ async def test_tavily_search_includes_answer_when_enabled(
         result = await tool.async_search("test query")
 
     assert result[0] == {"title": "Tavily answer", "content": "A generated answer"}
-    assert result[1] == {"title": "Test Result", "content": "Test content"}
+    assert result[1] == {"title": "Test Result", "content": "Test content", "url": None}

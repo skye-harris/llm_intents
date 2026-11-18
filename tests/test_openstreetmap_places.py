@@ -316,6 +316,56 @@ async def test_osm_config_location_overrides_home(
     assert viewbox == pytest.approx([-75.1, 41.1, -74.9, 40.9])
 
 
+async def test_osm_string_coordinates_fall_back_to_home(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+    config: dict,
+) -> None:
+    """
+    Non-numeric stored coordinates fall back to the home location.
+
+    A stored value that is not a usable number must not fail every
+    search: the bounded search anchors on the HA home location
+    (fixture home: 40.0, -74.0) instead.
+    """
+    config[CONF_OPENSTREETMAP_PLACES_LATITUDE] = "not-a-number"
+    config[CONF_OPENSTREETMAP_PLACES_LONGITUDE] = "not-a-number"
+    session = _make_session([(200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    first_get_params = session.get.call_args_list[0].kwargs["params"]
+    viewbox = [float(part) for part in first_get_params["viewbox"].split(",")]
+    assert viewbox == pytest.approx([-74.1, 40.1, -73.9, 39.9])
+
+
+async def test_osm_none_num_results_uses_default(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+    config: dict,
+) -> None:
+    """A stored num_results of None falls back to the service default."""
+    config[CONF_OPENSTREETMAP_PLACES_NUM_RESULTS] = None
+    session = _make_session([(200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+
+
 async def test_osm_num_results_truncates(
     tool: OpenStreetMapPlacesTool,
     places_hass: HomeAssistant,

@@ -268,15 +268,30 @@ class EntityHistoryTool(BaseTool):
         last_state = remaining[-1] if remaining else start_state
 
         filtered = self._filter_unavailable(remaining)
+        deduplicated = self._deduplicate_consecutive(filtered)
 
-        if not filtered:
+        if not deduplicated:
             return self._build_empty_result(start_state, last_state, results)
 
-        return self._build_result_with_stats(start_state, filtered, last_state, results)
+        return self._build_result_with_stats(
+            start_state, deduplicated, last_state, results
+        )
 
     def _filter_unavailable(self, states: list) -> list[State | dict[str, Any]]:
         """Remove unavailable/unknown records that add no useful context."""
         return [s for s in states if _state_value(s) not in ("unavailable", "unknown")]
+
+    def _deduplicate_consecutive(
+        self, states: list[State | dict[str, Any]]
+    ) -> list[State | dict[str, Any]]:
+        """Remove consecutive duplicate states — keep only the first of each run."""
+        if not states:
+            return []
+        deduplicated = [states[0]]
+        for s in states[1:]:
+            if _state_value(s) != _state_value(deduplicated[-1]):
+                deduplicated.append(s)
+        return deduplicated
 
     def _build_empty_result(
         self,

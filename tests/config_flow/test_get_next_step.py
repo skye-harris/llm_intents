@@ -188,6 +188,38 @@ class TestGetNextStepInitialConfigOrder:
         assert steps[-1] is None
         assert steps == [*expected_steps, None]
 
+    async def test_get_next_step_osm_after_google_section(
+        self, hass: HomeAssistant
+    ) -> None:
+        """
+        OpenStreetMap config comes after the whole Google section.
+
+        With the OpenStreetMap provider selected and Google Routes also
+        enabled, the Google API key step is followed by the Google
+        Routes step, and only then by the OpenStreetMap step.
+        """
+        config_data = {
+            CONF_PLACES_PROVIDER: CONF_PLACES_PROVIDER_OPENSTREETMAP,
+            CONF_GOOGLE_ROUTES_ENABLED: True,
+        }
+
+        expected_steps = [
+            (STEP_GOOGLE_API_KEY, get_google_api_key_schema),
+            (STEP_GOOGLE_ROUTES, get_google_routes_schema),
+            (STEP_OPENSTREETMAP_PLACES, get_openstreetmap_places_schema),
+        ]
+
+        steps: list[tuple[str, Callable] | None] = []
+        current_step: str = STEP_USER
+        while True:
+            result = get_next_step(current_step, config_data, INITIAL_CONFIG_STEP_ORDER)
+            steps.append(result)
+            if result is None:
+                break
+            current_step = result[0]
+
+        assert steps == [*expected_steps, None]
+
     async def test_get_next_step_some_services_disabled(
         self, hass: HomeAssistant
     ) -> None:

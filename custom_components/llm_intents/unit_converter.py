@@ -14,6 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 UNIT_TO_ML: dict[str, float] = {
     "pint": 473.176,
+    "quart": 946.353,
     "cup": 236.588237,
     "tablespoon": 14.78676478,
     "teaspoon": 4.92892159375,
@@ -83,7 +84,7 @@ class UnitConverterTool(BaseTool):
     name = "unit_convert"
     description = (
         "Convert quantities between volume units (cups, tablespoons, teaspoons, ml, "
-        "liters, gallons, fluid ounces, pints), weight units (grams, kilograms, "
+        "liters, gallons, fluid ounces, pints, quarts), weight units (grams, kilograms, "
         "milligrams, pounds, ounces, stone), and temperature units (celsius, fahrenheit). "
         "Supports fractional amounts like '1/8' or '1 1/2'. "
         "Always use this tool for unit conversions instead of calculating manually."
@@ -103,7 +104,7 @@ class UnitConverterTool(BaseTool):
                 "from_unit",
                 description=(
                     "Unit to convert from. Volume: cup, tablespoon, teaspoon, ml, "
-                    "liter, gallon, fluid_ounce, pint. "
+                    "liter, gallon, fluid_ounce, pint, quart. "
                     "Weight: gram, kilogram, milligram, pound, ounce, stone. "
                     "Temperature: celsius, fahrenheit."
                 ),
@@ -112,7 +113,7 @@ class UnitConverterTool(BaseTool):
                 "to_unit",
                 description=(
                     "Unit to convert to. Volume: cup, tablespoon, teaspoon, ml, "
-                    "liter, gallon, fluid_ounce, pint. "
+                    "liter, gallon, fluid_ounce, pint, quart. "
                     "Weight: gram, kilogram, milligram, pound, ounce, stone. "
                     "Temperature: celsius, fahrenheit."
                 ),

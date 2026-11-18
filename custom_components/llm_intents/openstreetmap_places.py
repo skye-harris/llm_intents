@@ -33,19 +33,39 @@ class OpenStreetMapPlacesTool(FindPlacesBaseTool):
         hass = self.hass
         config_data = self.config
 
-        num_results = int(
-            config_data.get(
+        def _number(value: Any) -> float | None:
+            """Coerce a stored config value to a float, or None if unusable."""
+            if value is None or value == "":
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        num_results = _number(
+            config_data.get(CONF_OPENSTREETMAP_PLACES_NUM_RESULTS),
+        )
+        if num_results is None:
+            num_results = SERVICE_DEFAULTS.get(
                 CONF_OPENSTREETMAP_PLACES_NUM_RESULTS,
-                SERVICE_DEFAULTS.get(CONF_OPENSTREETMAP_PLACES_NUM_RESULTS),
-            ),
+            )
+        num_results = int(num_results)
+
+        # The bounded stages below do arithmetic on the coordinates, so
+        # anything that is not a usable number (a missing key, a blank
+        # left by the config flow, a non-numeric stored value) must fall
+        # back to the home location, and failing that to an unbounded
+        # search, rather than failing the search outright.
+        lat = _number(
+            config_data.get(CONF_OPENSTREETMAP_PLACES_LATITUDE),
         )
-        lat = (
-            config_data.get(CONF_OPENSTREETMAP_PLACES_LATITUDE) or hass.config.latitude
+        if lat is None:
+            lat = _number(hass.config.latitude)
+        lon = _number(
+            config_data.get(CONF_OPENSTREETMAP_PLACES_LONGITUDE),
         )
-        lon = (
-            config_data.get(CONF_OPENSTREETMAP_PLACES_LONGITUDE)
-            or hass.config.longitude
-        )
+        if lon is None:
+            lon = _number(hass.config.longitude)
 
         # Cache like the Google Places tool: the inputs that determine
         # the result (query, search location, result count) form the
