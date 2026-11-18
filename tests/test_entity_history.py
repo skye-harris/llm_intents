@@ -9,10 +9,13 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.entity_history import (
+    MAX_DURATION_STATES,
     MAX_HISTORY_RESULTS,
     EntityHistoryTool,
     _state_value,
+    _to_datetime,
 )
+from custom_components.llm_intents.utils import EntityNotFoundError
 
 
 def _make_states(
@@ -636,6 +639,494 @@ async def test_async_call_ignores_non_exposed_entity(
         assert isinstance(result, ToolResult)
 
     assert "error" in result.data
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — _compute_state_durations
+# ---------------------------------------------------------------------------
+
+
+def test_state_durations_basic_split() -> None:
+    """Durations are clamped to the window and summed per state."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        # Changed before the window opened: clamped to the window start.
+        State("sensor.test", "A", last_changed=base - timedelta(minutes=5)),
+        State("sensor.test", "B", last_changed=base + timedelta(minutes=20)),
+        State("sensor.test", "A", last_changed=base + timedelta(minutes=40)),
+    ]
+    result = tool._compute_state_durations(states, base, base + timedelta(hours=1))
+    assert [entry["state"] for entry in result] == ["A", "B"]
+    assert result[0]["total_seconds"] == 40 * 60
+    assert result[0]["percent"] == pytest.approx(66.7)
+    assert result[1]["total_seconds"] == 20 * 60
+    assert result[1]["percent"] == pytest.approx(33.3)
+
+
+def test_state_durations_include_unknown() -> None:
+    """Unknown periods are real elapsed time and reported as their own state."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        State("sensor.test", "home", last_changed=base),
+        State("sensor.test", "unknown", last_changed=base + timedelta(minutes=30)),
+        State("sensor.test", "home", last_changed=base + timedelta(minutes=45)),
+    ]
+    result = tool._compute_state_durations(states, base, base + timedelta(hours=1))
+    by_state = {entry["state"]: entry for entry in result}
+    assert by_state["home"]["total_seconds"] == 45 * 60
+    assert by_state["unknown"]["total_seconds"] == 15 * 60
+
+
+def test_state_durations_dict_records() -> None:
+    """Dict records with ISO last_changed strings are supported."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        {"state": "on", "last_changed": base.isoformat()},
+        {
+            "state": "off",
+            "last_changed": (base + timedelta(minutes=10)).isoformat(),
+        },
+    ]
+    result = tool._compute_state_durations(states, base, base + timedelta(minutes=30))
+    by_state = {entry["state"]: entry for entry in result}
+    assert by_state["on"]["total_seconds"] == 10 * 60
+    assert by_state["off"]["total_seconds"] == 20 * 60
+
+
+def test_state_durations_high_cardinality_skipped() -> None:
+    """Numeric-style entities with many distinct states get no durations."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _make_states(
+        "sensor.test",
+        MAX_DURATION_STATES + 1,
+        base,
+        str,
+        interval_seconds=60,
+    )
+    assert tool._compute_state_durations(states, base, base) == []
+
+
+def test_state_durations_single_point_no_window() -> None:
+    """A single record with no window bounds yields no durations."""
+    tool = EntityHistoryTool({}, MagicMock())
+    states = [State("sensor.test", "on", last_changed=datetime.now(UTC))]
+    assert tool._compute_state_durations(states, None, None) == []
+
+
+# ---------------------------------------------------------------------------
+# Integration test — durations pick the long state, not the frequent one
+# ---------------------------------------------------------------------------
+
+
+async def test_state_durations_majority_by_time(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """
+    state_durations must rank by elapsed time, not by number of changes.
+
+    Mirrors a pet-location sensor: several short flips between two rooms,
+    then one long stay in a third — the long stay is the correct answer
+    to "where was it for most of the period?".
+    """
+    mock_find, mock_get_instance = mock_recorder
+    entity_id = "sensor.pet_location"
+    mock_find.return_value = State(entity_id, "Living Room")
+
+    # Derive the base time from the tool's own parser so the state
+    # timestamps and the search window share one timezone frame
+    # regardless of the test runner's local timezone.
+    base = _to_datetime("2024-01-15 00:00")
+    states = [
+        State(entity_id, "Living Room", last_changed=base),
+        State(entity_id, "Basement", last_changed=base + timedelta(minutes=10)),
+        State(entity_id, "Living Room", last_changed=base + timedelta(minutes=20)),
+        State(entity_id, "Basement", last_changed=base + timedelta(minutes=30)),
+        State(entity_id, "Master bedroom", last_changed=base + timedelta(hours=1)),
+    ]
+    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
+        return_value={entity_id: states},
+    )
+
+    tool = EntityHistoryTool({}, hass)
+    result = await tool.async_call(
+        hass,
+        MagicMock(
+            tool_args={
+                "name": "Pet location",
+                "area": "",
+                "domain": "sensor",
+                "start_date_time": "2024-01-15 00:00",
+                "end_date_time": "2024-01-15 06:00",
+            }
+        ),
+        MagicMock(),
+    )
+    assert isinstance(result, ToolResult)
+
+    durations = result.data["stats"]["state_durations"]
+    assert [entry["state"] for entry in durations] == [
+        "Master bedroom",
+        "Basement",
+        "Living Room",
+    ]
+    assert durations[0]["total_seconds"] == 5 * 3600
+    assert durations[0]["percent"] == pytest.approx(83.3)
+
+
+def test_time_weighted_average_weights_by_duration() -> None:
+    """A value held for 50 minutes outweighs one held for 10."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        State("sensor.test", "20.0", last_changed=base),
+        State("sensor.test", "30.0", last_changed=base + timedelta(minutes=50)),
+    ]
+    result = tool._compute_time_weighted_average(
+        states, base, base + timedelta(hours=1)
+    )
+    # (20*50 + 30*10) / 60 = 21.67, not the plain mean of 25.0.
+    assert result == pytest.approx(21.67)
+
+
+def test_time_weighted_average_non_numeric() -> None:
+    """Non-numeric entities have no time-weighted average."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        State("sensor.test", "on", last_changed=base),
+        State("sensor.test", "off", last_changed=base + timedelta(minutes=30)),
+    ]
+    assert (
+        tool._compute_time_weighted_average(states, base, base + timedelta(hours=1))
+        is None
+    )
+
+
+def test_time_weighted_average_unknown_start_not_extended() -> None:
+    """A non-numeric first record is skipped, not back-filled."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        State("sensor.test", "unknown", last_changed=base),
+        State("sensor.test", "20.0", last_changed=base + timedelta(minutes=10)),
+        State("sensor.test", "30.0", last_changed=base + timedelta(minutes=40)),
+    ]
+    result = tool._compute_time_weighted_average(
+        states, base, base + timedelta(hours=1)
+    )
+    # 20 held 10:10-10:40 (30 min), 30 held 10:40-11:00 (20 min):
+    # (20*30 + 30*20) / 50 = 24.0. Extending 20 back over the unknown
+    # prefix would give 23.33 instead.
+    assert result == pytest.approx(24.0)
+
+
+def test_time_weighted_average_in_stats() -> None:
+    """_process_entity_states attaches time_weighted_avg to the stats."""
+    tool = EntityHistoryTool({}, MagicMock())
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    sublist = [
+        State("sensor.test", "20.0", last_changed=base),
+        State("sensor.test", "30.0", last_changed=base + timedelta(minutes=50)),
+    ]
+    result = tool._process_entity_states(sublist, {}, base, base + timedelta(hours=1))
+    assert result["stats"]["time_weighted_avg"] == pytest.approx(21.67)
+
+
+# ---------------------------------------------------------------------------
+# Ranked resolver integration — entity_id, candidates, browse
+# ---------------------------------------------------------------------------
+
+
+async def test_async_call_includes_resolved_entity(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """A successful call names the entity it resolved to."""
+    mock_find, mock_get_instance = mock_recorder
+    entity_id = "sensor.temperature"
+    mock_find.return_value = State(entity_id, "22.0")
+
+    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _make_states(entity_id, 6, base_time, lambda i: str(21.0 + i))
+    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
+        return_value={entity_id: states},
+    )
+
+    tool = EntityHistoryTool({}, hass)
+    result = await tool.async_call(
+        hass,
+        MagicMock(
+            tool_args={
+                "name": "Temperature",
+                "domain": "sensor",
+                "start_date_time": "2024-01-15 00:00",
+                "end_date_time": "2024-01-15 23:59",
+            }
+        ),
+        MagicMock(),
+    )
+    assert result.error is not True
+    assert result.data["entity_id"] == entity_id
+    assert "stats" in result.data
+
+
+async def test_async_call_not_found_returns_candidates(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """A failed resolution returns candidates and a retry hint."""
+    mock_find, _ = mock_recorder
+    candidates = [
+        {
+            "entity_id": "sensor.dining_room_temperature",
+            "name": "Dining Room Temperature",
+            "domain": "sensor",
+            "areas": "Dining Room",
+            "score": 80.0,
+        }
+    ]
+    mock_find.side_effect = EntityNotFoundError(
+        "No exposed entity matched 'Dining Room Temp'", candidates=candidates
+    )
+
+    tool = EntityHistoryTool({}, hass)
+    result = await tool.async_call(
+        hass,
+        MagicMock(
+            tool_args={
+                "name": "Dining Room Temp",
+                "domain": "sensor",
+                "start_date_time": "2024-01-15 00:00",
+                "end_date_time": "2024-01-15 23:59",
+            }
+        ),
+        MagicMock(),
+    )
+    assert result.error is True
+    assert result.data["candidates"] == candidates
+    assert "entity_id" in result.data["hint"]
+
+
+async def test_async_call_unexposed_entity_id_returns_candidates(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """An entity_id that is not exposed fails with candidates, not a crash."""
+    tool = EntityHistoryTool({}, hass)
+    with patch(
+        "custom_components.llm_intents.entity_history.find_entity_candidates",
+        return_value=[{"entity_id": "sensor.other"}],
+    ):
+        result = await tool.async_call(
+            hass,
+            MagicMock(
+                tool_args={
+                    "entity_id": "sensor.secret",
+                    "start_date_time": "2024-01-15 00:00",
+                    "end_date_time": "2024-01-15 23:59",
+                }
+            ),
+            MagicMock(),
+        )
+    assert result.error is True
+    assert result.data["candidates"] == [{"entity_id": "sensor.other"}]
+
+
+async def test_async_call_no_name_browses_candidates(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """No name and no entity_id returns a browse list of candidates."""
+    tool = EntityHistoryTool({}, hass)
+    browse = [{"entity_id": "sensor.kitchen_temperature", "domain": "sensor"}]
+    with patch(
+        "custom_components.llm_intents.entity_history.find_entity_candidates",
+        return_value=browse,
+    ) as mock_candidates:
+        result = await tool.async_call(
+            hass,
+            MagicMock(
+                tool_args={
+                    "domain": "sensor",
+                    "start_date_time": "2024-01-15 00:00",
+                    "end_date_time": "2024-01-15 23:59",
+                }
+            ),
+            MagicMock(),
+        )
+    assert result.error is True
+    assert result.data["candidates"] == browse
+    mock_candidates.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Threshold durations
+# ---------------------------------------------------------------------------
+
+
+def _timed_states(
+    entity_id: str, spec: list[tuple[int, str]], base_time: datetime
+) -> list[State]:
+    """Build states at (offset_seconds, value) points from base_time."""
+    return [
+        State(
+            entity_id,
+            value,
+            last_changed=base_time + timedelta(seconds=offset),
+            last_updated=base_time + timedelta(seconds=offset),
+        )
+        for offset, value in spec
+    ]
+
+
+def test_threshold_duration_above_below_split() -> None:
+    """Above/below totals are computed from segment durations, not samples."""
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _timed_states(
+        "sensor.temperature",
+        [(-300, "20.0"), (600, "30.0"), (2400, "25.0")],
+        base,
+    )
+    result = EntityHistoryTool._compute_threshold_duration(
+        states, base, base + timedelta(hours=1), 25.0
+    )
+    assert result is not None
+    # 20 held 10:00-10:10 (below, first record clamped to window start),
+    # 30 held 10:10-10:40 (above), 25 held 10:40-11:00 (equal: neither).
+    assert result["above_seconds"] == 1800
+    assert result["below_seconds"] == 600
+    assert result["above_percent"] == 50.0
+    assert result["below_percent"] == 16.7
+    assert result["threshold"] == 25.0
+
+
+def test_threshold_duration_unknown_counts_as_neither() -> None:
+    """Unknown gaps are excluded from both sides and from the denominator."""
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _timed_states(
+        "sensor.temperature",
+        [(0, "30.0"), (1200, "unknown"), (2400, "10.0")],
+        base,
+    )
+    result = EntityHistoryTool._compute_threshold_duration(
+        states, base, base + timedelta(hours=1), 25.0
+    )
+    assert result is not None
+    assert result["above_seconds"] == 1200
+    assert result["below_seconds"] == 1200
+    assert result["above_percent"] == 50.0
+    assert result["below_percent"] == 50.0
+
+
+def test_threshold_duration_non_numeric_returns_none() -> None:
+    """A categorical entity has no threshold duration."""
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _timed_states("switch.lamp", [(0, "on"), (600, "off")], base)
+    result = EntityHistoryTool._compute_threshold_duration(
+        states, base, base + timedelta(hours=1), 25.0
+    )
+    assert result is None
+
+
+def test_threshold_duration_dict_records() -> None:
+    """Plain dict records (minimal_response) with ISO timestamps work."""
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = [
+        {"state": "30.0", "last_changed": base.isoformat()},
+        {
+            "state": "10.0",
+            "last_changed": (base + timedelta(minutes=30)).isoformat(),
+        },
+    ]
+    result = EntityHistoryTool._compute_threshold_duration(
+        states, base, base + timedelta(hours=1), 25.0
+    )
+    assert result is not None
+    assert result["above_seconds"] == 1800
+    assert result["below_seconds"] == 1800
+
+
+def test_process_entity_states_adds_threshold_duration() -> None:
+    """_process_entity_states attaches threshold stats when asked."""
+    base = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _timed_states("sensor.temperature", [(0, "30.0"), (1800, "10.0")], base)
+    tool = EntityHistoryTool({}, MagicMock())
+    result = tool._process_entity_states(
+        states, {}, base, base + timedelta(hours=1), 25.0
+    )
+    td = result["stats"]["threshold_duration"]
+    assert td["above_seconds"] == 1800
+    assert td["below_seconds"] == 1800
+
+
+async def test_async_call_with_threshold(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """End to end: a threshold argument produces threshold stats."""
+    mock_find, mock_get_instance = mock_recorder
+    entity_id = "sensor.temperature"
+    mock_find.return_value = State(entity_id, "22.0")
+
+    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _timed_states(entity_id, [(0, "30.0"), (1800, "10.0")], base_time)
+    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
+        return_value={entity_id: states},
+    )
+
+    tool = EntityHistoryTool({}, hass)
+    result = await tool.async_call(
+        hass,
+        MagicMock(
+            tool_args={
+                "name": "Temperature",
+                "area": "Kitchen",
+                "domain": "sensor",
+                "threshold": 25.0,
+                "start_date_time": "2024-01-15 10:00",
+                "end_date_time": "2024-01-15 11:00",
+            }
+        ),
+        MagicMock(),
+    )
+    assert result.data["stats"]["threshold_duration"]["threshold"] == 25.0
+
+
+async def test_async_call_without_threshold_has_no_threshold_stats(
+    mock_recorder: tuple[MagicMock, MagicMock],
+    hass: HomeAssistant,
+) -> None:
+    """Without a threshold argument, no threshold stats are attached."""
+    mock_find, mock_get_instance = mock_recorder
+    entity_id = "sensor.temperature"
+    mock_find.return_value = State(entity_id, "22.0")
+
+    base_time = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+    states = _timed_states(entity_id, [(0, "30.0"), (1800, "10.0")], base_time)
+    mock_get_instance.return_value.async_add_executor_job = AsyncMock(
+        return_value={entity_id: states},
+    )
+
+    tool = EntityHistoryTool({}, hass)
+    result = await tool.async_call(
+        hass,
+        MagicMock(
+            tool_args={
+                "name": "Temperature",
+                "area": "Kitchen",
+                "domain": "sensor",
+                "start_date_time": "2024-01-15 10:00",
+                "end_date_time": "2024-01-15 11:00",
+            }
+        ),
+        MagicMock(),
+    )
+    assert "threshold_duration" not in result.data["stats"]
 
 
 # ---------------------------------------------------------------------------
