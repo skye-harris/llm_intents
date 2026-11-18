@@ -45,10 +45,14 @@ class SearXngSearchTool(SearchWebTool):
             if resp.status == HTTPStatus.OK:
                 results = []
                 for result in data.get("results", [])[0:num_results]:
-                    title = result.get("title", "")
+                    title = result.get("title")
                     content = await self.cleanup_text(result.get("content", ""))
 
-                    item = {"title": title, "content": content}
+                    item = {
+                        "title": title,
+                        "content": content,
+                        "url": result.get("url"),
+                    }
                     results.append(item)
                 return results
             err_msg = (
