@@ -636,3 +636,119 @@ async def test_async_call_ignores_non_exposed_entity(
         assert isinstance(result, ToolResult)
 
     assert "error" in result.data
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — _deduplicate_consecutive
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("states", "expected_count", "expected_values"),
+    [
+        # All identical states → single entry
+        (
+            [
+                State("sensor.test", "25.0", last_changed=datetime.now(UTC)),
+                State(
+                    "sensor.test",
+                    "25.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=1),
+                ),
+                State(
+                    "sensor.test",
+                    "25.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=2),
+                ),
+            ],
+            1,
+            ["25.0"],
+        ),
+        # Alternating states → all kept
+        (
+            [
+                State("sensor.test", "25.0", last_changed=datetime.now(UTC)),
+                State(
+                    "sensor.test",
+                    "26.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=1),
+                ),
+                State(
+                    "sensor.test",
+                    "25.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=2),
+                ),
+                State(
+                    "sensor.test",
+                    "26.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=3),
+                ),
+            ],
+            4,
+            ["25.0", "26.0", "25.0", "26.0"],
+        ),
+        # Mixed: consecutive duplicates + unique values
+        (
+            [
+                State("sensor.test", "25.0", last_changed=datetime.now(UTC)),
+                State(
+                    "sensor.test",
+                    "25.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=1),
+                ),
+                State(
+                    "sensor.test",
+                    "26.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=2),
+                ),
+                State(
+                    "sensor.test",
+                    "26.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=3),
+                ),
+                State(
+                    "sensor.test",
+                    "26.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=4),
+                ),
+                State(
+                    "sensor.test",
+                    "27.0",
+                    last_changed=datetime.now(UTC) + timedelta(minutes=5),
+                ),
+            ],
+            3,
+            ["25.0", "26.0", "27.0"],
+        ),
+        # Empty input
+        ([], 0, []),
+        # Single state → unchanged
+        (
+            [State("sensor.test", "42.0", last_changed=datetime.now(UTC))],
+            1,
+            ["42.0"],
+        ),
+        # With dicts
+        (
+            [
+                {"state": "25.0"},
+                {"state": "25.0"},
+                {"state": "26.0"},
+                {"state": "26.0"},
+            ],
+            2,
+            ["25.0", "26.0"],
+        ),
+    ],
+)
+def test_deduplicate_consecutive(
+    states: list,
+    expected_count: int,
+    expected_values: list[str],
+) -> None:
+    """Test _deduplicate_consecutive removes consecutive duplicate states."""
+    tool = EntityHistoryTool({}, MagicMock())
+    result = tool._deduplicate_consecutive(states)
+    assert len(result) == expected_count
+    for i, val in enumerate(expected_values):
+        assert _state_value(result[i]) == val
