@@ -157,7 +157,9 @@ class TavilySearchTool(SearchWebTool):
 
             for result in response_content.get("results", []):
                 title = result.get("title", "")
-                content = result.get("content") or ""
+                content = result.get("content", "")
+                url = result.get("url")
+
                 if include_raw_content:
                     content = result.get("raw_content") or content
 
@@ -165,6 +167,6 @@ class TavilySearchTool(SearchWebTool):
                 if max_chars:
                     content = content[:max_chars]
 
-                results.append({"title": title, "content": content})
+                results.append({"title": title, "content": content, "url": url})
 
             return results
