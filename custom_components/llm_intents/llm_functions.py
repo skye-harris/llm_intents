@@ -21,6 +21,7 @@ from .const import (
     CONF_GOOGLE_ROUTES_ENABLED,
     CONF_HOME_CONTROL_ENABLED,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
+    CONF_SEARCH_PROVIDER_KEENABLE,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDER_TAVILY,
     CONF_UNIT_CONVERTER_ENABLED,
@@ -40,6 +41,7 @@ from .google_places import FindPlacesTool
 from .google_routes import GetRouteTool
 from .home_control import HomeControlAPI
 from .play_media import PlayVideoTool
+from .keenable_search import KeenableSearchTool
 from .searxng_search import SearXngSearchTool
 from .tavily_search import TavilySearchTool
 from .unit_converter import UnitConverterTool
@@ -65,6 +67,10 @@ SEARCH_CONF_ENABLED_MAP = [
     (
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_TAVILY,
         TavilySearchTool,
+    ),
+    (
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_KEENABLE,
+        KeenableSearchTool,
     ),
     (CONF_GOOGLE_PLACES_ENABLED, FindPlacesTool),
     (CONF_GOOGLE_ROUTES_ENABLED, GetRouteTool),

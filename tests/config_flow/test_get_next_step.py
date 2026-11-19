@@ -16,6 +16,7 @@ from custom_components.llm_intents.config_flow import (
     STEP_GOOGLE_ROUTES,
     STEP_HOME_CONTROL,
     STEP_SEARXNG,
+    STEP_KEENABLE,
     STEP_TAVILY,
     STEP_USER,
     STEP_WEATHER,
@@ -29,6 +30,7 @@ from custom_components.llm_intents.config_flow import (
     get_home_control_schema,
     get_next_step,
     get_searxng_schema,
+    get_keenable_schema,
     get_tavily_schema,
     get_weather_schema,
     get_wikipedia_schema,
@@ -42,6 +44,7 @@ from custom_components.llm_intents.const import (
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
     CONF_SEARCH_PROVIDER_SEARXNG,
+    CONF_SEARCH_PROVIDER_KEENABLE,
     CONF_SEARCH_PROVIDER_TAVILY,
     CONF_WEATHER_ENABLED,
     CONF_WIKIPEDIA_ENABLED,
@@ -87,6 +90,12 @@ class TestGetNextStepInitialConfigOrder:
                 STEP_USER,
                 {CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_TAVILY},
                 (STEP_TAVILY, get_tavily_schema),
+            ),
+            # Keenable search provider
+            (
+                STEP_USER,
+                {CONF_SEARCH_PROVIDER: CONF_SEARCH_PROVIDER_KEENABLE},
+                (STEP_KEENABLE, get_keenable_schema),
             ),
             # Google Places enabled
             (
