@@ -7,7 +7,7 @@ import logging
 import types
 from typing import TYPE_CHECKING, Any
 
-from . import CONFIG_VERSION_2
+from . import CONFIG_VERSION_4
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -60,7 +60,6 @@ from .const import (
     CONF_DATE_INFO_ENABLED,
     CONF_ENTITY_HISTORY_ENABLED,
     CONF_GOOGLE_API_KEY,
-    CONF_GOOGLE_PLACES_ENABLED,
     CONF_GOOGLE_PLACES_LATITUDE,
     CONF_GOOGLE_PLACES_LONGITUDE,
     CONF_GOOGLE_PLACES_NUM_RESULTS,
@@ -75,6 +74,13 @@ from .const import (
     CONF_HOME_CONTROL_ENABLED,
     CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     CONF_HOURLY_WEATHER_ENTITY,
+    CONF_OPENSTREETMAP_PLACES_LATITUDE,
+    CONF_OPENSTREETMAP_PLACES_LONGITUDE,
+    CONF_OPENSTREETMAP_PLACES_NUM_RESULTS,
+    CONF_PLACES_PROVIDER,
+    CONF_PLACES_PROVIDER_GOOGLE,
+    CONF_PLACES_PROVIDER_OPENSTREETMAP,
+    CONF_PLACES_PROVIDERS,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
@@ -121,6 +127,7 @@ STEP_SEARXNG = "searxng"
 STEP_TAVILY = "tavily"
 STEP_GOOGLE_API_KEY = "google_api_key"
 STEP_GOOGLE_PLACES = "google_places"
+STEP_OPENSTREETMAP_PLACES = "openstreetmap_places"
 STEP_GOOGLE_ROUTES = "google_routes"
 STEP_YOUTUBE = "youtube"
 STEP_WIKIPEDIA = "wikipedia"
@@ -165,7 +172,14 @@ def get_step_user_data_schema(hass: HomeAssistant) -> vol.Schema:
                 options=options_to_selections_dict(CONF_SEARCH_PROVIDERS),
             ),
         ),
-        vol.Optional(CONF_GOOGLE_PLACES_ENABLED, default=False): bool,
+        vol.Optional(
+            CONF_PLACES_PROVIDER,
+        ): SelectSelector(
+            SelectSelectorConfig(
+                mode=SelectSelectorMode.DROPDOWN,
+                options=options_to_selections_dict(CONF_PLACES_PROVIDERS),
+            ),
+        ),
         vol.Optional(CONF_GOOGLE_ROUTES_ENABLED, default=False): bool,
         vol.Optional(CONF_YOUTUBE_ENABLED, default=False): bool,
         vol.Optional(CONF_WIKIPEDIA_ENABLED, default=False): bool,
@@ -510,6 +524,50 @@ async def get_google_places_schema(hass: HomeAssistant) -> vol.Schema:
     )
 
 
+async def get_openstreetmap_places_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the static schema for OpenStreetMap Places service configuration."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_OPENSTREETMAP_PLACES_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_OPENSTREETMAP_PLACES_NUM_RESULTS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                ),
+            ),
+            vol.Optional(
+                CONF_OPENSTREETMAP_PLACES_LATITUDE,
+                default=SERVICE_DEFAULTS.get(CONF_OPENSTREETMAP_PLACES_LATITUDE),
+            ): NullableNumberSelector(
+                NumberSelectorConfig(
+                    min=-90,
+                    max=90,
+                    step=0.001,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Degrees",
+                ),
+            ),
+            vol.Optional(
+                CONF_OPENSTREETMAP_PLACES_LONGITUDE,
+                default=SERVICE_DEFAULTS.get(CONF_OPENSTREETMAP_PLACES_LONGITUDE),
+            ): NullableNumberSelector(
+                NumberSelectorConfig(
+                    min=-180,
+                    max=180,
+                    step=0.001,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="Degrees",
+                ),
+            ),
+        },
+    )
+
+
 async def get_google_routes_schema(hass: HomeAssistant) -> vol.Schema:
     """Return the static schema for Google Routes service configuration."""
     return vol.Schema(
@@ -717,12 +775,22 @@ SEARCH_STEP_ORDER = {
     ],
     STEP_GOOGLE_API_KEY: [
         lambda data: (
-            data.get(CONF_GOOGLE_PLACES_ENABLED) or data.get(CONF_GOOGLE_ROUTES_ENABLED)
+            data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_GOOGLE
+            or data.get(CONF_GOOGLE_ROUTES_ENABLED)
         ),
         get_google_api_key_schema,
     ],
-    STEP_GOOGLE_PLACES: [CONF_GOOGLE_PLACES_ENABLED, get_google_places_schema],
+    STEP_GOOGLE_PLACES: [
+        lambda data: data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_GOOGLE,
+        get_google_places_schema,
+    ],
     STEP_GOOGLE_ROUTES: [CONF_GOOGLE_ROUTES_ENABLED, get_google_routes_schema],
+    STEP_OPENSTREETMAP_PLACES: [
+        lambda data: (
+            data.get(CONF_PLACES_PROVIDER) == CONF_PLACES_PROVIDER_OPENSTREETMAP
+        ),
+        get_openstreetmap_places_schema,
+    ],
     STEP_WIKIPEDIA: [CONF_WIKIPEDIA_ENABLED, get_wikipedia_schema],
 }
 
@@ -772,7 +840,7 @@ def get_next_step(
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Tools for Assist integration."""
 
-    VERSION = CONFIG_VERSION_2
+    VERSION = CONFIG_VERSION_4
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -893,6 +961,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Google Places configuration step."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
 
+    async def async_step_openstreetmap_places(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle OpenStreetMap Places configuration step."""
+        return await self.handle_step(STEP_OPENSTREETMAP_PLACES, user_input)
+
     async def async_step_google_routes(
         self,
         user_input: dict[str, Any] | None = None,
@@ -977,6 +1052,7 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
         """Handle the configure menu option."""
         if user_input is not None:
             self.config_data[CONF_SEARCH_PROVIDER] = None
+            self.config_data[CONF_PLACES_PROVIDER] = None
 
         if user_input is None:
             schema_dict = {
@@ -989,9 +1065,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
                     ),
                 ),
                 vol.Optional(
-                    CONF_GOOGLE_PLACES_ENABLED,
-                    default=False,
-                ): bool,
+                    CONF_PLACES_PROVIDER,
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        mode=SelectSelectorMode.DROPDOWN,
+                        options=options_to_selections_dict(CONF_PLACES_PROVIDERS),
+                    ),
+                ),
                 vol.Optional(
                     CONF_GOOGLE_ROUTES_ENABLED,
                     default=False,
@@ -1170,6 +1250,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
     ) -> FlowResult:
         """Handle Google Places configuration step in options flow."""
         return await self.handle_step(STEP_GOOGLE_PLACES, user_input)
+
+    async def async_step_openstreetmap_places(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle OpenStreetMap Places configuration step in options flow."""
+        return await self.handle_step(STEP_OPENSTREETMAP_PLACES, user_input)
 
     async def async_step_google_routes(
         self,

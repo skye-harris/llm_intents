@@ -4,14 +4,13 @@ import logging
 import re
 from http import HTTPStatus
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt
 
-from .base_tool import BaseTool
+from .base_places import FindPlacesBaseTool
 from .cache import InMemoryCache
 from .const import (
     CONF_GOOGLE_PLACES_LATITUDE,
@@ -27,37 +26,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class FindPlacesTool(BaseTool):
-    """Tool for finding places."""
-
-    name = "find_places"
-
-    description = (
-        "Use this tool to search Google Places when the user requests or infers they are after any of the following information for a business or location:\n"
-        "- Address\n"
-        "- Contact telephone number\n"
-        "- Regular Open & Close times\n"
-        "- Average user rating"
-    )
-
-    prompt_description = (
-        f"Use the `{name}` tool to search for information about a business or public location:\n"
-        "- This includes address, phone number, and opening hours."
-    )
-
-    response_directive = (
-        "Use the search results to answer the users query.\n"
-        "Focus on answering the users request directly, rather than repeating the entirety of the results to them."
-    )
-
-    parameters = vol.Schema(
-        {
-            vol.Required(
-                "query",
-                description="The place or location to search for. Results are limited to places near the home, so searching a business type alone returns the nearby locations.",
-            ): str,
-        },
-    )
+class FindPlacesTool(FindPlacesBaseTool):
+    """Tool for finding places via Google Places."""
 
     async def async_call(
         self,
