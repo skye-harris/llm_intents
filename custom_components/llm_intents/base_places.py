@@ -40,7 +40,7 @@ class FindPlacesBaseTool(BaseTool):
         {
             vol.Required(
                 "query",
-                description="The place or location to search for. Results are limited to places near the home, so searching a business type alone returns the nearby locations.",
+                description="Pass just the name or type of place, for example a business name or a category like pharmacy. The tool searches near the configured location on its own, so do not add location words such as near or in a place name, and do not add words like closest or nearest.",
             ): str,
         },
     )

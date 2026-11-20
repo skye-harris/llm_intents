@@ -121,6 +121,8 @@ OSM_EXAMPLE_RESULT = {
     "rating": "Not rated",
     "phone": "+1-212-555-0100",
     "source": "OpenStreetMap",
+    # The fixture home is (40.0, -74.0); the example place is 7.0 km away.
+    "distance_km": 7.0,
     "opening_hours": "Mo-Fr 10:00-20:30",
     "website": "https://example.com",
 }
@@ -230,6 +232,9 @@ async def test_osm_sorts_by_distance(
 
     names = [place["name"] for place in result.data["results"]]
     assert names == ["Near Store", "Far Store"]
+    # Each result carries its distance from the search center, in km.
+    distances = [place["distance_km"] for place in result.data["results"]]
+    assert distances == [1.11, 44.48]
     # Places without contact tags report the same placeholders as Google.
     near_result = result.data["results"][0]
     assert near_result["phone"] == "Not available"
@@ -648,3 +653,304 @@ async def test_places_provider_selection(
     else:
         assert len(places_tools) == 1
         assert isinstance(places_tools[0], expected_type)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_q"),
+    [
+        ("closest pharmacy", "pharmacy"),
+        ("the nearest pharmacy", "pharmacy"),
+        ("Nearest Example Warehouse", "Example Warehouse"),
+        ("pharmacy", "pharmacy"),
+        ("Example Warehouse", "Example Warehouse"),
+    ],
+)
+async def test_osm_superlative_stripped_from_query(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+    query: str,
+    expected_q: str,
+) -> None:
+    """
+    A leading superlative is dropped before searching; other queries pass through.
+
+    "Closest" and "nearest" are ranking instructions (the results are
+    already ranked by distance); as search terms they match businesses
+    literally named with the word.
+    """
+    session = _make_session([(200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(places_hass, _tool_input(query=query), Mock())
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    assert session.get.call_count == 1
+    assert session.get.call_args_list[0].kwargs["params"]["q"] == expected_q
+
+
+async def test_osm_fallback_not_used_when_search_returns_results(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A query with a location tail that returns results is searched as written."""
+    session = _make_session([(200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass,
+            _tool_input(query="Example Warehouse near Springfield"),
+            Mock(),
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    # One request, with the original query untouched: the tail
+    # fallback only runs on a total miss.
+    assert session.get.call_count == 1
+    params = session.get.call_args_list[0].kwargs["params"]
+    assert params["q"] == "Example Warehouse near Springfield"
+
+
+async def test_osm_in_place_query_that_returns_results_not_rewritten(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """
+    "Pharmacy in Pittsburgh" style queries that work are left alone.
+
+    Nominatim parses a category plus a major place, so the raw query
+    returns results at the unbounded stage; the fallback (and its
+    geocode) must never run for it.
+    """
+    session = _make_session([(200, []), (200, []), (200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="pharmacy in Pittsburgh"), Mock()
+        )
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    assert session.get.call_count == 3
+    for call in session.get.call_args_list:
+        assert call.kwargs["params"]["q"] == "pharmacy in Pittsburgh"
+
+
+@pytest.mark.parametrize(
+    "query", ["Example Warehouse near me", "Example Warehouse near Springfield"]
+)
+async def test_osm_near_tail_fallback_searches_head_near_home(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+    query: str,
+) -> None:
+    """
+    On a total miss, a "near" tail is dropped and the head is searched at home.
+
+    Nominatim cannot parse the tail, so the original query fails every
+    stage; the fallback retries with just the head, in the bounded
+    stages around the configured location.
+    """
+    session = _make_session([(200, []), (200, []), (200, []), (200, [OSM_EXAMPLE])])
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(places_hass, _tool_input(query=query), Mock())
+
+    assert result.data == {"results": [OSM_EXAMPLE_RESULT]}
+    assert session.get.call_count == 4
+    fallback_params = session.get.call_args_list[3].kwargs["params"]
+    assert fallback_params["q"] == "Example Warehouse"
+    assert fallback_params["bounded"] == 1
+    viewbox = [float(part) for part in fallback_params["viewbox"].split(",")]
+    assert viewbox == pytest.approx([-74.1, 40.1, -73.9, 39.9])
+
+
+async def test_osm_fallback_never_searches_unbounded(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """The tail fallback widens through the bounded stages only, then stops."""
+    session = _make_session([(200, [])] * 5)
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse near me"), Mock()
+        )
+
+    assert result.data == {"result": "No places found"}
+    # Three stages for the original query, two bounded stages for the
+    # fallback, and no unbounded fallback request.
+    assert session.get.call_count == 5
+    for call in session.get.call_args_list[3:]:
+        params = call.kwargs["params"]
+        assert params["bounded"] == 1
+        assert "viewbox" in params
+    last_viewbox = [
+        float(part)
+        for part in session.get.call_args_list[4].kwargs["params"]["viewbox"].split(",")
+    ]
+    assert last_viewbox == pytest.approx([-74.5, 40.5, -73.5, 39.5])
+
+
+GEOCODE_EXAMPLE = [{"lat": "41.0", "lon": "-75.0", "display_name": "Springfield"}]
+
+OSM_FAR_EXAMPLE = {
+    "lat": "41.02",
+    "lon": "-75.0",
+    "display_name": "Far Warehouse, 200 Main Street, Springfield, PA",
+    "namedetails": {"name": "Far Warehouse"},
+    "address": {
+        "house_number": "200",
+        "road": "Main Street",
+        "city": "Springfield",
+        "state": "Pennsylvania",
+        "postcode": "99999",
+    },
+    "extratags": {},
+}
+
+OSM_FAR_RESULT = {
+    "name": "Far Warehouse",
+    "address": "200 Main Street, Springfield, Pennsylvania, 99999",
+    "rating": "Not rated",
+    "phone": "Not available",
+    "source": "OpenStreetMap",
+    # Measured from the geocoded Springfield (41.0, -75.0), not from home.
+    "distance_km": 2.22,
+}
+
+
+async def test_osm_in_place_fallback_geocodes_tail(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """
+    On a total miss, an "in <place>" tail is geocoded and searched there.
+
+    Stripping the tail and searching near home would answer with a
+    place in the wrong locality; the fallback centers on the named
+    place instead, and distances are measured from there.
+    """
+    session = _make_session(
+        [
+            (200, []),
+            (200, []),
+            (200, []),
+            (200, GEOCODE_EXAMPLE),
+            (200, [OSM_FAR_EXAMPLE]),
+        ]
+    )
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass,
+            _tool_input(query="Example Warehouse in Springfield"),
+            Mock(),
+        )
+
+    assert result.data == {"results": [OSM_FAR_RESULT]}
+    assert session.get.call_count == 5
+    # The fourth request is the geocode of the tail place alone.
+    geocode_params = session.get.call_args_list[3].kwargs["params"]
+    assert geocode_params["q"] == "Springfield"
+    assert "viewbox" not in geocode_params
+    assert "bounded" not in geocode_params
+    # The fifth searches the head query in a bounded box around it.
+    fallback_params = session.get.call_args_list[4].kwargs["params"]
+    assert fallback_params["q"] == "Example Warehouse"
+    assert fallback_params["bounded"] == 1
+    viewbox = [float(part) for part in fallback_params["viewbox"].split(",")]
+    assert viewbox == pytest.approx([-75.1, 41.1, -74.9, 40.9])
+
+
+async def test_osm_in_place_fallback_geocode_miss_stays_not_found(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A tail place that does not resolve leaves the honest not-found."""
+    session = _make_session([(200, [])] * 4)
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse in Nowhere"), Mock()
+        )
+
+    assert result.data == {"result": "No places found"}
+    # Three search stages plus the one geocode lookup; no fallback search.
+    assert session.get.call_count == 4
+
+
+async def test_osm_in_place_fallback_geocode_error_stays_not_found(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """A failed geocode lookup leaves the honest not-found, not an error."""
+    session = _make_session([(200, [])] * 3 + [(503, [])] * 2)
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse in Springfield"), Mock()
+        )
+
+    assert result.data == {"result": "No places found"}
+    # Three search stages, then the geocode attempt and its one retry.
+    assert session.get.call_count == 5
+
+
+async def test_osm_fallback_result_cached_under_original_query(
+    tool: OpenStreetMapPlacesTool,
+    places_hass: HomeAssistant,
+) -> None:
+    """
+    A fallback result is cached under the original query's key.
+
+    Repeating the original query is served from cache, while the
+    derived (tail-stripped) query is a different search and fetches
+    for itself: the fallback result is not stored under its key.
+    """
+    session = _make_session(
+        [(200, []), (200, []), (200, []), (200, [OSM_EXAMPLE]), (200, [OSM_EXAMPLE])]
+    )
+
+    with patch(
+        "custom_components.llm_intents.openstreetmap_places.async_get_clientsession",
+        return_value=session,
+    ):
+        first = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse near me"), Mock()
+        )
+        second = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse near me"), Mock()
+        )
+        derived = await tool.async_call(
+            places_hass, _tool_input(query="Example Warehouse"), Mock()
+        )
+
+    assert first.data == {"results": [OSM_EXAMPLE_RESULT]}
+    assert second.data == first.data
+    assert derived.data == {"results": [OSM_EXAMPLE_RESULT]}
+    # 4 requests for the first search (3 stages + fallback), none for
+    # the cached repeat, 1 for the derived query's own search.
+    assert session.get.call_count == 5
