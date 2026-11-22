@@ -71,7 +71,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_data[CONF_HOURLY_WEATHER_ENTITY] = None
 
         entry_data.pop(CONF_BRAVE_ENABLED, None)
-        hass.config_entries.async_update_entry(entry, version=CONFIG_VERSION_2, data=entry_data)
+        hass.config_entries.async_update_entry(
+            entry, version=CONFIG_VERSION_2, data=entry_data
+        )
         current_version = CONFIG_VERSION_2
         # Refresh entry data after update
         entry_data = entry.data.copy()
