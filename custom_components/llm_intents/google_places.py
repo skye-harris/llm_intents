@@ -8,11 +8,11 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt
-from homeassistant.util.json import JsonObjectType
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_GOOGLE_PLACES_LATITUDE,
     CONF_GOOGLE_PLACES_LONGITUDE,
@@ -61,22 +61,17 @@ class FindPlacesTool(BaseTool):
         {
             vol.Required(
                 "query",
-                description="The place or location to search for",
+                description="The place or location to search for. Results are limited to places near the home, so searching a business type alone returns the nearby locations.",
             ): str,
         },
     )
-
-    def wrap_response(self, response: dict) -> dict:
-        """Wrap the response with our instructions."""
-        response["instruction"] = self.response_instruction
-        return response
 
     async def async_call(
         self,
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool."""
         config_data = self.config
 
@@ -102,7 +97,9 @@ class FindPlacesTool(BaseTool):
         ).upper()
 
         if not api_key:
-            return {"error": "Google Places API key not configured"}
+            return ToolResult(
+                data={"error": "Google Places API key not configured"}, error=True
+            )
 
         try:
             session = async_get_clientsession(hass)
@@ -125,10 +122,10 @@ class FindPlacesTool(BaseTool):
                     },
                 }
 
-            cache = SQLiteCache()
+            cache = InMemoryCache()
             cached_response = cache.get(__name__, params)
             if cached_response:
-                return cached_response
+                return ToolResult(data=cached_response)
 
             field_mask = (
                 "places.displayName,"
@@ -202,20 +199,23 @@ class FindPlacesTool(BaseTool):
                             params,
                             {
                                 "results": results,
-                                "instructions": self.response_directive,
                             },
                         )
 
                     return (
-                        {"results": results, "instruction": self.response_directive}
+                        ToolResult(data={"results": results})
                         if results
-                        else {"result": "No places found"}
+                        else ToolResult(data={"result": "No places found"})
                     )
 
                 error_msg = f"Places search received a HTTP {resp.status} error from Google: {await resp.text()}"
                 _LOGGER.error(error_msg)
-                return {"error": f"Places search error: {resp.status}"}
+                return ToolResult(
+                    data={"error": f"Places search error: {resp.status}"}, error=True
+                )
 
         except Exception as e:
             _LOGGER.exception("Places search encountered an error")
-            return {"error": f"Error finding places: {e!s}"}
+            return ToolResult(
+                data={"error": f"Error finding places: {e!s}"}, error=True
+            )

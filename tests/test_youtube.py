@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.helpers.llm import ToolResult
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.llm_intents.const import (
     CONF_PROVIDER_API_KEYS,
@@ -62,9 +63,9 @@ def tool(youtube_hass: HomeAssistant, config: dict) -> SearchYouTubeTool:
 
 @pytest.fixture
 def cache_miss() -> Any:
-    """Patch SQLiteCache so every lookup is a miss."""
+    """Patch InMemoryCache so every lookup is a miss."""
     with patch(
-        "custom_components.llm_intents.youtube.SQLiteCache",
+        "custom_components.llm_intents.youtube.InMemoryCache",
     ) as cache_cls:
         cache_cls.return_value.get.return_value = None
         yield cache_cls
@@ -82,7 +83,8 @@ async def test_missing_api_key_returns_error(
         _tool_input(query="test"),
         Mock(),
     )
-    assert result == {"error": "Google API key not configured"}
+    assert isinstance(result, ToolResult)
+    assert result.data == {"error": "Google API key not configured"}
 
 
 @pytest.mark.parametrize(
@@ -127,11 +129,13 @@ async def test_successful_search_returns_results(
             _tool_input(query=query, num_results=num_results),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    assert "results" in result
-    assert len(result["results"]) == expected_count
-    assert "instruction" in result
-    assert result["results"][0]["url"] == "https://www.youtube.com/watch?v=video_id_0"
+    assert "results" in result.data
+    assert len(result.data["results"]) == expected_count
+    assert (
+        result.data["results"][0]["url"] == "https://www.youtube.com/watch?v=video_id_0"
+    )
 
 
 async def test_empty_results_returns_no_videos(
@@ -151,8 +155,9 @@ async def test_empty_results_returns_no_videos(
             _tool_input(query="nonexistent"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    assert result == {"result": "No videos found"}
+    assert result.data == {"result": "No videos found"}
 
 
 @pytest.mark.parametrize(
@@ -191,8 +196,9 @@ async def test_http_error_returns_error(
             _tool_input(query="test"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    assert result == {"error": expected_msg}
+    assert result.data == {"error": expected_msg}
 
 
 async def test_cache_hit_skips_api_call(
@@ -215,7 +221,7 @@ async def test_cache_hit_skips_api_call(
 
     with (
         patch(
-            "custom_components.llm_intents.youtube.SQLiteCache",
+            "custom_components.llm_intents.youtube.InMemoryCache",
         ) as cache_cls,
         patch(
             "custom_components.llm_intents.youtube.async_get_clientsession",
@@ -227,9 +233,10 @@ async def test_cache_hit_skips_api_call(
             _tool_input(query="cached query"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
     session_patch.assert_not_called()
-    assert result == cached_value
+    assert result.data == cached_value
 
 
 async def test_exception_returns_error(
@@ -254,5 +261,6 @@ async def test_exception_returns_error(
             _tool_input(query="test"),
             Mock(),
         )
+        assert isinstance(result, ToolResult)
 
-    assert result == {"error": "Error searching YouTube"}
+    assert result.data == {"error": "Error searching YouTube"}

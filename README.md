@@ -2,13 +2,13 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _Tavily_ or _SearXNG_
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
 * **Weather Forecast**
 * **YouTube Search and Playback**
-* **Basic Utilities** — Calculator, Kitchen Unit Converter, and Date Information
+* **Basic Utilities** — Calculator, Unit Converter, and Date Information
 * **Entity History** — Part of the `Home control` domain
 
 Each tool is optional and configurable via the integrations UI. Some tools require API keys, but are usable on free tiers.
@@ -23,24 +23,13 @@ Additionally, a customisable clone of Home Assistants inbuilt `Assist` tooling A
 
 ## Installation
 
-### Install via HACS (recommended)
+Tools for Assist is available on the Home Assistant Marketplace:
 
-Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
-
-* Adding Tools for Assist to HACS can be using this button:
-  [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm_intents&category=integration)
-
-<br>
-
-> [!NOTE]
-> If the button above doesn't work, add `https://github.com/skye-harris/llm_intents` as a custom repository of type Integration in HACS.
-
-* Click install on the `Tools for Assist` integration.
-* Restart Home Assistant.
+[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=skye-harris&repository=llm_intents&category=integration)
 
 <details><summary>Manual Install</summary>
 
-* Copy the `llm-intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [
+* Copy the `llm_intents`  folder from [latest release](https://github.com/skye-harris/llm_intents/releases/latest) to the [
   `custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
 * Restart the Home Assistant.
 
@@ -127,6 +116,45 @@ Uses the Brave LLM Context Search API to return pre-extracted web context optimi
 | `Longitude`               | ❌        | —          | Optional longitude for local result relevance (recommended)          |
 | `Timezone`                | ❌        | —          | Optional TZ timezone identifier for local result relevance           |
 | `Post Code`               | ❌        | —          | Optional post code for local result relevance                        |
+
+---
+
+### 🔍 Tavily Web Search
+
+Uses the Tavily Search API to return concise, relevant results, with an optional generated answer.
+
+##### Requirements
+
+* Requires a [Tavily API key](https://app.tavily.com/home).
+    * Tavily provides 1,000 free API credits per month, no card required.
+    * `Basic`, `Fast` and `Ultra-fast` searches cost one credit each, an `Advanced` search costs two.
+
+#### Configuration Steps
+
+1. Select "Tavily" as the search provider during setup.
+2. Enter your [Tavily API key](https://app.tavily.com/home).
+3. Configure the search depth, the number of results, chunks per result, whether to include a generated answer or full page content, a cap on the characters returned per result, and optionally a country to boost results from.
+
+#### Options
+
+| Setting                    | Required | Default | Description                                                                        |
+|----------------------------|----------|---------|------------------------------------------------------------------------------------|
+| `API Key`                  | ✅        | —       | Tavily API key                                                                     |
+| `Search Depth`             | ❌        | `Basic` | Costs are per search. `Basic`, `Fast` and `Ultra-fast` cost 1 credit, `Advanced` costs 2. `Fast` and `Ultra-fast` are beta options that trade relevance for speed |
+| `Number of Results`        | ✅        | `2`     | Number of results to provide to the LLM                                            |
+| `Chunks Per Result`        | ✅        | `1`     | How many content chunks Tavily returns per result. Honored on `Basic`, `Advanced` and `Fast`. `Ultra-fast` returns a single summary per result |
+| `Include Generated Answer` | ❌        | `false` | Also return a short Tavily-generated answer alongside the search results            |
+| `Include Full Page Content`| ❌        | `false` | Return the full extracted page content instead of Tavily's snippets. The content arrives as markdown, and the repeated whitespace is collapsed before it is returned. Full pages are large, so use Maximum Characters Per Result to cap them |
+| `Maximum Characters Per Result` | ❌   | `0`     | Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. `0` means no cap |
+| `Country`                  | ❌        | —       | Supported country name, chosen from a list. Boosts results from it. Sent on a general web search only, so a news or finance search does not use it, and it is not sent with the `fast` or `ultra-fast` search depths |
+
+#### LLM-provided arguments
+
+| Argument     | Required | Description                                                          |
+|--------------|----------|----------------------------------------------------------------------|
+| `query`      | ✅        | The query to search for                                              |
+| `topic`      | ❌        | `general`, `news` or `finance`. `news` adds published dates          |
+| `time_range` | ❌        | `day`, `week`, `month` or `year` recency filter                      |
 
 ---
 
@@ -341,11 +369,16 @@ Evaluate mathematical expressions and return the result.
 
 Calculator supports mathematical expression evaluation, along with calculating the minimum, maximum, and average of a series of values.
 
-#### 🥄 Kitchen Unit Converter
+#### 📏 Unit Converter
 
-Converts kitchen quantities between common volume units. Supports fractional amounts such as `1/8` or `1 1/2`.
+Converts quantities between common volume, weight, length, and temperature units. Supports fractional amounts such as `1/8` or `1 1/2`.
 
-**Supported units:** `cup`, `tablespoon`, `teaspoon`, `ml`, `pint`
+**Supported units:**
+
+* **Volume:** `cup`, `tablespoon`, `teaspoon`, `ml`, `dl`, `liter`, `gallon`, `fluid_ounce`, `pint`, `quart`
+* **Weight:** `gram`, `kilogram`, `milligram`, `pound`, `ounce`, `stone`
+* **Length:** `millimeter`, `centimeter`, `meter`, `kilometer`, `inch`, `foot`, `yard`, `mile`
+* **Temperature:** `celsius`, `fahrenheit`
 
 **Parameters:**
 
@@ -400,6 +433,10 @@ I would like to thank the following people for their contributions.
   <td align="center"><a href="https://github.com/QuadroKnoX"><img src="https://avatars.githubusercontent.com/u/9086677?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/QuadroKnoX">QuadroKnoX</a></b></sub></td>
   <td align="center"><a href="https://github.com/Thyraz"><img src="https://avatars.githubusercontent.com/u/170099?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Thyraz">Thyraz</a></b></sub></td>
   <td align="center"><a href="https://github.com/ianlunam"><img src="https://avatars.githubusercontent.com/u/2317877?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/ianlunam">ianlunam</a></b></sub></td>
+</tr>
+<tr>
+  <td align="center"><a href="https://github.com/professor-sagittarius"><img src="https://avatars.githubusercontent.com/u/165941485?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/professor-sagittarius">professor-sagittarius</a></b></sub></td>
+  <td align="center"><a href="https://github.com/balloob"><img src="https://avatars.githubusercontent.com/u/1444314?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/balloob">balloob</a></b></sub></td>
 </tr>
 </table>
 

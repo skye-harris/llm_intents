@@ -8,12 +8,12 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.llm import ToolResult
 from homeassistant.util import dt as dt_util
-from homeassistant.util.json import JsonObjectType
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_GOOGLE_ROUTES_DEFAULT_TRAVEL_MODE,
     CONF_GOOGLE_ROUTES_HOME_ADDRESS,
@@ -62,10 +62,15 @@ class GetRouteTool(BaseTool):
         open_world=True,
     )
 
-    def __init__(self, config: dict, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        config: dict,
+        hass: HomeAssistant,
+        llm_context: llm.LLMContext | None = None,
+    ) -> None:
         """Initialize the tool."""
         # Inject the default travel mode into the description
-        super().__init__(config, hass)
+        super().__init__(config, hass, llm_context)
         default_mode = self._get_default_travel_mode()
         self.parameters = vol.Schema(
             {
@@ -168,7 +173,7 @@ class GetRouteTool(BaseTool):
                 },
             }
 
-        cache = SQLiteCache()
+        cache = InMemoryCache()
         cache_key_params = {k: v for k, v in body.items() if k != "languageCode"}
         cached = cache.get(__name__ + ":places", cache_key_params)
         if cached is not None:
@@ -225,7 +230,7 @@ class GetRouteTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool."""
         config_data = self.config
 
@@ -235,9 +240,14 @@ class GetRouteTool(BaseTool):
         default_mode = self._get_default_travel_mode()
 
         if not api_key:
-            return {"error": "Google API key not configured"}
+            return ToolResult(
+                data={"error": "Google API key not configured"}, error=True
+            )
         if not home_address:
-            return {"error": "Home address for Routes is not configured"}
+            return ToolResult(
+                data={"error": "Home address for Routes is not configured"},
+                error=True,
+            )
 
         destination_query = tool_input.tool_args["destination"]
         mode = tool_input.tool_args.get("mode", default_mode).upper()
@@ -295,13 +305,16 @@ class GetRouteTool(BaseTool):
                 if resp.status != HTTPStatus.OK:
                     error_text = await resp.text()
                     _LOGGER.error("Routes API HTTP %s: %s", resp.status, error_text)
-                    return {"error": f"Routes API error: {resp.status}"}
+                    return ToolResult(
+                        data={"error": f"Routes API error: {resp.status}"},
+                        error=True,
+                    )
 
                 data = await resp.json()
 
             routes = data.get("routes") or []
             if not routes:
-                return {"result": "No route found"}
+                return ToolResult(data={"result": "No route found"})
 
             route = routes[0]
             distance_meters = int(route.get("distanceMeters", 0))
@@ -340,11 +353,11 @@ class GetRouteTool(BaseTool):
                     "%Y-%m-%d %H:%M",
                 )
 
-            return {"result": result, "instruction": self.response_directive(mode)}
+            return ToolResult(data={"result": result})
 
         except Exception:
             _LOGGER.exception("Routes API error")
-            return {"error": "Error computing route"}
+            return ToolResult(data={"error": "Error computing route"}, error=True)
 
 
 def _format_duration(seconds: int) -> str:

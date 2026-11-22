@@ -5,6 +5,7 @@ import json
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.llm import ToolResult
 
 from custom_components.llm_intents.unit_converter import (
     UnitConverterTool,
@@ -53,9 +54,10 @@ async def test_temperature_conversions(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "value" in result
-    assert result["value"] == pytest.approx(expected_value, abs=1e-3)
+    assert "value" in result.data
+    assert result.data["value"] == pytest.approx(expected_value, abs=1e-3)
 
 
 @pytest.mark.parametrize(
@@ -69,6 +71,11 @@ async def test_temperature_conversions(
         ('{"amount": "1", "from_unit": "liter", "to_unit": "dl"}', 10.0),
         # cup to dl
         ('{"amount": "1", "from_unit": "cup", "to_unit": "dl"}', 2.3659),
+        # quart conversions
+        ('{"amount": "1", "from_unit": "quart", "to_unit": "cup"}', 4.0),
+        ('{"amount": "2", "from_unit": "pint", "to_unit": "quart"}', 1.0),
+        ('{"amount": "1", "from_unit": "gallon", "to_unit": "quart"}', 4.0),
+        ('{"amount": "1", "from_unit": "quart", "to_unit": "liter"}', 0.9464),
     ],
 )
 async def test_volume_conversions(
@@ -86,9 +93,10 @@ async def test_volume_conversions(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "value" in result
-    assert result["value"] == pytest.approx(expected_value, abs=1e-3)
+    assert "value" in result.data
+    assert result.data["value"] == pytest.approx(expected_value, abs=1e-3)
 
 
 async def test_temperature_to_volume_error(
@@ -105,9 +113,10 @@ async def test_temperature_to_volume_error(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "error" in result
-    assert "Cannot convert" in result["error"]
+    assert "error" in result.data
+    assert "Cannot convert" in result.data["error"]
 
 
 async def test_volume_to_temperature_error(
@@ -124,9 +133,10 @@ async def test_volume_to_temperature_error(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "error" in result
-    assert "Cannot convert" in result["error"]
+    assert "error" in result.data
+    assert "Cannot convert" in result.data["error"]
 
 
 @pytest.mark.parametrize(
@@ -162,9 +172,10 @@ async def test_weight_conversions(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "value" in result
-    assert result["value"] == pytest.approx(expected_value, abs=1e-3)
+    assert "value" in result.data
+    assert result.data["value"] == pytest.approx(expected_value, abs=1e-3)
 
 
 @pytest.mark.parametrize(
@@ -231,9 +242,10 @@ async def test_async_call_invalid_amount(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "error" in result
-    assert "Could not parse amount" in result["error"]
+    assert "error" in result.data
+    assert "Could not parse amount" in result.data["error"]
 
 
 async def test_unknown_to_unit(
@@ -250,9 +262,10 @@ async def test_unknown_to_unit(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "error" in result
-    assert "Unknown unit" in result["error"]
+    assert "error" in result.data
+    assert "Unknown unit" in result.data["error"]
 
 
 async def test_unknown_temperature_unit(
@@ -269,9 +282,10 @@ async def test_unknown_temperature_unit(
     )
 
     result = await unit_converter_tool.async_call(hass, tool_input, llm_context)
+    assert isinstance(result, ToolResult)
 
-    assert "error" in result
-    assert "Unknown unit" in result["error"]
+    assert "error" in result.data
+    assert "Unknown unit" in result.data["error"]
 
 
 @pytest.mark.parametrize(
@@ -286,6 +300,7 @@ async def test_unknown_temperature_unit(
         ("stone", UnitDomain.WEIGHT),
         # Volume units
         ("pint", UnitDomain.VOLUME),
+        ("quart", UnitDomain.VOLUME),
         ("cup", UnitDomain.VOLUME),
         ("tablespoon", UnitDomain.VOLUME),
         ("teaspoon", UnitDomain.VOLUME),

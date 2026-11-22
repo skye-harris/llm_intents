@@ -9,10 +9,10 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.llm import ToolResult
 
 from .base_tool import BaseTool
-from .cache import SQLiteCache
+from .cache import InMemoryCache
 from .const import (
     CONF_WIKIPEDIA_NUM_RESULTS,
 )
@@ -56,7 +56,7 @@ class SearchWikipediaTool(BaseTool):
         hass: HomeAssistant,
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
-    ) -> JsonObjectType:
+    ) -> ToolResult:
         """Call the tool."""
         config_data = self.config
 
@@ -77,10 +77,10 @@ class SearchWikipediaTool(BaseTool):
                 "srlimit": num_results,
             }
 
-            cache = SQLiteCache()
+            cache = InMemoryCache()
             cached_response = cache.get(__name__, search_params)
             if cached_response:
-                return cached_response
+                return ToolResult(data=cached_response)
 
             async with session.get(
                 "https://en.wikipedia.org/w/api.php",
@@ -92,13 +92,18 @@ class SearchWikipediaTool(BaseTool):
                         "Wikipedia search received a HTTP %s error from Wikipedia",
                         resp.status,
                     )
-                    return {"error": f"Wikipedia search error: {resp.status}"}
+                    return ToolResult(
+                        data={"error": f"Wikipedia search error: {resp.status}"},
+                        error=True,
+                    )
 
                 search_data = await resp.json()
                 search_results = search_data.get("query", {}).get("search", [])
 
                 if not search_results:
-                    return {"result": f"No Wikipedia articles found for '{query}'"}
+                    return ToolResult(
+                        data={"result": f"No Wikipedia articles found for '{query}'"}
+                    )
 
                 # Get summaries for each result
                 results = []
@@ -128,8 +133,10 @@ class SearchWikipediaTool(BaseTool):
                 if results:
                     cache.set(__name__, search_params, {"results": results})
 
-                return {"results": results}
+                return ToolResult(data={"results": results})
 
         except Exception as e:
             _LOGGER.exception(msg="Wikipedia search encountered an error")
-            return {"error": f"Error searching Wikipedia: {e!s}"}
+            return ToolResult(
+                data={"error": f"Error searching Wikipedia: {e!s}"}, error=True
+            )
