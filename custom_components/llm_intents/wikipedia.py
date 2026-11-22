@@ -44,6 +44,13 @@ class SearchWikipediaTool(BaseTool):
         },
     )
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=True,
+    )
+
     async def async_call(
         self,
         hass: HomeAssistant,

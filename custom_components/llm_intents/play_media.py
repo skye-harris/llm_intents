@@ -194,6 +194,13 @@ class PlayVideoTool(BaseTool):
 
     parameters = vol.Schema({})
 
+    annotations = llm.ToolAnnotations(
+        read_only=False,
+        destructive=False,
+        idempotent=False,
+        open_world=True,
+    )
+
     def __init__(
         self,
         config: dict,

@@ -94,6 +94,13 @@ class EntityHistoryTool(BaseTool):
         }
     )
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=False,
+    )
+
     @staticmethod
     def format_result(state: State | dict[str, Any]) -> dict[str, Any]:
         """Format a state record into an LLM-friendly dict with human-readable timestamps."""

@@ -109,6 +109,13 @@ class CalculatorTool(BaseTool):
     description = "Calculator for math operations.\nExpressions support +, -, *, /, %, ** for exponentiation, and parentheses."
     prompt_description = None
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=False,
+    )
+
     parameters = vol.Schema(
         {
             vol.Required(
