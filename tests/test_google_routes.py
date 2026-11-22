@@ -684,3 +684,192 @@ async def test_async_call_variants(
         assert result.data.get("result") == "No route found"
     else:
         assert result.data.get("error") == "Error computing route"
+
+# ---------------------------------------------------------------------------
+# Origin coordinate handling
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw_lat", "raw_lon", "expected"),
+    [
+        ("40.7128", "-74.006", (40.7128, -74.006)),
+        ("-90", "180", (-90.0, 180.0)),
+        ("90", "-180", (90.0, -180.0)),
+        ("0", "0", (0.0, 0.0)),
+    ],
+)
+def test_resolve_origin_coordinates_valid(
+    raw_lat: str,
+    raw_lon: str,
+    expected: tuple[float, float],
+) -> None:
+    """Valid latitude/longitude strings parse into a float tuple."""
+    tool_args = {"origin-latitude": raw_lat, "origin-longitude": raw_lon}
+    assert GetRouteTool._resolve_origin_coordinates(tool_args) == expected
+
+
+@pytest.mark.parametrize(
+    "tool_args",
+    [
+        # Both coordinates missing
+        {},
+        # Only one coordinate provided
+        {"origin-latitude": "40.0"},
+        {"origin-longitude": "-74.0"},
+        # Unparseable values
+        {"origin-latitude": "not-a-number", "origin-longitude": "-74.0"},
+        {"origin-latitude": "40.0", "origin-longitude": "east"},
+        {"origin-latitude": "", "origin-longitude": ""},
+        # Out-of-range values
+        {"origin-latitude": "90.1", "origin-longitude": "0"},
+        {"origin-latitude": "-90.1", "origin-longitude": "0"},
+        {"origin-latitude": "0", "origin-longitude": "180.1"},
+        {"origin-latitude": "0", "origin-longitude": "-180.1"},
+    ],
+)
+def test_resolve_origin_coordinates_invalid(tool_args: dict) -> None:
+    """Missing, unparseable, or out-of-range coordinates return None."""
+    assert GetRouteTool._resolve_origin_coordinates(tool_args) is None
+
+
+async def test_origin_coordinates_used_for_routing_and_places_bias(
+    tool: GetRouteTool,
+    routes_hass: HomeAssistant,
+    cache_miss: Any,
+) -> None:
+    """Provided origin coordinates drive both Places bias and Routes origin."""
+    session = _make_session(
+        {
+            PLACES_URL: {"status": 200, "data": _places_response()},
+            ROUTES_URL: {"status": 200, "data": _routes_response()},
+        },
+    )
+
+    with patch(
+        "custom_components.llm_intents.google_routes.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            routes_hass,
+            _tool_input(
+                **{
+                    "destination": "park",
+                    "origin-latitude": "51.5",
+                    "origin-longitude": "-0.12",
+                },
+            ),
+            Mock(),
+        )
+
+    # Places lookup is biased around the provided origin, not the HA home
+    places_body = session.post.call_args_list[0].kwargs["json"]
+    bias = places_body["locationBias"]["circle"]
+    assert bias["center"] == {"latitude": 51.5, "longitude": -0.12}
+
+    # Routes request uses a latLng origin instead of the home address
+    routes_body = session.post.call_args_list[1].kwargs["json"]
+    assert routes_body["origin"] == {
+        "location": {"latLng": {"latitude": 51.5, "longitude": -0.12}},
+    }
+
+    # The result labels the origin as the provided starting location
+    assert result["result"]["origin"] == "51.5, -0.12 (provided starting location)"
+
+
+async def test_origin_coordinates_work_without_home_address(
+    tool: GetRouteTool,
+    routes_hass: HomeAssistant,
+    config: dict,
+    cache_miss: Any,
+) -> None:
+    """Explicit origin coordinates avoid the missing-home-address error."""
+    config[CONF_GOOGLE_ROUTES_HOME_ADDRESS] = ""
+    session = _make_session(
+        {
+            PLACES_URL: {"status": 200, "data": _places_response()},
+            ROUTES_URL: {"status": 200, "data": _routes_response()},
+        },
+    )
+
+    with patch(
+        "custom_components.llm_intents.google_routes.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            routes_hass,
+            _tool_input(
+                **{
+                    "destination": "park",
+                    "origin-latitude": "40.7",
+                    "origin-longitude": "-74.0",
+                },
+            ),
+            Mock(),
+        )
+
+    assert "error" not in result
+    routes_body = session.post.call_args_list[1].kwargs["json"]
+    assert routes_body["origin"] == {
+        "location": {"latLng": {"latitude": 40.7, "longitude": -74.0}},
+    }
+
+
+async def test_invalid_origin_coordinates_fall_back_to_home_address(
+    tool: GetRouteTool,
+    routes_hass: HomeAssistant,
+    cache_miss: Any,
+) -> None:
+    """Unusable origin coordinates fall back to the configured home address."""
+    session = _make_session(
+        {
+            PLACES_URL: {"status": 200, "data": _places_response()},
+            ROUTES_URL: {"status": 200, "data": _routes_response()},
+        },
+    )
+
+    with patch(
+        "custom_components.llm_intents.google_routes.async_get_clientsession",
+        return_value=session,
+    ):
+        result = await tool.async_call(
+            routes_hass,
+            _tool_input(
+                **{
+                    "destination": "park",
+                    "origin-latitude": "not-a-number",
+                    "origin-longitude": "-74.0",
+                },
+            ),
+            Mock(),
+        )
+
+    routes_body = session.post.call_args_list[1].kwargs["json"]
+    assert routes_body["origin"] == {"address": "1 Test Lane, Test City"}
+    assert result["result"]["origin"] == "1 Test Lane, Test City"
+
+    # Places bias also falls back to the HA home coordinates
+    places_body = session.post.call_args_list[0].kwargs["json"]
+    bias = places_body["locationBias"]["circle"]
+    assert bias["center"] == {"latitude": 40.0, "longitude": -74.0}
+
+
+async def test_invalid_origin_coordinates_without_home_address_errors(
+    tool: GetRouteTool,
+    routes_hass: HomeAssistant,
+    config: dict,
+) -> None:
+    """Bad coordinates with no configured home address surface an error."""
+    config[CONF_GOOGLE_ROUTES_HOME_ADDRESS] = ""
+    result = await tool.async_call(
+        routes_hass,
+        _tool_input(
+            **{
+                "destination": "park",
+                "origin-latitude": "91",
+                "origin-longitude": "0",
+            },
+        ),
+        Mock(),
+    )
+    assert result == {"error": "Home address for Routes is not configured"}
