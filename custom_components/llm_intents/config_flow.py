@@ -7,7 +7,7 @@ import logging
 import types
 from typing import TYPE_CHECKING, Any
 
-from . import CONFIG_VERSION_2
+from . import CONFIG_VERSION_3
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -717,7 +717,9 @@ SEARCH_STEP_ORDER = {
     ],
     STEP_GOOGLE_API_KEY: [
         lambda data: (
-            data.get(CONF_GOOGLE_PLACES_ENABLED) or data.get(CONF_GOOGLE_ROUTES_ENABLED)
+            data.get(CONF_GOOGLE_PLACES_ENABLED)
+            or data.get(CONF_GOOGLE_ROUTES_ENABLED)
+            or data.get(CONF_YOUTUBE_ENABLED)
         ),
         get_google_api_key_schema,
     ],
@@ -772,7 +774,7 @@ def get_next_step(
 class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Tools for Assist integration."""
 
-    VERSION = CONFIG_VERSION_2
+    VERSION = CONFIG_VERSION_3
 
     def __init__(self) -> None:
         """Initialize the config flow."""
