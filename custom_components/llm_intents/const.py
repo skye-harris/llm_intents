@@ -41,18 +41,24 @@ CONF_SEARCH_PROVIDER_BRAVE = "Brave"
 CONF_SEARCH_PROVIDER_BRAVE_LLM = "Brave LLM Context"
 CONF_SEARCH_PROVIDER_TAVILY = "Tavily"
 CONF_SEARCH_PROVIDER_SEARXNG = "SearXNG"
+CONF_SEARCH_PROVIDER_KEENABLE = "Keenable"
 
 CONF_SEARCH_PROVIDERS = {
     "Brave": CONF_SEARCH_PROVIDER_BRAVE,
     "Brave LLM Context": CONF_SEARCH_PROVIDER_BRAVE_LLM,
     "Tavily": CONF_SEARCH_PROVIDER_TAVILY,
     "SearXNG": CONF_SEARCH_PROVIDER_SEARXNG,
+    "Keenable": CONF_SEARCH_PROVIDER_KEENABLE,
 }
 
 # SearXNG-specific constants
 
 CONF_SEARXNG_URL = "searxng_server_url"
 CONF_SEARXNG_NUM_RESULTS = "searxng_num_results"
+
+# Keenable-specific constants
+
+CONF_KEENABLE_NUM_RESULTS = "keenable_num_results"
 
 # Tavily-specific constants
 
@@ -258,12 +264,14 @@ PROVIDER_GOOGLE = "google"
 PROVIDER_BRAVE = "brave"
 PROVIDER_BRAVE_LLM = "brave_llm"
 PROVIDER_TAVILY = "tavily"
+PROVIDER_KEENABLE = "keenable"
 
 # Form field keys for provider API keys
 
 CONF_GOOGLE_API_KEY = "google_api_key"
 CONF_BRAVE_API_KEY = "brave_api_key"
 CONF_TAVILY_API_KEY = "tavily_api_key"
+CONF_KEENABLE_API_KEY = "keenable_api_key"
 
 # Brave-specific constants
 
@@ -430,6 +438,7 @@ SERVICE_DEFAULTS = {
     CONF_BRAVE_CONTEXT_THRESHOLD_MODE: "balanced",
     CONF_SEARXNG_URL: "",
     CONF_SEARXNG_NUM_RESULTS: 2,
+    CONF_KEENABLE_NUM_RESULTS: 5,
     CONF_TAVILY_NUM_RESULTS: 2,
     CONF_TAVILY_CHUNKS_PER_SOURCE: 1,
     CONF_TAVILY_SEARCH_DEPTH: "basic",

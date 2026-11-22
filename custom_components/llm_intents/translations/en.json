@@ -78,6 +78,17 @@
           "tavily_max_chars_per_result": "Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. Set 0 for no cap."
         }
       },
+      "keenable": {
+        "title": "Configure Keenable Web Search",
+        "description": "Keenable works without a key. A key is optional and raises the request limits. Keyless requests are logged with the query and IP.",
+        "data": {
+          "keenable_api_key": "API Key (optional)",
+          "keenable_num_results": "Number of Results"
+        },
+        "data_description": {
+          "keenable_api_key": "Leave empty to use the keyless public endpoint. Keyless requests are logged with the query and IP."
+        }
+      },
       "google_api_key": {
         "title": "Configure Google API Key",
         "description": "Enter your Google API key. This key is shared by Google Places and Google Routes.",
@@ -249,6 +260,17 @@
           "tavily_country": "Boosts results from that country. Sent on a general web search only, so a news or finance search does not use it, and it is not sent with the fast or ultra-fast search depths.",
           "tavily_chunks_per_source": "How many content chunks Tavily returns per result. Honored on the basic, advanced and fast search depths. Ultra-fast returns a single summary per result instead.",
           "tavily_max_chars_per_result": "Caps the characters returned per result. Tavily has no option for this, so the integration applies the cap after the search. Set 0 for no cap."
+        }
+      },
+      "keenable": {
+        "title": "Configure Keenable Web Search",
+        "description": "Keenable works without a key. A key is optional and raises the request limits. Keyless requests are logged with the query and IP.",
+        "data": {
+          "keenable_api_key": "API Key (optional)",
+          "keenable_num_results": "Number of Results"
+        },
+        "data_description": {
+          "keenable_api_key": "Leave empty to use the keyless public endpoint. Keyless requests are logged with the query and IP."
         }
       },
       "google_api_key": {
