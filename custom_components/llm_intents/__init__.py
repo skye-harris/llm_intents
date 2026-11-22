@@ -9,6 +9,7 @@ from .const import (
     CONF_SEARCH_PROVIDER_BRAVE,
     CONFIG_VERSION_1,
     CONFIG_VERSION_2,
+    CONFIG_VERSION_3,
     DOMAIN,
     PROVIDER_GOOGLE,
 )
@@ -70,8 +71,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_data[CONF_HOURLY_WEATHER_ENTITY] = None
 
         entry_data.pop(CONF_BRAVE_ENABLED, None)
-        hass.config_entries.async_update_entry(entry, version=2, data=entry_data)
-        current_version = 2
+        hass.config_entries.async_update_entry(
+            entry, version=CONFIG_VERSION_2, data=entry_data
+        )
+        current_version = CONFIG_VERSION_2
         # Refresh entry data after update
         entry_data = entry.data.copy()
         entry_options = (entry.options or {}).copy()
@@ -108,7 +111,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.config_entries.async_update_entry(
             entry,
-            version=3,
+            version=CONFIG_VERSION_3,
             data=entry_data,
             options=entry_options,
         )
