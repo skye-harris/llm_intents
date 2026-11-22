@@ -437,6 +437,7 @@ I would like to thank the following people for their contributions.
 <tr>
   <td align="center"><a href="https://github.com/professor-sagittarius"><img src="https://avatars.githubusercontent.com/u/165941485?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/professor-sagittarius">professor-sagittarius</a></b></sub></td>
   <td align="center"><a href="https://github.com/balloob"><img src="https://avatars.githubusercontent.com/u/1444314?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/balloob">balloob</a></b></sub></td>
+  <td align="center"><a href="https://github.com/Nick2253"><img src="https://avatars.githubusercontent.com/u/926554?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Nick2253">Nick2253</a></b></sub></td>
 </tr>
 </table>
 
