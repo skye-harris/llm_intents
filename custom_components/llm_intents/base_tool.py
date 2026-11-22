@@ -30,7 +30,6 @@ class BaseTool(llm.Tool):
         self.hass = hass
         self.llm_context = llm_context
 
-
     @staticmethod
     def update_args(hass: HomeAssistant) -> None:
         """Stub method for dynamically-updating arguments."""
