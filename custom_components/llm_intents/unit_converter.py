@@ -128,7 +128,7 @@ class UnitConverterTool(BaseTool):
         llm_context: llm.LLMContext,
     ) -> ToolResult:
         """Execute the unit conversion and return the result."""
-        amount_str = tool_input.tool_args["amount"]
+        amount_str = str(tool_input.tool_args["amount"])
         from_unit = tool_input.tool_args["from_unit"].lower()
         to_unit = tool_input.tool_args["to_unit"].lower()
 
