@@ -33,6 +33,13 @@ class SearchWebTool(BaseTool):
         },
     )
 
+    annotations = llm.ToolAnnotations(
+        read_only=True,
+        destructive=False,
+        idempotent=True,
+        open_world=True,
+    )
+
     async def cleanup_text(self, text: str) -> str:
         """Clean up our text a little before sending to the LLM."""
         text = html.unescape(text)
