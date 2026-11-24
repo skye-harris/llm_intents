@@ -2,7 +2,7 @@
 
 Additional tools for LLM-backed Assist for Home Assistant:
 
-* **Web Search** powered by your choice of _Brave_, _Tavily_ or _SearXNG_
+* **Web Search** powered by your choice of _Brave_, _Tavily_, _Keenable_ or _SearXNG_
 * **Location Search** powered by Google Places
 * **Routes & Travel Time** powered by Google Routes
 * **Wikipedia**
@@ -177,6 +177,30 @@ Uses a self-hosted SearXNG search service to return summarized results.
 | Setting             | Required | Default | Description                             |
 |---------------------|----------|---------|-----------------------------------------|
 | `Number of Results` | ✅        | `2`     | Number of results to provide to the LLM |
+
+---
+
+### 🔍 Keenable Web Search
+
+Uses the Keenable Search API to return titles, URLs and snippets. It works without an API key.
+
+##### Requirements
+
+* No API key is needed. Without a key, requests go to Keenable's public endpoint, which has lower request limits.
+    * On Keenable's default data policy, requests are logged with the query, the results and the caller's IP address, with or without an API key. See [Data and privacy](https://docs.keenable.ai/data-privacy).
+* An optional [Keenable API key](https://keenable.ai) raises the request limits.
+
+#### Configuration Steps
+
+1. Select "Keenable" as the search provider during setup.
+2. Optionally enter a Keenable API key, and set the number of results to provide to the LLM.
+
+#### Options
+
+| Setting             | Required | Default | Description                                                         |
+|---------------------|----------|---------|---------------------------------------------------------------------|
+| `API Key`           | ❌        | —       | Keenable API key. Leave empty to use the keyless public endpoint    |
+| `Number of Results` | ✅        | `5`     | Number of results to provide to the LLM                             |
 
 ---
 
@@ -438,6 +462,7 @@ I would like to thank the following people for their contributions.
   <td align="center"><a href="https://github.com/professor-sagittarius"><img src="https://avatars.githubusercontent.com/u/165941485?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/professor-sagittarius">professor-sagittarius</a></b></sub></td>
   <td align="center"><a href="https://github.com/balloob"><img src="https://avatars.githubusercontent.com/u/1444314?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/balloob">balloob</a></b></sub></td>
   <td align="center"><a href="https://github.com/Nick2253"><img src="https://avatars.githubusercontent.com/u/926554?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/Nick2253">Nick2253</a></b></sub></td>
+  <td align="center"><a href="https://github.com/KGKallasmaa"><img src="https://avatars.githubusercontent.com/u/29797627?v=4" width="64" height="64" style="border-radius:50%"></a><br><sub><b><a href="https://github.com/KGKallasmaa">KGKallasmaa</a></b></sub></td>
 </tr>
 </table>
 

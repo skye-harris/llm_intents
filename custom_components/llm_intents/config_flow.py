@@ -75,10 +75,13 @@ from .const import (
     CONF_HOME_CONTROL_ENABLED,
     CONF_HOME_CONTROL_PROMPT_TEMPLATE,
     CONF_HOURLY_WEATHER_ENTITY,
+    CONF_KEENABLE_API_KEY,
+    CONF_KEENABLE_NUM_RESULTS,
     CONF_PROVIDER_API_KEYS,
     CONF_SEARCH_PROVIDER,
     CONF_SEARCH_PROVIDER_BRAVE,
     CONF_SEARCH_PROVIDER_BRAVE_LLM,
+    CONF_SEARCH_PROVIDER_KEENABLE,
     CONF_SEARCH_PROVIDER_SEARXNG,
     CONF_SEARCH_PROVIDER_TAVILY,
     CONF_SEARCH_PROVIDERS,
@@ -103,6 +106,7 @@ from .const import (
     DOMAIN,
     PROVIDER_BRAVE,
     PROVIDER_GOOGLE,
+    PROVIDER_KEENABLE,
     PROVIDER_TAVILY,
     SERVICE_DEFAULTS,
 )
@@ -119,6 +123,7 @@ STEP_BRAVE = "brave"
 STEP_BRAVE_LLM = "brave_llm"
 STEP_SEARXNG = "searxng"
 STEP_TAVILY = "tavily"
+STEP_KEENABLE = "keenable"
 STEP_GOOGLE_API_KEY = "google_api_key"
 STEP_GOOGLE_PLACES = "google_places"
 STEP_GOOGLE_ROUTES = "google_routes"
@@ -188,6 +193,7 @@ def expand_config_for_schema(config: dict) -> dict:
     result[CONF_GOOGLE_API_KEY] = provider_keys.get(PROVIDER_GOOGLE, "")
     result[CONF_BRAVE_API_KEY] = provider_keys.get(PROVIDER_BRAVE, "")
     result[CONF_TAVILY_API_KEY] = provider_keys.get(PROVIDER_TAVILY, "")
+    result[CONF_KEENABLE_API_KEY] = provider_keys.get(PROVIDER_KEENABLE, "")
     return result
 
 
@@ -201,6 +207,8 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
         provider_keys[PROVIDER_GOOGLE] = user_input[CONF_GOOGLE_API_KEY]
     if CONF_TAVILY_API_KEY in user_input:
         provider_keys[PROVIDER_TAVILY] = user_input[CONF_TAVILY_API_KEY]
+    if CONF_KEENABLE_API_KEY in user_input:
+        provider_keys[PROVIDER_KEENABLE] = user_input[CONF_KEENABLE_API_KEY]
 
     if PROVIDER_BRAVE not in provider_keys and config_data.get(CONF_BRAVE_API_KEY):
         provider_keys[PROVIDER_BRAVE] = config_data[CONF_BRAVE_API_KEY]
@@ -210,6 +218,7 @@ def merge_provider_api_keys_from_input(config_data: dict, user_input: dict) -> N
     config_data.pop(CONF_BRAVE_API_KEY, None)
     config_data.pop(CONF_GOOGLE_API_KEY, None)
     config_data.pop(CONF_TAVILY_API_KEY, None)
+    config_data.pop(CONF_KEENABLE_API_KEY, None)
 
 
 async def get_brave_schema(
@@ -345,6 +354,30 @@ async def get_searxng_schema(hass: HomeAssistant) -> vol.Schema:
                 NumberSelectorConfig(
                     min=1,
                     max=20,
+                    step=1,
+                    mode=NumberSelectorMode.SLIDER,
+                    unit_of_measurement="Results",
+                ),
+            ),
+        },
+    )
+
+
+async def get_keenable_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the schema for optional Keenable web search configuration."""
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_KEENABLE_API_KEY,
+                default="",
+            ): str,
+            vol.Required(
+                CONF_KEENABLE_NUM_RESULTS,
+                default=SERVICE_DEFAULTS.get(CONF_KEENABLE_NUM_RESULTS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=10,
                     step=1,
                     mode=NumberSelectorMode.SLIDER,
                     unit_of_measurement="Results",
@@ -715,6 +748,10 @@ SEARCH_STEP_ORDER = {
         lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_TAVILY,
         get_tavily_schema,
     ],
+    STEP_KEENABLE: [
+        lambda data: data.get(CONF_SEARCH_PROVIDER) == CONF_SEARCH_PROVIDER_KEENABLE,
+        get_keenable_schema,
+    ],
     STEP_GOOGLE_API_KEY: [
         lambda data: (
             data.get(CONF_GOOGLE_PLACES_ENABLED)
@@ -880,6 +917,13 @@ class LlmIntentsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle Tavily configuration step."""
         return await self.handle_step(STEP_TAVILY, user_input)
+
+    async def async_step_keenable(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Keenable configuration step."""
+        return await self.handle_step(STEP_KEENABLE, user_input)
 
     async def async_step_google_api_key(
         self,
@@ -1158,6 +1202,13 @@ class LlmIntentsOptionsFlow(config_entries.OptionsFlowWithReload):
             self.config_data[CONF_TAVILY_COUNTRY] = None
 
         return await self.handle_step(STEP_TAVILY, user_input)
+
+    async def async_step_keenable(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle Keenable configuration step in options flow."""
+        return await self.handle_step(STEP_KEENABLE, user_input)
 
     async def async_step_google_api_key(
         self,
