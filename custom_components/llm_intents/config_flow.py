@@ -98,7 +98,9 @@ from .const import (
     CONF_TAVILY_SEARCH_DEPTH,
     CONF_TAVILY_SEARCH_DEPTHS,
     CONF_UNIT_CONVERTER_ENABLED,
+    CONF_WEATHER_BOTH_UNITS,
     CONF_WEATHER_ENABLED,
+    CONF_WEATHER_LOCAL_PLACE_RADIUS,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WIKIPEDIA_ENABLED,
     CONF_WIKIPEDIA_NUM_RESULTS,
@@ -654,6 +656,22 @@ async def get_weather_schema(hass: HomeAssistant) -> vol.Schema:
                     include_entities=temperature_sensors,
                 ),
             ),
+            vol.Required(
+                CONF_WEATHER_LOCAL_PLACE_RADIUS,
+                default=SERVICE_DEFAULTS.get(CONF_WEATHER_LOCAL_PLACE_RADIUS),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=0,
+                    max=20000,
+                    step=1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="km",
+                ),
+            ),
+            vol.Optional(
+                CONF_WEATHER_BOTH_UNITS,
+                default=SERVICE_DEFAULTS.get(CONF_WEATHER_BOTH_UNITS),
+            ): bool,
         },
     )
 

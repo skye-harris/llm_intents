@@ -374,6 +374,8 @@ CONF_WEATHER_DATA_INCLUDED = "weather_data_included"
 CONF_WEATHER_DATA_PRECIPITATION = "weather_data_precipitation"
 CONF_WEATHER_DATA_WIND_SPEED = "weather_data_wind_speed"
 CONF_WEATHER_TEMPERATURE_SENSOR = "current_temperature_entity"
+CONF_WEATHER_LOCAL_PLACE_RADIUS = "weather_local_place_radius"
+CONF_WEATHER_BOTH_UNITS = "weather_both_temperature_units"
 
 # Home Control constants
 CONF_HOME_CONTROL_ENABLED = "home_control_enabled"
@@ -457,6 +459,8 @@ SERVICE_DEFAULTS = {
     CONF_DAILY_WEATHER_ENTITY: None,
     CONF_HOURLY_WEATHER_ENTITY: None,
     CONF_WEATHER_TEMPERATURE_SENSOR: None,
+    CONF_WEATHER_LOCAL_PLACE_RADIUS: 100,
+    CONF_WEATHER_BOTH_UNITS: False,
     CONF_CALCULATOR_ENABLED: True,
     CONF_UNIT_CONVERTER_ENABLED: True,
     CONF_DATE_INFO_ENABLED: True,

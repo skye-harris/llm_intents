@@ -132,12 +132,16 @@
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
           "weather_hourly_entity": "Hourly Weather Entity",
-          "current_temperature_entity": "Current Temperature Sensor"
+          "current_temperature_entity": "Current Temperature Sensor",
+          "weather_local_place_radius": "Nearby Place Distance",
+          "weather_both_temperature_units": "Report Both Temperature Units"
         },
         "data_description": {
           "weather_daily_entity": "Weather entity to pull daily forecast data from",
           "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
-          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
+          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from",
+          "weather_local_place_radius": "When a named place has a namesake within this distance of your Home Assistant location, that nearby match is used instead of a more populous one elsewhere. Set to 0 to always use the best match overall",
+          "weather_both_temperature_units": "Report every temperature in both Celsius and Fahrenheit, so the LLM never has to convert between them itself"
         }
       },
       "basic_utilities": {
@@ -316,12 +320,16 @@
         "data": {
           "weather_daily_entity": "Daily Weather Entity",
           "weather_hourly_entity": "Hourly Weather Entity",
-          "current_temperature_entity": "Current Temperature Sensor"
+          "current_temperature_entity": "Current Temperature Sensor",
+          "weather_local_place_radius": "Nearby Place Distance",
+          "weather_both_temperature_units": "Report Both Temperature Units"
         },
         "data_description": {
           "weather_daily_entity": "Weather entity to pull daily forecast data from",
           "weather_hourly_entity": "Optional weather entity to include hourly forecast data from",
-          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from"
+          "current_temperature_entity": "Optional temperature sensor to include \"current\" temperature from",
+          "weather_local_place_radius": "When a named place has a namesake within this distance of your Home Assistant location, that nearby match is used instead of a more populous one elsewhere. Set to 0 to always use the best match overall",
+          "weather_both_temperature_units": "Report every temperature in both Celsius and Fahrenheit, so the LLM never has to convert between them itself"
         }
       },
       "configure_basic_utilities": {
