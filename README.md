@@ -187,7 +187,7 @@ Uses the Keenable Search API to return titles, URLs and snippets. It works witho
 ##### Requirements
 
 * No API key is needed. Without a key, requests go to Keenable's public endpoint, which has lower request limits.
-    * Keyless requests are logged by Keenable with the query and the caller's IP address. Add an API key if you don't want that.
+    * On Keenable's default data policy, requests are logged with the query, the results and the caller's IP address, with or without an API key. See [Data and privacy](https://docs.keenable.ai/data-privacy).
 * An optional [Keenable API key](https://keenable.ai) raises the request limits.
 
 #### Configuration Steps
