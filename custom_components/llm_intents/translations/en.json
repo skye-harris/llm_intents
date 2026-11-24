@@ -80,13 +80,13 @@
       },
       "keenable": {
         "title": "Configure Keenable Web Search",
-        "description": "Keenable works without a key. A key is optional and raises the request limits. Keyless requests are logged with the query and IP.",
+        "description": "Keenable works without a key. A key is optional and raises the request limits.",
         "data": {
           "keenable_api_key": "API Key (optional)",
           "keenable_num_results": "Number of Results"
         },
         "data_description": {
-          "keenable_api_key": "Leave empty to use the keyless public endpoint. Keyless requests are logged with the query and IP."
+          "keenable_api_key": "Leave empty to use the keyless public endpoint."
         }
       },
       "google_api_key": {
@@ -268,13 +268,13 @@
       },
       "keenable": {
         "title": "Configure Keenable Web Search",
-        "description": "Keenable works without a key. A key is optional and raises the request limits. Keyless requests are logged with the query and IP.",
+        "description": "Keenable works without a key. A key is optional and raises the request limits.",
         "data": {
           "keenable_api_key": "API Key (optional)",
           "keenable_num_results": "Number of Results"
         },
         "data_description": {
-          "keenable_api_key": "Leave empty to use the keyless public endpoint. Keyless requests are logged with the query and IP."
+          "keenable_api_key": "Leave empty to use the keyless public endpoint."
         }
       },
       "google_api_key": {

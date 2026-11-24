@@ -523,23 +523,6 @@ class WeatherForecastTool(BaseTool):
             ),
         ]
 
-        days = {}
-        for day in forecast:
-            dt = datetime.fromisoformat(day["datetime"]).astimezone()
-            target_date = dt.date()
-            day_night = "day" if day.get("is_daytime", True) else "night"
-            date_str = target_date.strftime("%A %-d %B")
-
-            days[date_str] = days.get(
-                date_str,
-                {
-                    "day": {},
-                    "night": {},
-                },
-            )
-
-            days[date_str][day_night] = day
-
         output = []
         for day in forecast:
             temperature = _format_temperature_range(
