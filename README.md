@@ -442,6 +442,9 @@ Additionally, the inbuilt Assist tools can be disabled on a per-tool basis, in c
 
 - **Entity History Tool** — Retrieves the past (historic) states of an entity from the Home Assistant recorder database.
     This tool returns summary statistics (min, max, average for numeric entities) along with a downsampled set of significant state changes, making it efficient for the LLM to answer questions like _"What time did [name] get home last night?"_
+    For entities with a limited set of distinct states (such as location or presence sensors), the statistics also include `state_durations` — the total time spent in each state during the search period, computed from the full history (skipped when an entity has more than 30 distinct states) — so questions like _"Where was [name] for most of today?"_ can be answered from computed totals rather than estimated from the sample. For numeric entities, the statistics also include `time_weighted_avg` — the average value weighted by how long each value was held, instead of the plain mean of state changes.
+    The entity name must match an exposed entity's name or alias exactly, as in Home Assistant itself: domain and area are strict filters, and a partial or near-miss name does not resolve. An exact `entity_id` can be passed directly, and when a name does not match, the tool returns the closest candidate entities that pass the filters so the LLM can retry with an exact `entity_id`.
+    For "how long" questions about a numeric level, the LLM can pass a `threshold` and the stats include a computed `threshold_duration` — the time the value spent above and below that level during the period.
 
 ---
 
