@@ -61,13 +61,14 @@ def _get_unit_domain(unit: str) -> UnitDomain | None:
     )
 
 
-def _parse_amount(amount: str) -> float:
+def _parse_amount(amount: str | float) -> float:
     """
     Parse a fractional or decimal amount string to a float.
 
     Supports: '2', '2.5', '1/8', '1 1/2'.
     """
-    amount = amount.strip()
+    # The LLM sometimes passes a number instead of a string
+    amount = str(amount).strip()
     if " " in amount:
         whole_part, frac_part = amount.split(" ", 1)
         num, den = frac_part.split("/")

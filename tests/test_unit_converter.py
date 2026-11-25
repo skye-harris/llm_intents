@@ -197,6 +197,9 @@ async def test_weight_conversions(
         ("2 1/4", 2.25),
         ("0 1/2", 0.5),
         ("10 3/4", 10.75),
+        # Numbers, as the LLM sometimes passes them
+        (2, 2.0),
+        (2.5, 2.5),
     ],
 )
 def test_parse_amount(amount_str: str, expected: float) -> None:
